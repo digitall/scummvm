@@ -50,7 +50,7 @@ typedef struct Message {
 
 typedef struct SaveEntry {
 	void *ptr;
-	unsigned int size;
+	uint size;
 } SaveEntry;
 
 typedef struct RegularTextEntry {
@@ -62,7 +62,7 @@ typedef struct InterpolatedValue {
 	int16 oldValue;
 	int16 newValue;
 	int16 param;
-	unsigned int timeOfRotate;
+	uint timeOfRotate;
 } InterpolatedValue;
 
 enum ActorFlags {
@@ -103,8 +103,8 @@ typedef struct Object {
 	int16 room;
 	int16 lifeMode;
 	int16 life;
-	unsigned int CHRONO;
-	unsigned int ROOM_CHRONO;
+	uint CHRONO;
+	uint ROOM_CHRONO;
 	int16 ANIM;
 	int16 animType;
 	int16 animInfo;
@@ -238,13 +238,8 @@ extern char *PtrFont;
 
 extern char *PtrCadre;
 
-extern unsigned char currentGamePalette[0x300];
-
-extern unsigned char frontBuffer[320 * 200];
-extern char rgbaBuffer[320 * 200 * 4];
-
-extern unsigned int timer;
-extern unsigned int timeGlobal;
+extern uint timer;
+extern uint timeGlobal;
 
 extern int WindowX1;
 extern int WindowY1;
@@ -432,7 +427,7 @@ extern const char *listAnimSelect[];
 
 extern int16 shakeVar1;
 extern int16 saveShakeVar1;
-extern unsigned int timerFreeze1;
+extern uint timerFreeze1;
 extern int timerSaved;
 
 extern int16 flagRotPal;
@@ -458,7 +453,7 @@ extern int clipTop;
 extern int clipRight;
 extern int clipBottom;
 
-extern unsigned char *g_MaskPtr;
+extern byte *g_MaskPtr;
 
 struct GroupState {
 	int16 m_type;           // 8

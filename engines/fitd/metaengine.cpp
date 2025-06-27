@@ -31,7 +31,7 @@
 #include "fitd/actions.h"
 #include "fitd/detection.h"
 #include "fitd/fitd.h"
-#include "fitd/vars.h"
+#include "fitd/gfx.h"
 
 class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:

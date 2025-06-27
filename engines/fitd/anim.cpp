@@ -227,7 +227,7 @@ int evaluateReal(InterpolatedValue *data) {
 	if (!data->param)
 		return data->newValue;
 
-	if (timer - data->timeOfRotate > (unsigned int)data->param) {
+	if (timer - data->timeOfRotate > (uint)data->param) {
 		data->param = 0;
 		return data->newValue;
 	}

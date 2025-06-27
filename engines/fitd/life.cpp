@@ -325,7 +325,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		currentActorPtr->ANIM = 4;
 		uint32 *chrono = (uint32 *)flowPtr;
-		unsigned int tmpChrono;
+		uint tmpChrono;
 		startChrono(&tmpChrono);
 		*chrono = tmpChrono;
 		flowPtr += 4;
@@ -602,7 +602,7 @@ static void readBook(int index, int type, int shadow) {
 }
 
 void makeMessage(int messageIdx) {
-	textEntryStruct *messagePtr = getTextFromIdx(messageIdx);
+	TextEntryStruct *messagePtr = getTextFromIdx(messageIdx);
 
 	if (messagePtr) {
 		for (int i = 0; i < 5; i++) {
@@ -622,15 +622,15 @@ void makeMessage(int messageIdx) {
 	}
 }
 
-static void unpackSequenceFrame(unsigned char *source, unsigned char *dest) {
+static void unpackSequenceFrame(byte *source, byte *dest) {
 
-	unsigned char byteCode = *source++;
+	byte byteCode = *source++;
 
 	while (byteCode) {
 		if (!--byteCode) // change pixel or skip pixel
 		{
 
-			const unsigned char changeColor = *source++;
+			const byte changeColor = *source++;
 
 			if (changeColor) {
 				*dest++ = changeColor;
@@ -640,7 +640,7 @@ static void unpackSequenceFrame(unsigned char *source, unsigned char *dest) {
 		} else if (!--byteCode) // change 2 pixels or skip 2 pixels
 		{
 
-			const unsigned char changeColor = *source++;
+			const byte changeColor = *source++;
 
 			if (changeColor) {
 				*dest++ = changeColor;
@@ -651,8 +651,8 @@ static void unpackSequenceFrame(unsigned char *source, unsigned char *dest) {
 		} else if (!--byteCode) // fill or skip
 		{
 
-			const unsigned char size = *source++;
-			const unsigned char fillColor = *source++;
+			const byte size = *source++;
+			const byte fillColor = *source++;
 
 			if (fillColor) {
 
@@ -667,7 +667,7 @@ static void unpackSequenceFrame(unsigned char *source, unsigned char *dest) {
 
 			const uint16 size = READ_LE_U16(source);
 			source += 2;
-			const unsigned char fillColor = *source++;
+			const byte fillColor = *source++;
 
 			if (fillColor) {
 
@@ -688,7 +688,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 	const int var_4 = 1;
 	int quitPlayback = 0;
 	int nextFrame = 1;
-	unsigned char localPalette[0x300];
+	byte localPalette[0x300];
 
 	Common::String buffer;
 	if (g_engine->getGameId() == GID_AITD2) {
@@ -748,7 +748,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
 				if (frameSize < 64000) // key frame
 				{
-					unpackSequenceFrame((unsigned char *)logicalScreen + 4, (unsigned char *)aux);
+					unpackSequenceFrame((byte *)logicalScreen + 4, (byte *)aux);
 				} else // delta frame
 				{
 					fastCopyScreen(logicalScreen, aux);
@@ -764,7 +764,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 			// TODO: here, timming management
 			// TODO: fade management
 
-			gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+			gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 
 			osystem_drawBackground();
 
@@ -2036,8 +2036,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				fadeOutPhys(32, 0);
 				pakLoad("ITD_RESS.PAK", lifeTempVar1, aux);
-				unsigned char lpalette[0x300];
-				copyPalette((unsigned char *)aux + 64000, lpalette);
+				byte lpalette[0x300];
+				copyPalette((byte *)aux + 64000, lpalette);
 				convertPaletteIfRequired(lpalette);
 				copyPalette(lpalette, currentGamePalette);
 				gfx_setPalette(lpalette);
@@ -2345,8 +2345,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				if (g_engine->getGameId() > GID_AITD1) {
 					fadeOutPhys(0x10, 0);
-					unsigned char lpalette[0x300];
-					copyPalette((unsigned char *)aux + 64000, lpalette);
+					byte lpalette[0x300];
+					copyPalette((byte *)aux + 64000, lpalette);
 					convertPaletteIfRequired(lpalette);
 					copyPalette(lpalette, currentGamePalette);
 					gfx_setPalette(lpalette);
@@ -2356,7 +2356,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 				osystem_drawBackground();
 
-				unsigned int chrono;
+				uint chrono;
 				startChrono(&chrono);
 
 				playSound(sampleId);
@@ -2364,12 +2364,12 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// soundFunc(0);
 
 				do {
-					unsigned int time;
+					uint time;
 					process_events();
 
 					time = evalChrono(&chrono);
 
-					if (time > (unsigned int)delay)
+					if (time > (uint)delay)
 						break;
 				} while (!key && !Click);
 

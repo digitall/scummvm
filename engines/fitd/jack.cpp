@@ -44,9 +44,9 @@ void jackReadBook(int index, int type) {
 	switch (type) {
 	case 1: // READ_BOOK
 	{
-		unsigned char *pImage = (unsigned char *)pakLoad("ITD_RESS.PAK", JACK_LIVRE);
+		byte *pImage = (byte *)pakLoad("ITD_RESS.PAK", JACK_LIVRE);
 		memcpy(aux, pImage, 320 * 200);
-		unsigned char *lpalette = pImage + 320 * 200;
+		byte *lpalette = pImage + 320 * 200;
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);

@@ -125,7 +125,7 @@ void loadRoom(int roomNumber) {
 
 	// load the new camera table and try to keep the same camera (except if changing floor)
 	for (i = 0; i < numCameraInRoom; i++) {
-		unsigned int currentCameraIdx = roomDataTable[currentRoom].cameraIdxTable[i]; // indexes are between the roomDefStruct and the first zone data
+		uint currentCameraIdx = roomDataTable[currentRoom].cameraIdxTable[i]; // indexes are between the roomDefStruct and the first zone data
 
 		assert(currentCameraIdx <= 40);
 
@@ -143,7 +143,7 @@ void loadRoom(int roomNumber) {
 		currentCameraIdx = cameraDataTable[i]->numViewedRooms;
 
 		// scan for the zone data related to the current room
-		unsigned int j;
+		uint j;
 		for (j = 0; j < currentCameraIdx; j++) {
 			if (cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == currentRoom)
 				break;

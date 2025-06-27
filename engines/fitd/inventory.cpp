@@ -178,7 +178,7 @@ void processInventory() {
 	int exitMenu = 0;
 	int choice = 0;
 	int firstTime = 1;
-	unsigned int chrono;
+	uint chrono;
 	int selectedWorldObjectIdx = 0;
 	int selectedActions = 0;
 
@@ -224,7 +224,7 @@ void processInventory() {
 	}
 	while (!exitMenu) {
 		/*
-		osystem_CopyBlockPhys((unsigned char*)backbuffer,0,0,320,200);
+		osystem_CopyBlockPhys((byte*)backbuffer,0,0,320,200);
 		osystem_startFrame();
 		osystem_cleanScreenKeepZBuffer();
 		*/
@@ -249,7 +249,7 @@ void processInventory() {
 			if (antiBounce < 1) {
 				if (localKey == 0x1C || localClick != 0 || localJoyD == 0xC) {
 					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
-					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
 					lastSelectedObjectIdx = -1;
 					selectedActions = 0;
@@ -366,7 +366,7 @@ void processInventory() {
 			}
 		}
 
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 		// osystem_flip(NULL);
 	}
 

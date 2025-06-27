@@ -57,7 +57,7 @@ int aitd1KnownCVars[] = {
 	DEAD_PERSO,
 	-1};
 
-enumLifeMacro aitd1LifeMacroTable[] =
+LifeMacro aitd1LifeMacroTable[] =
 	{
 		LM_DO_MOVE,
 		LM_ANIM_ONCE,
@@ -179,7 +179,7 @@ static void makeSlideshow() {
 }
 
 static int makeIntroScreens() {
-	unsigned int chrono;
+	uint chrono;
 
 	char *data = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
 	fastCopyScreen(data + 770, frontBuffer);
@@ -275,7 +275,7 @@ int choosePerso() {
 				fastCopyScreen(aux2, logicalScreen);
 				affBigCadre(80, 100, 160, 200);
 				copyBoxAuxLog(10, 10, 149, 190);
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
 				while (JoyD != 0) {
 					process_events();
@@ -288,7 +288,7 @@ int choosePerso() {
 				fastCopyScreen(aux2, logicalScreen);
 				affBigCadre(240, 100, 160, 200);
 				copyBoxAuxLog(170, 10, 309, 190);
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
 				while (JoyD != 0) {
 					process_events();

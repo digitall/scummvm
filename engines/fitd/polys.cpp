@@ -23,9 +23,9 @@
 
 namespace Fitd {
 
-void hline(int x1, int x2, int y, unsigned char c);
-void line(int x1, int y1, int x2, int y2, unsigned char c);
-void pixel(int x, int y, unsigned char c);
+void hline(int x1, int x2, int y, byte c);
+void line(int x1, int y1, int x2, int y2, byte c);
+void pixel(int x, int y, byte c);
 
 #define SCREENHEIGHT 200
 #define MAXPTS 10
@@ -37,7 +37,7 @@ void pixel(int x, int y, unsigned char c);
 void swapFunc(int *a, int *b);
 #define swap(a, b) (swapFunc(&a, &b))
 
-void fillpoly(int16 *datas, int n, unsigned char c) {
+void fillpoly(int16 *datas, int n, byte c) {
 	static int dots[SCREENHEIGHT][MAXPTS];
 	static int counters[SCREENHEIGHT];
 	int16 x1, y1;

@@ -22,11 +22,13 @@
 #ifndef FITD_PAK_H
 #define FITD_PAK_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
 char *pakLoad(const char *fileName, int index);
 int pakLoad(const char *name, int index, char *ptr);
-unsigned int pakGetNumFiles(const char* name);
+uint pakGetNumFiles(const char* name);
 int pakGetPakSize(const char *name, int index);
 
 } // namespace Fitd

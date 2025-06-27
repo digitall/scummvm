@@ -81,7 +81,7 @@ int aitd2KnownCVars[] =
 		POIGNARD,
 		-1};
 
-enumLifeMacro aitd2LifeMacroTable[] =
+LifeMacro aitd2LifeMacroTable[] =
 	{
 		LM_DO_MOVE, // 0
 		LM_ANIM_ONCE,
@@ -291,12 +291,12 @@ void aitd2ReadBook(int index, int type) {
 	case 0: // READ_MESSAGE
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_LETTRE, aux);
-		unsigned char lpalette[0x300];
-		copyPalette((unsigned char *)aux + 64000, lpalette);
+		byte lpalette[0x300];
+		copyPalette((byte *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 		turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
@@ -304,12 +304,12 @@ void aitd2ReadBook(int index, int type) {
 	case 1: // READ_BOOK
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_LIVRE, aux);
-		unsigned char lpalette[0x300];
-		copyPalette((unsigned char *)aux + 64000, lpalette);
+		byte lpalette[0x300];
+		copyPalette((byte *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 		turnPageFlag = 1;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
@@ -317,12 +317,12 @@ void aitd2ReadBook(int index, int type) {
 	case 2: // READ_CARNET
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_CARNET, aux);
-		unsigned char lpalette[0x300];
-		copyPalette((unsigned char *)aux + 64000, lpalette);
+		byte lpalette[0x300];
+		copyPalette((byte *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 		turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;

@@ -22,11 +22,13 @@
 #ifndef FITD_TATOU_H
 #define FITD_TATOU_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
 int make3dTatou();
-void startChrono(unsigned int* chrono);
-int evalChrono(unsigned int* chrono);
+void startChrono(uint* chrono);
+int evalChrono(uint* chrono);
 void process_events();
 void makeBlackPalette();
 void paletteFill(void *palette, byte r, byte g, byte b);

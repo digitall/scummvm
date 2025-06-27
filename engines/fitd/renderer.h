@@ -38,10 +38,10 @@ struct Renderer {
 	void (*setPalette)(const byte *palette);
 	void (*copyBlockPhys)(byte *videoBuffer, int left, int top, int right, int bottom);
 	void (*renderLine)(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color);
-	void (*fillPoly)(const int16 *buffer, int numPoint, unsigned char color, uint8 polyType);
+	void (*fillPoly)(const int16 *buffer, int numPoint, byte color, uint8 polyType);
 	void (*refreshFrontTextureBuffer)();
 	void (*flushPendingPrimitives)();
-	void (*createMask)(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
+	void (*createMask)(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
 	void (*setClip)(float left, float top, float right, float bottom);
 	void (*clearClip)();
 	void (*drawMask)(int roomId, int maskId);

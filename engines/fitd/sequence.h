@@ -27,15 +27,15 @@ namespace Fitd {
 #define NUM_MAX_SEQUENCE_PARAM 30
 
 typedef struct SequenceParam {
-	unsigned int frame;
-	unsigned int sample;
+	uint frame;
+	uint sample;
 } SequenceParam;
 
 extern int numSequenceParam;
 
 extern SequenceParam sequenceParams[NUM_MAX_SEQUENCE_PARAM];
 
-void convertPaletteIfRequired(unsigned char *lpalette);
+void convertPaletteIfRequired(byte *lpalette);
 
 } // namespace Fitd
 #endif

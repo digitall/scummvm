@@ -20,11 +20,12 @@
  */
 
 #include "engines/util.h"
+#include "graphics/screen.h"
 #include "fitd/fitd.h"
 #include "fitd/lines.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
-#include "graphics/screen.h"
+#include "fitd/gfx.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 

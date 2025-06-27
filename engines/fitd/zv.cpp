@@ -239,9 +239,9 @@ void copyZv(const ZVStruct *source, ZVStruct *dest) {
 }
 
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom) {
-	const unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
-	const unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
-	const unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
+	const uint Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
+	const uint Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
+	const uint Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
 
 	zvPtr->ZVX1 -= Xdif;
 	zvPtr->ZVX2 -= Xdif;

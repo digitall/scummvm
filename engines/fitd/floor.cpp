@@ -200,16 +200,16 @@ void loadFloor(int floorNumber) {
 
 	int i;
 	for (i = 0; i < expectedNumberOfCamera; i++) {
-		unsigned int offset;
-		unsigned char *currentCameraData = nullptr;
+		uint offset;
+		byte *currentCameraData = nullptr;
 
 		if (g_currentFloorCameraRawData == nullptr) {
 			Common::String buffer;
 
 			if (Common::File::exists(Common::String::format("CAM%02d.PAK", g_currentFloor).c_str())) {
-				currentCameraData = (unsigned char *)checkLoadMallocPak(Common::String::format("CAM%02d", g_currentFloor).c_str(), i);
+				currentCameraData = (byte *)checkLoadMallocPak(Common::String::format("CAM%02d", g_currentFloor).c_str(), i);
 			} else if (Common::File::exists(Common::String::format("CAMSAL%02d.PAK", g_currentFloor).c_str())) {
-				currentCameraData = (unsigned char *)checkLoadMallocPak(Common::String::format("CAMSAL%02d", g_currentFloor).c_str(), i);
+				currentCameraData = (byte *)checkLoadMallocPak(Common::String::format("CAMSAL%02d", g_currentFloor).c_str(), i);
 			} else {
 				assert(0);
 			}
@@ -223,10 +223,10 @@ void loadFloor(int floorNumber) {
 		// load cameras
 		if (offset < g_currentFloorCameraRawDataSize) {
 			int k;
-			unsigned char *backupDataPtr;
+			byte *backupDataPtr;
 
 			if (g_currentFloorCameraRawData) {
-				currentCameraData = (unsigned char *)(g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + i * 4));
+				currentCameraData = (byte *)(g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + i * 4));
 			}
 
 			backupDataPtr = currentCameraData;
@@ -272,7 +272,7 @@ void loadFloor(int floorNumber) {
 				}
 
 				// load camera mask
-				unsigned char *pMaskData = nullptr;
+				byte *pMaskData = nullptr;
 				if (g_engine->getGameId() >= GID_JACK) {
 					pMaskData = backupDataPtr + g_currentFloorCameraData[i].viewedRoomTable[k].offsetToMask;
 
@@ -306,7 +306,7 @@ void loadFloor(int floorNumber) {
 				}
 				// load camera cover
 				{
-					unsigned char *pZoneData;
+					byte *pZoneData;
 					int numZones;
 					int j;
 

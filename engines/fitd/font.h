@@ -30,10 +30,10 @@ typedef struct TextEntryStruct {
 	int16 index;
 	char *textPtr;
 	int16 width;
-} textEntryStruct;
+} TextEntryStruct;
 
 extern int fontHeight;
-extern textEntryStruct *tabTextes;
+extern TextEntryStruct *tabTextes;
 
 void extSetFont(char *fontData, int color);
 void setFontSpace(int interWordSpace, int interLetterSpace);
@@ -41,7 +41,7 @@ int extGetSizeFont(const char *string);
 void renderText(int x, int y, const char *string);
 void selectedMessage(int x, int y, int index, int color1, int color2);
 void simpleMessage(int x, int y, int index, int color);
-textEntryStruct *getTextFromIdx(int index);
+TextEntryStruct *getTextFromIdx(int index);
 
 } // namespace Fitd
 

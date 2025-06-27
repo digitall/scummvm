@@ -22,9 +22,13 @@
 #ifndef FITD_LINES_H
 #define FITD_LINES_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
-void line(int x1, int y1, int x2, int y2, unsigned char c);
-extern unsigned char *polyBackBuffer;
+
+void line(int x1, int y1, int x2, int y2, byte c);
+extern byte *polyBackBuffer;
+
 } // namespace Fitd
 
 #endif

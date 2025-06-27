@@ -48,7 +48,7 @@ void affSpfI(int x, int y, int param, char *gfx);
 void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
 void flushScreen();
 void setupCamera();
-void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut);
+void rotate(uint x, uint y, uint z, int *xOut, int *yOut);
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr);
 struct Body;
 int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody);
@@ -57,16 +57,15 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 void osystem_startFrame();
 void osystem_drawBackground();
 void osystem_flushPendingPrimitives();
-void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
+void osystem_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
 void osystem_drawMask(int roomId, int maskId);
 void osystem_setClip(float left, float top, float right, float bottom);
 void osystem_clearClip();
-void osystem_stopModelRender();
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
 void osystem_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size);
 void osystem_drawPoint(float X, float Y, float Z, uint8 color);
 void osystem_drawBigPoint(float X, float Y, float Z, uint8 color);
-void osystem_flip(unsigned char *videoBuffer);
+void osystem_flip(byte *videoBuffer);
 void osystem_updateScreen();
 
 void copyBoxLogPhys(int x0, int y0, int x1, int y1);

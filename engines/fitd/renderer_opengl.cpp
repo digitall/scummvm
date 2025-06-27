@@ -318,11 +318,11 @@ static void renderer_startFrame();
 static void renderer_drawBackground();
 static void renderer_setPalette(const byte *palette);
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
-static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char color, uint8 polyType);
+static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uint8 polyType);
 static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color);
 static void renderer_refreshFrontTextureBuffer();
 static void renderer_flushPendingPrimitives();
-static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
+static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
 static void renderer_setClip(float left, float top, float right, float bottom);
 static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
@@ -510,8 +510,8 @@ static void renderer_setPalette(const byte *palette) {
 }
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
-	unsigned char *out = _state->physicalScreenRGB;
-	const unsigned char *in = &videoBuffer[0] + left + top * 320;
+	byte *out = _state->physicalScreenRGB;
+	const byte *in = &videoBuffer[0] + left + top * 320;
 
 	while ((right - left) % 4) {
 		right++;
@@ -523,9 +523,9 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 
 	for (int i = top; i < bottom; i++) {
 		in = &videoBuffer[0] + left + i * 320;
-		unsigned char *out2 = _state->physicalScreen + left + i * 320;
+		byte *out2 = _state->physicalScreen + left + i * 320;
 		for (int j = left; j < right; j++) {
-			const unsigned char color = *in++;
+			const byte color = *in++;
 
 			*out++ = _state->RGB_Pal[color * 3];
 			*out++ = _state->RGB_Pal[color * 3 + 1];
@@ -544,7 +544,7 @@ static void renderer_refreshFrontTextureBuffer() {
 	const byte *in = _state->physicalScreen;
 
 	for (int i = 0; i < 200 * 320; i++) {
-		const unsigned char color = *in++;
+		const byte color = *in++;
 		*out++ = _state->RGB_Pal[color * 3];
 		*out++ = _state->RGB_Pal[color * 3 + 1];
 		*out++ = _state->RGB_Pal[color * 3 + 2];
@@ -644,7 +644,7 @@ static void renderer_flushPendingPrimitives() {
 	_state->numUsedTransparentVertices = 0;
 }
 
-static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
 	if (_state->maskTextures.size() < (uint)(roomId + 1)) {
 		_state->maskTextures.resize(roomId + 1);
 	}
@@ -771,7 +771,7 @@ static void renderer_drawMask(int roomId, int maskId) {
 	glDepthMask(GL_TRUE);
 }
 
-static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char color, uint8 polyType) {
+static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uint8 polyType) {
 #define MAX_POINTS_PER_POLY 50
 	// float UVArray[MAX_POINTS_PER_POLY];
 

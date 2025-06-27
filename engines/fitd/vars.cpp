@@ -55,12 +55,6 @@ char *PtrFont;
 
 char *PtrCadre;
 
-unsigned char currentGamePalette[256 * 3];
-
-// OSystem osystem;
-
-char rgbaBuffer[320 * 200 * 4];
-
 uint timer;
 uint timeGlobal;
 
@@ -278,7 +272,7 @@ int16 newRoom;
 
 int16 shakeVar1;
 int16 saveShakeVar1;
-unsigned int timerFreeze1;
+uint timerFreeze1;
 int timerSaved = 0;
 
 int16 flagRotPal;
@@ -312,7 +306,7 @@ int clipTop = 0;
 int clipRight = 319;
 int clipBottom = 119;
 
-unsigned char *g_MaskPtr = nullptr;
+byte *g_MaskPtr = nullptr;
 
 HqrEntry *listMus;
 HqrEntry *listSamp;

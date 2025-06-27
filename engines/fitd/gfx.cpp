@@ -109,6 +109,7 @@ int renderY;
 int renderZ;
 Renderer renderer;
 byte frontBuffer[320 * 200];
+byte currentGamePalette[256 * 3];
 
 void gfx_init() {
 	const Common::RenderMode configRenderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
@@ -149,7 +150,7 @@ void gfx_refreshFrontTextureBuffer() {
 	renderer.refreshFrontTextureBuffer();
 }
 
-static void osystem_fillPoly(int16 *buffer, int numPoint, unsigned char color, uint8 polyType) {
+static void osystem_fillPoly(int16 *buffer, int numPoint, byte color, uint8 polyType) {
 	renderer.fillPoly(buffer, numPoint, color, polyType);
 }
 
@@ -192,7 +193,7 @@ void setAngleCamera(int x, int y, int z) {
 	}
 }
 
-void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut) {
+void rotate(uint x, uint y, uint z, int *xOut, int *yOut) {
 	if (x) {
 		const int var1 = (((cosTable[(x + 0x100) & 0x3FF] * y) << 1) & 0xFFFF0000) - (((cosTable[x & 0x3FF] * z) << 1) & 0xFFFF0000);
 		const int var2 = (((cosTable[x & 0x3FF] * y) << 1) & 0xFFFF0000) + (((cosTable[(x + 0x100) & 0x3FF] * z) << 1) & 0xFFFF0000);
@@ -1121,16 +1122,11 @@ void flushScreen() {
 	}
 }
 
-void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+void osystem_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
 	renderer.createMask(mask, roomId, maskId, refImage, maskX1, maskY1, maskX2, maskY2);
 }
 
-void osystem_stopModelRender() {
-	osystem_flushPendingPrimitives();
-}
-
 void osystem_setClip(float left, float top, float right, float bottom) {
-
 	renderer.setClip(left, top, right, bottom);
 }
 
@@ -1142,7 +1138,7 @@ void osystem_drawMask(int roomId, int maskId) {
 	renderer.drawMask(roomId, maskId);
 }
 
-void osystem_flip(unsigned char *videoBuffer) {
+void osystem_flip(byte *videoBuffer) {
 	osystem_flushPendingPrimitives();
 }
 

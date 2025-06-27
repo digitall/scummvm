@@ -23,10 +23,9 @@
 #ifndef FITD_SAVE_H
 #define FITD_SAVE_H
 
-#include "common/str.h"
-
 namespace Common {
 class SeekableReadStream;
+class String;
 class WriteStream;
 } // namespace Common
 

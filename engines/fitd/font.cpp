@@ -25,7 +25,7 @@
 
 namespace Fitd {
 
-textEntryStruct *tabTextes;
+TextEntryStruct *tabTextes;
 int fontHeight = 16;
 
 char *fontVar1 = nullptr;
@@ -173,7 +173,7 @@ void renderText(int x, int y, const char *string) {
 	}
 }
 
-textEntryStruct *getTextFromIdx(int index) {
+TextEntryStruct *getTextFromIdx(int index) {
 
 	for (int currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
 		if (tabTextes[currentIndex].index == index) {
@@ -186,7 +186,7 @@ textEntryStruct *getTextFromIdx(int index) {
 
 void selectedMessage(int x, int y, int index, int color1, int color2) {
 
-	const textEntryStruct *entryPtr = getTextFromIdx(index);
+	const TextEntryStruct *entryPtr = getTextFromIdx(index);
 
 	if (!entryPtr)
 		return;
@@ -203,7 +203,7 @@ void selectedMessage(int x, int y, int index, int color1, int color2) {
 }
 
 void simpleMessage(int x, int y, int index, int color) {
-	const textEntryStruct *entryPtr = getTextFromIdx(index);
+	const TextEntryStruct *entryPtr = getTextFromIdx(index);
 
 	if (!entryPtr)
 		return;

@@ -124,7 +124,7 @@ static const int AITD2MusicToTrackMapping[21] = {
 static const int musicVolume = 0x7F;
 static char OPLinitialized = 0;
 static OPL::OPL *_opl;
-static unsigned char regBDConf = 0xC0;
+static byte regBDConf = 0xC0;
 static uint8 musicParam1 = 0;
 static uint8 *currentMusicPtr = nullptr;
 static uint8 *currentMusicPtr2 = nullptr;
@@ -698,7 +698,7 @@ static int musicLoad(void *ptr) {
 
 	for (int i = 0; i < 11; i++) {
 
-		const unsigned long int offset = READ_LE_U32(musicPtr + i * 4 + 8);
+		const uint64 offset = READ_LE_U32(musicPtr + i * 4 + 8);
 
 		if (offset) {
 			channelTable2[i].dataPtr = musicPtr + offset;

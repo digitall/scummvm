@@ -24,12 +24,12 @@
 
 namespace Fitd {
 
-void convertPaletteIfRequired(unsigned char *lpalette) {
+void convertPaletteIfRequired(byte *lpalette) {
 	if (g_engine->getGameId() >= GID_JACK && g_engine->getGameId() <= GID_AITD3) {
-		unsigned char *ptr2 = lpalette;
+		byte *ptr2 = lpalette;
 		for (int i = 0; i < 256; i++) {
 			for (int j = 0; j < 3; j++) {
-				unsigned int composante = *ptr2;
+				uint composante = *ptr2;
 				composante *= 255;
 				composante /= 63;
 				*ptr2++ = composante & 0xFF;

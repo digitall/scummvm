@@ -42,7 +42,7 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 	pPakInfo->offset = f.readSint16LE();
 }
 
-unsigned int pakGetNumFiles(const char* name)
+uint pakGetNumFiles(const char* name)
 {
     Common::File f;
     f.open(name);
@@ -92,7 +92,7 @@ char *pakLoad(const char *fileName, int index) {
 		f.read(compressedDataPtr, pakInfo.discSize);
 		ptr = (char *)malloc(pakInfo.uncompressedSize);
 
-		PAK_explode((unsigned char *)compressedDataPtr, (unsigned char *)ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
+		PAK_explode((byte *)compressedDataPtr, (byte *)ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
 
 		free(compressedDataPtr);
 		break;
@@ -102,7 +102,7 @@ char *pakLoad(const char *fileName, int index) {
 		f.read(compressedDataPtr, pakInfo.discSize);
 		ptr = (char *)malloc(pakInfo.uncompressedSize);
 
-		PAK_deflate((unsigned char *)compressedDataPtr, (unsigned char *)ptr, pakInfo.discSize, pakInfo.uncompressedSize);
+		PAK_deflate((byte *)compressedDataPtr, (byte *)ptr, pakInfo.discSize, pakInfo.uncompressedSize);
 
 		free(compressedDataPtr);
 		break;

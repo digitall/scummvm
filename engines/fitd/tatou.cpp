@@ -104,7 +104,7 @@ void makeBlackPalette() {
 }
 
 void paletteFill(void *palette, byte r, byte g, byte b) {
-	unsigned char *paletteLocal = (unsigned char *)palette;
+	byte *paletteLocal = (byte *)palette;
 	int offset = 0;
 
 	r <<= 1;
@@ -129,11 +129,11 @@ void fastCopyScreen(void *source, void *dest) {
 	memcpy(dest, source, 64000);
 }
 
-void startChrono(unsigned int *chrono) {
+void startChrono(uint *chrono) {
 	*chrono = timer;
 }
 
-int evalChrono(unsigned int *chrono) {
+int evalChrono(uint *chrono) {
 	return timer - *chrono;
 }
 

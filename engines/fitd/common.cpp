@@ -57,7 +57,7 @@
 
 namespace Fitd {
 
-const unsigned char defaultPalette[0x30] = {
+const byte defaultPalette[0x30] = {
 	0x00,
 	0x00,
 	0x00,
@@ -107,7 +107,7 @@ const unsigned char defaultPalette[0x30] = {
 	0x3F,
 	0x3F};
 
-const unsigned char defaultPaletteAITD3[0x30] = {
+const byte defaultPaletteAITD3[0x30] = {
 	0x00,
 	0x00,
 	0x00,
@@ -274,7 +274,7 @@ static void drawGradient(int x1, int x2) {
 
 static void turnPageForward() {
 	setClip(0, 0, 319, 199);
-	gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 	char *saveLogicalScreen = logicalScreen;
 	logicalScreen = (char *)&frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
@@ -320,7 +320,7 @@ static void turnPageBackward() {
 
 	logicalScreen = saveLogicalScreen;
 
-	gfx_copyBlockPhys((unsigned char *)saveLogicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys((byte *)saveLogicalScreen, 0, 0, 320, 200);
 	osystem_drawBackground();
 }
 
@@ -437,7 +437,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				currentText->textPtr = ptrt;
 
 				do {
-					var_1C3 = *(unsigned char *)ptrt++;
+					var_1C3 = *(byte *)ptrt++;
 				} while (var_1C3 > ' '); // go to the end of the string
 
 				*(ptrt - 1) = 0; // add end of string marker to cut the word
@@ -544,13 +544,13 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 		if (firstpage) {
 			if (demoMode != 1) {
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 				fadeInPhys(16, 0);
 			} else {
 				if (turnPageFlag) {
 					turnPageForward();
 				} else {
-					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 					osystem_drawBackground();
 				}
 			}
@@ -564,7 +564,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 					turnPageBackward();
 				}
 			} else {
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 				osystem_drawBackground();
 			}
 		}
@@ -645,7 +645,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			}
 		} else // Demo mode: pages automatically flips
 		{
-			unsigned int var_6;
+			uint var_6;
 			startChrono(&var_6);
 
 			do {
@@ -682,7 +682,7 @@ void initEngine() {
 	int choosePersoBackup = 0;
 
 	f.open("OBJETS.ITD");
-	const unsigned long int objectDataSize = f.size();
+	const uint64 objectDataSize = f.size();
 
 	uint8 *pObjectDataBackup = pObjectData = (uint8 *)malloc(objectDataSize);
 	assert(pObjectData);
@@ -924,7 +924,7 @@ static void loadCamera(int cameraIdx) {
 	}
 
 	if (g_engine->getGameId() >= GID_JACK) {
-		copyPalette((unsigned char *)aux + 64000, currentGamePalette);
+		copyPalette((byte *)aux + 64000, currentGamePalette);
 
 		if (g_engine->getGameId() == GID_AITD3) {
 			for (int i = 0; i < 16; i++) {
@@ -964,14 +964,14 @@ static void loadMask(int cameraIdx) {
 		free(g_MaskPtr);
 	}
 
-	g_MaskPtr = (unsigned char *)pakLoad(name.c_str(), cameraIdx);
+	g_MaskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
 
 	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
 		const CameraViewedRoom *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
-		unsigned char *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
+		byte *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
-			const unsigned char *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
+			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
 
 			maskStruct *pDestMask = &g_maskBuffers[i][j];
 
@@ -997,13 +997,13 @@ static void loadMask(int cameraIdx) {
 				const uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
 				pMaskData += 2;
 
-				// unsigned char *pSourceBuffer = (unsigned char *)aux;
+				// byte *pSourceBuffer = (byte *)aux;
 
 				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
 				for (int l = 0; l < uNumEntryForLine; l++) {
-					const unsigned char uNumSkip = *pMaskData++;
-					const unsigned char uNumCopy = *pMaskData++;
+					const byte uNumSkip = *pMaskData++;
+					const byte uNumCopy = *pMaskData++;
 
 					offset += uNumSkip;
 
@@ -1014,13 +1014,13 @@ static void loadMask(int cameraIdx) {
 				}
 			}
 
-			osystem_createMask(pDestMask->mask, i, j, (unsigned char *)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+			osystem_createMask(pDestMask->mask, i, j, (byte *)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}
 	}
 }
 
-void fillpoly(int16 *datas, int n, unsigned char c);
-extern unsigned char *polyBackBuffer;
+void fillpoly(int16 *datas, int n, byte c);
+extern byte *polyBackBuffer;
 
 static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
@@ -1081,18 +1081,18 @@ static void createAITD1Mask() {
 				polyBackBuffer = nullptr;
 			}
 
-			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (unsigned char *)aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
+			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (byte *)aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
 
 			const int numOverlay = *(int16 *)data;
 			data += 2;
 			data += (numOverlay * 4 + 1) * 2;
 		}
 
-		/*		unsigned char* pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i*4);
+		/*		byte* pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i*4);
 
 		for(int j=0; j<pRoomView->numMask; j++)
 		{
-		unsigned char* pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j*4);
+		byte* pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j*4);
 
 		maskStruct* pDestMask = &g_maskBuffers[i][j];
 
@@ -1119,15 +1119,15 @@ static void createAITD1Mask() {
 		u16 uNumEntryForLine = READ_LE_U16(pMaskData);
 		pMaskData += 2;
 
-		unsigned char* pDestBuffer = pDestMask->mask;
-		unsigned char* pSourceBuffer = (unsigned char*)aux;
+		byte* pDestBuffer = pDestMask->mask;
+		byte* pSourceBuffer = (byte*)aux;
 
 		int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
 		for(int l=0; l<uNumEntryForLine; l++)
 		{
-		unsigned char uNumSkip = *(pMaskData++);
-		unsigned char uNumCopy = *(pMaskData++);
+		byte uNumSkip = *(pMaskData++);
+		byte uNumCopy = *(pMaskData++);
 
 		offset += uNumSkip;
 
@@ -1139,7 +1139,7 @@ static void createAITD1Mask() {
 		}
 		}
 
-		osystem_createMask(pDestMask->mask, i, j, (unsigned char*)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+		osystem_createMask(pDestMask->mask, i, j, (byte*)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}*/
 	}
 
@@ -1999,7 +1999,7 @@ static void drawSpecialObject(int actorIdx) {
 	case 4: {
 		// cigar smoke
 		const uint32 *chronoPtr = (uint32 *)flowPtr;
-		unsigned int tmpChrono = *chronoPtr;
+		uint tmpChrono = *chronoPtr;
 		const uint chrono = evalChrono(&tmpChrono);
 		const int16 chrono1 = (int16)((chrono & 0xFFFF0000) >> 16);
 		const int16 chrono2 = (int16)(chrono & 0x0000FFFF);
@@ -2127,7 +2127,7 @@ void mainDraw(int flagFlip) {
 	// if(flagFlip == 2)
 	{
 		if (cameraBackgroundChanged) {
-			gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+			gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 			cameraBackgroundChanged = false;
 		}
 	}
@@ -2206,14 +2206,14 @@ void mainDraw(int flagFlip) {
 		}
 	}
 
-	osystem_stopModelRender();
+	osystem_flushPendingPrimitives();
 
 	if (drawTextOverlay()) {
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
+		gfx_copyBlockPhys((byte *)logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 	} else {
 		// TODO: check if it's okay
 		fastCopyScreen(aux, logicalScreen);
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 	}
 
 	if (!lightOff) {
@@ -2378,7 +2378,7 @@ void foundObject(int objIdx, int param) {
 	input5 = 1;
 
 	while (!var_C && !Engine::shouldQuit()) {
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
 		process_events();
 		osystem_drawBackground();
@@ -3004,7 +3004,7 @@ static void setupScreen() {
 }
 
 static void loadPalette() {
-	unsigned char localPalette[768];
+	byte localPalette[768];
 
 	if (g_engine->getGameId() == GID_AITD2) {
 		pakLoad("ITD_RESS.PAK", 59, aux);
@@ -3022,7 +3022,7 @@ static void loadPalette() {
 static void allocTextes() {
 	int currentIndex;
 
-	tabTextes = (textEntryStruct *)malloc(NUM_MAX_TEXT_ENTRY * sizeof(textEntryStruct)); // 2000 = 250 * 8
+	tabTextes = (TextEntryStruct *)malloc(NUM_MAX_TEXT_ENTRY * sizeof(TextEntryStruct)); // 2000 = 250 * 8
 
 	assert(tabTextes);
 
@@ -3078,7 +3078,7 @@ static void allocTextes() {
 
 				do {
 					currentPosInTextes++;
-				} while ((unsigned char)*(currentPosInTextes - 1) >= ' '); // detect the end of the string
+				} while ((byte)*(currentPosInTextes - 1) >= ' '); // detect the end of the string
 
 				*(currentPosInTextes - 1) = 0; // add the end of string
 

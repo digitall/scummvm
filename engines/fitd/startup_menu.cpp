@@ -84,7 +84,7 @@ static void drawStartupMenu(int selectedEntry) {
 
 int processStartupMenu() {
 	int currentSelectedEntry = 0;
-	unsigned int chrono;
+	uint chrono;
 	int selectedEntry = -1;
 
 	flushScreen();
@@ -101,7 +101,7 @@ int processStartupMenu() {
 
 	osystem_startFrame();
 	// osystem_stopFrame();
-	gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
 	osystem_flip(nullptr);
 	fadeInPhys(16, 0);
@@ -113,7 +113,7 @@ int processStartupMenu() {
 			selectedEntry = 2;
 		}
 
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 
 		if (selectedEntry != -1 || evalChrono(&chrono) > 0x10000) {

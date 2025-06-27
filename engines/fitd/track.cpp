@@ -135,9 +135,9 @@ void gereManualRot(int param) {
 
 #define DISTANCE_TO_POINT_TRESSHOLD 400
 
-unsigned int lastTimeForward = 0;
+uint lastTimeForward = 0;
 
-char *getRoomLink(unsigned int room1, unsigned int room2) {
+char *getRoomLink(uint room1, uint room2) {
 	char *zoneData = (char *)getRoomData(room1);
 
 	zoneData += *(int16 *)zoneData;
@@ -318,7 +318,7 @@ void processTrack() {
 				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			const unsigned int distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
 																  x, z);
 
@@ -778,7 +778,7 @@ void processTrack2() {
 				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			const unsigned int distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
 																  x, z);
 

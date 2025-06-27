@@ -87,8 +87,8 @@ void aitd2AffOption(int n, int num, int selected) {
 
 void aitd2DisplayOptions(int selectedStringNumber) {
 	pakLoad("ITD_RESS.PAK", 17, logicalScreen);
-	unsigned char lpalette[0x300];
-	copyPalette((unsigned char *)logicalScreen + 64000, lpalette);
+	byte lpalette[0x300];
+	copyPalette((byte *)logicalScreen + 64000, lpalette);
 	convertPaletteIfRequired(lpalette);
 	copyPalette(lpalette, currentGamePalette);
 	gfx_setPalette(lpalette);
@@ -334,7 +334,7 @@ void processSystemMenu() {
 
 	while (!exitMenu && !Engine::shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
-		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();

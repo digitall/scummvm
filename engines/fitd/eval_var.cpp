@@ -35,7 +35,7 @@ namespace Fitd {
 int getPosRelTable[] = {4, 1, 8, 2, 4, 1, 8, 0};
 
 int getMatrix(int param1, int actorIdx, int param2) {
-	unsigned char *matrixPtr = (unsigned char *)HQR_Get(listMatrix, param1);
+	byte *matrixPtr = (byte *)HQR_Get(listMatrix, param1);
 
 	const int matrixWidth = *matrixPtr++;
 	(void)*matrixPtr++;

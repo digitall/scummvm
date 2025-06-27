@@ -20,19 +20,19 @@
  *
  */
 
-#include "fitd/save.h"
-
 #include "common/stream.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
+#include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
 #include "fitd/music.h"
 #include "fitd/room.h"
+#include "fitd/save.h"
+#include "fitd/system_menu.h"
 #include "fitd/vars.h"
-#include "system_menu.h"
 
 namespace Fitd {
 
@@ -257,7 +257,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	in->seek(8, SEEK_SET);
 
-	const unsigned int var28 = in->readUint32BE();
+	const uint var28 = in->readUint32BE();
 
 	in->seek(var28, SEEK_SET);
 
@@ -426,7 +426,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	playMusic(var_16);
 
 	in->seek(12, SEEK_SET);
-	const unsigned int offsetToVars = in->readUint32BE();
+	const uint offsetToVars = in->readUint32BE();
 	in->seek(offsetToVars, SEEK_SET);
 
 	const uint16 tempVarSize = in->readUint16LE();
@@ -446,7 +446,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	}
 
 	in->seek(16, SEEK_SET);
-	const unsigned int offsetToActors = in->readUint32BE();
+	const uint offsetToActors = in->readUint32BE();
 	in->seek(offsetToActors, SEEK_SET);
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -870,7 +870,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	}
 
 	in->seek(16, SEEK_SET);
-	const unsigned int offsetToActors = in->readUint32BE();
+	const uint offsetToActors = in->readUint32BE();
 	in->seek(offsetToActors, SEEK_SET);
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {

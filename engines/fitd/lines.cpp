@@ -26,7 +26,7 @@ namespace Fitd {
 #define ENTER
 #define LEAVE
 
-unsigned char *polyBackBuffer = nullptr;
+byte *polyBackBuffer = nullptr;
 
 void swapFunc(int *a, int *b) {
 	const int temp = *a;
@@ -38,27 +38,27 @@ void swapFunc(int *a, int *b) {
 #define MAX(a, b) (a > b ? a : b)
 #define SWAP(a, b) (swapFunc(&a, &b))
 
-void pixel(int x, int y, unsigned char c) {
+void pixel(int x, int y, byte c) {
 	if (x >= 0 && x < 320 && y >= 0 && y < 200) {
 		*(polyBackBuffer + y * 320 + x) = c;
 	}
 }
 
-void hline(int x1, int x2, int y, unsigned char c) {
+void hline(int x1, int x2, int y, byte c) {
 
 	for (int i = x1; i < x2 + 1; i++) {
 		pixel(i, y, c);
 	}
 }
 
-void vline(int x, int y1, int y2, unsigned char c) {
+void vline(int x, int y1, int y2, byte c) {
 
 	for (int i = y1; i < y2 + 1; i++) {
 		pixel(x, i, c);
 	}
 }
 
-void bsubline_1(int x1, int y1, int x2, int y2, unsigned char c) {
+void bsubline_1(int x1, int y1, int x2, int y2, byte c) {
 	int x, y;
 	int ddx = abs(x2 - x1);
 	const int ddy = abs(y2 - y1) << 1;
@@ -85,7 +85,7 @@ void bsubline_1(int x1, int y1, int x2, int y2, unsigned char c) {
 	LEAVE;
 }
 
-void bsubline_2(int x1, int y1, int x2, int y2, unsigned char c) {
+void bsubline_2(int x1, int y1, int x2, int y2, byte c) {
 	int x, y;
 	const int ddx = abs(x2 - x1) << 1;
 	int ddy = abs(y2 - y1);
@@ -112,7 +112,7 @@ void bsubline_2(int x1, int y1, int x2, int y2, unsigned char c) {
 	LEAVE;
 }
 
-void bsubline_3(int x1, int y1, int x2, int y2, unsigned char c) {
+void bsubline_3(int x1, int y1, int x2, int y2, byte c) {
 	int x, y;
 	const int ddx = abs(x1 - x2) << 1;
 	int ddy = abs(y2 - y1);
@@ -139,7 +139,7 @@ void bsubline_3(int x1, int y1, int x2, int y2, unsigned char c) {
 	LEAVE;
 }
 
-void bsubline_4(int x1, int y1, int x2, int y2, unsigned char c) {
+void bsubline_4(int x1, int y1, int x2, int y2, byte c) {
 	int x, y;
 	const int ddy = abs(y2 - y1) << 1;
 	int ddx = abs(x1 - x2);
@@ -162,7 +162,7 @@ void bsubline_4(int x1, int y1, int x2, int y2, unsigned char c) {
 	}
 }
 
-void line(int x1, int y1, int x2, int y2, unsigned char c) {
+void line(int x1, int y1, int x2, int y2, byte c) {
 	if (x1 == x2 && y1 == y2) {
 		pixel(x1, y1, c);
 		return;

@@ -182,8 +182,8 @@ static void drawObjects() {
 
 		InputS16("lifeMode", &pObject->lifeMode);
 		InputS16("life", &pObject->life);
-		// unsigned int CHRONO;
-		// unsigned int ROOM_CHRONO;
+		// uint CHRONO;
+		// uint ROOM_CHRONO;
 		InputS16("ANIM", &pObject->ANIM);
 		InputS16("animType", &pObject->animType);
 		InputS16("animInfo", &pObject->animInfo);

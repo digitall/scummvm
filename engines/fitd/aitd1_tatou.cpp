@@ -64,7 +64,7 @@ void process_events() {
 
 int make3dTatou() {
 	byte paletteBackup[768];
-	unsigned int localChrono;
+	uint localChrono;
 
 	char *tatou2d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG);
 	char *tatou3d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO);

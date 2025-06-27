@@ -26,7 +26,7 @@
 
 namespace Fitd {
 
-typedef enum enumLifeMacro {
+typedef enum LifeMacro {
 	LM_INVALID = -1,
 	LM_DO_MOVE = 0,
 	LM_ANIM_ONCE,
@@ -154,13 +154,12 @@ typedef enum enumLifeMacro {
 	LM_FADE_OUT_MUSIC_STOP,      // 116
 	LM_MUSIC_ALTER_TEMPO,        // 117
 	LM_REP_SAMPLE_N_TIME,        // 118
-} enumLifeMacro;
+} LifeMacro;
 
-extern enumLifeMacro aitd1LifeMacroTable[];
-extern enumLifeMacro aitd2LifeMacroTable[];
+extern LifeMacro aitd1LifeMacroTable[];
+extern LifeMacro aitd2LifeMacroTable[];
 
 struct ZVStruct;
-struct Object;
 
 void processLife(int lifeNum, bool callFoundLife);
 int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr);

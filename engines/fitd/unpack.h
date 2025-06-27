@@ -18,10 +18,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifndef _UNPACK_DAMIEN_H_
-#define _UNPACK_DAMIEN_H_
+#ifndef FITD_UNPACK_H
+#define FITD_UNPACK_H
 
-int PAK_deflate(unsigned char * srcBuffer, unsigned char * dstBuffer, unsigned int compressedSize, unsigned int uncompressedSize);
-int PAK_explode(unsigned char * srcBuffer, unsigned char * dstBuffer, unsigned int compressedSize, unsigned int uncompressedSize, unsigned short flags);
+#include "common/scummsys.h"
+
+namespace Fitd {
+
+int PAK_deflate(byte * srcBuffer, byte * dstBuffer, uint compressedSize, uint uncompressedSize);
+int PAK_explode(byte * srcBuffer, byte * dstBuffer, uint compressedSize, uint uncompressedSize, uint16 flags);
+
+}
 
 #endif
