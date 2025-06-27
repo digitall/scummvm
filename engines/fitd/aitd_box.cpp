@@ -225,4 +225,13 @@ void affBigCadre2(int x, int y, int width, int height) {
 	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
 }
 
+void initCopyBox(char *var0, char *var1) {
+	screenSm1 = var0;
+	screenSm2 = var0;
+
+	screenSm3 = var1;
+	screenSm4 = var1;
+	screenSm5 = var1;
+}
+
 } // namespace Fitd

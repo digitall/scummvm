@@ -58,23 +58,23 @@ int boneRotateYSin;
 int boneRotateZCos;
 int boneRotateZSin;
 
-typedef struct rendererPointStruct {
+typedef struct RendererPoint {
 	int16 X;
 	int16 Y;
 	int16 Z;
-} rendererPointStruct;
+} RendererPoint;
 
-typedef struct primEntryStruct {
+typedef struct PrimEntry {
 	uint8 material;
 	uint8 color;
 	uint16 size;
 	uint16 numOfVertices;
-	primTypeEnum type;
-	rendererPointStruct vertices[NUM_MAX_VERTEX_IN_PRIM];
+	PrimType type;
+	RendererPoint vertices[NUM_MAX_VERTEX_IN_PRIM];
 	float depth;
-} primEntryStruct;
+} PrimEntry;
 
-primEntryStruct primTable[NUM_MAX_PRIM_ENTRY];
+PrimEntry primTable[NUM_MAX_PRIM_ENTRY];
 
 bool noModelRotation;
 
@@ -273,7 +273,7 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 	*cx = (int16)Z;
 }
 
-static void TranslateGroupe(int transX, int transY, int transZ, const sGroup *ptr) {
+static void TranslateGroupe(int transX, int transY, int transZ, const Group *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
@@ -283,7 +283,7 @@ static void TranslateGroupe(int transX, int transY, int transZ, const sGroup *pt
 	}
 }
 
-static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const sGroup *ptr) {
+static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const Group *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
@@ -361,7 +361,7 @@ static void RotateList(int16 *pointPtr, int numOfPoint) {
 	}
 }
 
-static void RotateGroupeOptimise(const sGroup *ptr) {
+static void RotateGroupeOptimise(const Group *ptr) {
 	if (ptr->m_numGroup) // if group number is 0
 	{
 		const int baseBone = ptr->m_start;
@@ -371,7 +371,7 @@ static void RotateGroupeOptimise(const sGroup *ptr) {
 	}
 }
 
-static void RotateGroupe(sGroup *ptr) {
+static void RotateGroupe(Group *ptr) {
 	const int baseBone = ptr->m_start;
 	const int numPoints = ptr->m_numVertices;
 
@@ -391,7 +391,7 @@ static void RotateGroupe(sGroup *ptr) {
 	} while (--temp2);
 }
 
-static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
+static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody) {
 	renderX = x - translateX;
 	renderY = y;
 	renderZ = z - translateZ;
@@ -410,7 +410,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 
 	if (pBody->m_flags & INFO_OPTIMISE) {
 		for (uint i = 0; i < pBody->m_groupOrder.size(); i++) {
-			const sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
+			const Group *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			switch (pGroup->m_state.m_type) {
 			case 1:
@@ -434,7 +434,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		pBody->m_groups[0].m_state.m_delta[2] = gamma;
 
 		for (uint i = 0; i < pBody->m_groups.size(); i++) {
-			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
+			Group *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			const int transX = pGroup->m_state.m_delta[0];
 			const int transY = pGroup->m_state.m_delta[1];
@@ -461,7 +461,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 	}
 
 	for (uint i = 0; i < pBody->m_groups.size(); i++) {
-		const sGroup *pGroup = &pBody->m_groups[i];
+		const Group *pGroup = &pBody->m_groups[i];
 
 		int point1 = pGroup->m_baseVertices * 6;
 		int point2 = pGroup->m_start * 6;
@@ -687,12 +687,12 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 	return 1;
 }
 
-int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
+int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody) {
 	return rotateNuage2(x, y, z, alpha, beta, gamma, pBody->m_vertices.size(), &pBody->m_vertices[0].x);
 }
 
-static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {
-	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+static void processPrim_Line(int primType, Primitive *ptr, char **out) {
+	PrimEntry *pCurrentPrimEntry = &primTable[positionInPrimEntry];
 
 	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
 
@@ -723,8 +723,8 @@ static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {
 	}
 }
 
-static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
-	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+static void processPrim_Poly(int primType, Primitive *ptr, char **out) {
+	PrimEntry *pCurrentPrimEntry = &primTable[positionInPrimEntry];
 
 	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
 
@@ -763,8 +763,8 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 	}
 }
 
-static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out) {
-	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+static void processPrim_Point(PrimType primType, Primitive *ptr, char **out) {
+	PrimEntry *pCurrentPrimEntry = &primTable[positionInPrimEntry];
 
 	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
 
@@ -794,7 +794,7 @@ static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out
 }
 
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr) {
-	sBody *pBody = getBodyFromPtr(bodyPtr);
+	Body *pBody = getBodyFromPtr(bodyPtr);
 
 	BBox3D1 = 0x7FFF;
 	BBox3D2 = 0x7FFF;
@@ -816,8 +816,8 @@ void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char 
 	}
 }
 
-void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
-	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+void processPrim_Sphere(int primType, Primitive *ptr, char **out) {
+	PrimEntry *pCurrentPrimEntry = &primTable[positionInPrimEntry];
 
 	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
 
@@ -847,19 +847,19 @@ void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
 	}
 }
 
-typedef void (*renderFunction)(primEntryStruct *buffer);
+typedef void (*renderFunction)(PrimEntry *buffer);
 
-void renderLine(primEntryStruct *pEntry) // line
+void renderLine(PrimEntry *pEntry) // line
 {
 	renderer.renderLine(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->vertices[1].X, pEntry->vertices[1].Y, pEntry->vertices[1].Z, pEntry->color);
 }
 
-void renderPoly(primEntryStruct *pEntry) // poly
+void renderPoly(PrimEntry *pEntry) // poly
 {
 	osystem_fillPoly((int16 *)pEntry->vertices, pEntry->numOfVertices, pEntry->color, pEntry->material);
 }
 
-void renderZixel(primEntryStruct *pEntry) // point
+void renderZixel(PrimEntry *pEntry) // point
 {
 	const float pointSize = 20.f;
 	const float transformedSize = pointSize * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
@@ -867,17 +867,17 @@ void renderZixel(primEntryStruct *pEntry) // point
 	osystem_drawZixel(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
-void renderPoint(primEntryStruct *pEntry) // point
+void renderPoint(PrimEntry *pEntry) // point
 {
 	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
-void renderBigPoint(primEntryStruct *pEntry) // point
+void renderBigPoint(PrimEntry *pEntry) // point
 {
 	osystem_drawBigPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
-void renderSphere(primEntryStruct *pEntry) // sphere
+void renderSphere(PrimEntry *pEntry) // sphere
 {
 	const float transformedSize = (float)pEntry->size * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
 
@@ -900,13 +900,13 @@ renderFunction renderFunctions[] = {
 /// @param prim2 Second primitive to test.
 /// @return 0 if equals, -1 if primitive has to be first else 1.
 static int primCompare(const void *prim1, const void *prim2) {
-	const primEntryStruct *p1 = (const primEntryStruct *)prim1;
-	const primEntryStruct *p2 = (const primEntryStruct *)prim2;
+	const PrimEntry *p1 = (const PrimEntry *)prim1;
+	const PrimEntry *p2 = (const PrimEntry *)prim2;
 	return (int)p2->depth - (int)p1->depth;
 }
 
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {
-	sBody *pBody = getBodyFromPtr(modelPtr);
+	Body *pBody = getBodyFromPtr(modelPtr);
 	const char *ptr = (char *)modelPtr;
 	int i;
 	char *out;
@@ -974,8 +974,8 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 
 	// create the list of all primitives to render
 	for (i = 0; i < numPrim; i++) {
-		sPrimitive *pPrimitive = &pBody->m_primitives[i];
-		const primTypeEnum primType = pPrimitive->m_type;
+		Primitive *pPrimitive = &pBody->m_primitives[i];
+		const PrimType primType = pPrimitive->m_type;
 
 		switch (primType) {
 		case primTypeEnum_Line:
@@ -1039,7 +1039,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 #endif
 #endif
 	if (numOfPrimitiveToRender) {
-		qsort(primTable, numOfPrimitiveToRender, sizeof(primEntryStruct), primCompare);
+		qsort(primTable, numOfPrimitiveToRender, sizeof(PrimEntry), primCompare);
 	}
 
 	//

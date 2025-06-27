@@ -74,7 +74,7 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 
 		const int currentObj = inventoryTable[currentInventory][startIdx];
 
-		const tWorldObject *objPtr = &ListWorldObjets[currentObj];
+		const WorldObject *objPtr = &ListWorldObjets[currentObj];
 
 		if (startIdx == selectIdx) {
 			if (g_engine->getGameId() <= GID_JACK) {
@@ -124,7 +124,7 @@ void renderInventoryObject(int arg) {
 	}
 	switch (g_engine->getGameId()) {
 	case GID_AITD2:
-		redrawInventorySpriteAITD2();
+		aitd2RedrawInventorySprite();
 		break;
 	default:
 		break;
@@ -167,7 +167,7 @@ void drawInventoryActions(int arg) {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD2:
-		redrawInventorySpriteAITD2();
+		aitd2RedrawInventorySprite();
 		break;
 	default:
 		break;
@@ -214,10 +214,10 @@ void processInventory() {
 
 		break;
 	case GID_AITD2:
-		drawInventoryAITD2();
+		aitd2DrawInventory();
 		break;
 	case GID_AITD3:
-		drawInventoryAITD3();
+		aitd3DrawInventory();
 		break;
 	default:
 		assert(0);

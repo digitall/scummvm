@@ -100,9 +100,9 @@ void getZvMax(char *bodyPtr, ZVStruct *zvPtr) {
 	zvPtr->ZVZ2 = x2;
 }
 
-int asmCheckListCol(const ZVStruct *zvPtr, roomDataStruct *pRoomData) {
+int asmCheckListCol(const ZVStruct *zvPtr, RoomData *pRoomData) {
 	int hardColVar = 0;
-	hardColStruct *pCurrentEntry = pRoomData->hardColTable.data();
+	HardCol *pCurrentEntry = pRoomData->hardColTable.data();
 
 	for (uint16 i = 0; i < pRoomData->numHardCol; i++) {
 		if (pCurrentEntry->zv.ZVX1 < zvPtr->ZVX2 && zvPtr->ZVX1 < pCurrentEntry->zv.ZVX2) {
@@ -275,7 +275,7 @@ int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2) {
 
 int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 	int currentCollisionSlot = 0;
-	tObject *currentActor = objectTable;
+	Object *currentActor = objectTable;
 	const int actorRoom = objectTable[actorIdx].room;
 
 	for (int i = 0; i < 3; i++) {

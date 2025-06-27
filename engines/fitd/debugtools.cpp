@@ -45,7 +45,7 @@ static void drawCamera() {
 	if (ImGui::Begin("Camera", &_state->showCamera)) {
 		ImGui::Text("timer: %u", timer);
 
-		cameraDataStruct *pCamera = cameraDataTable[currentCamera];
+		CameraData *pCamera = cameraDataTable[currentCamera];
 		if (pCamera) {
 			ImGui::BeginGroup();
 			ImGui::PushID("Position");
@@ -97,7 +97,7 @@ static void drawObjects() {
 			if ((uint)selectedWorldObject > ListWorldObjets.size())
 				selectedWorldObject = ListWorldObjets.size() - 1;
 
-			tWorldObject *pWorldObject = &ListWorldObjets[selectedWorldObject];
+			WorldObject *pWorldObject = &ListWorldObjets[selectedWorldObject];
 
 			if (pWorldObject) {
 				InputS16("objectIndex", &pWorldObject->objIndex);
@@ -144,7 +144,7 @@ static void drawObjects() {
 		if (selectedObject > NUM_MAX_OBJECT)
 			selectedObject = NUM_MAX_OBJECT - 1;
 
-		tObject *pObject = &objectTable[selectedObject];
+		Object *pObject = &objectTable[selectedObject];
 
 		ImGui::PushItemWidth(100);
 

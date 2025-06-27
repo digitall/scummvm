@@ -32,9 +32,9 @@
 
 namespace Fitd {
 
-int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animtype, int animInfo) {
+int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animType, int animInfo) {
 	int i;
-	tObject *actorPtr = objectTable;
+	Object *actorPtr = objectTable;
 	char *bodyPtr = nullptr;
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -73,7 +73,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->ANIM = anim;
 	actorPtr->FRAME = frame;
 
-	actorPtr->animType = animtype;
+	actorPtr->animType = animType;
 	actorPtr->animInfo = animInfo;
 
 	actorPtr->END_FRAME = 1;
@@ -101,12 +101,12 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 		actorPtr->hardMat = -1;
 	}
 
-	actorPtr->rotate.oldAngle = 0;
-	actorPtr->rotate.newAngle = 0;
+	actorPtr->rotate.oldValue = 0;
+	actorPtr->rotate.newValue = 0;
 	actorPtr->rotate.param = 0;
 
-	actorPtr->YHandler.oldAngle = 0;
-	actorPtr->YHandler.newAngle = 0;
+	actorPtr->YHandler.oldValue = 0;
+	actorPtr->YHandler.newValue = 0;
 	actorPtr->YHandler.param = 0;
 
 	actorPtr->falling = 0;

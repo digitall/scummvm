@@ -26,37 +26,37 @@
 
 namespace Fitd {
 
-typedef struct hqrSubEntryStruct
+typedef struct HqrSubEntry
 {
     int16 key;
     int16 size;
     uint lastTimeUsed;
     char* ptr;
-} hqrSubEntryStruct;
+} HqrSubEntry;
 
-typedef struct hqrEntryStruct {
+typedef struct HqrEntry {
 	Common::String string;
 	uint16 maxFreeData;
 	uint16 sizeFreeData;
 	uint16 numMaxEntry;
 	uint16 numUsedEntry;
-	hqrSubEntryStruct *entries;
-} hqrEntryStruct;
+	HqrSubEntry *entries;
+} HqrEntry;
 
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct *hqrPtr, int size);
-char *HQ_PtrMalloc(hqrEntryStruct *hqrPtr, int index);
-void HQ_Name(hqrEntryStruct * ptr, const char * name);
-hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries);
-hqrEntryStruct *HQR_Init(int size, int numEntry);
-void HQR_Reset(hqrEntryStruct *hqrPtr);
-void HQR_Free(hqrEntryStruct *hqrPtr);
+char *HQR_Get(HqrEntry *hqrPtr, int index);
+int HQ_Malloc(HqrEntry *hqrPtr, int size);
+char *HQ_PtrMalloc(HqrEntry *hqrPtr, int index);
+void HQ_Name(HqrEntry * ptr, const char * name);
+HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries);
+HqrEntry *HQR_Init(int size, int numEntry);
+void HQR_Reset(HqrEntry *hqrPtr);
+void HQR_Free(HqrEntry *hqrPtr);
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+struct Body;
+Body *getBodyFromPtr(void *ptr);
 
-struct sAnimation;
-sAnimation *getAnimationFromPtr(void *ptr);
+struct Animation;
+Animation *getAnimationFromPtr(void *ptr);
 
 } // namespace Fitd
 

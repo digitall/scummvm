@@ -31,13 +31,13 @@
 
 namespace Fitd {
 
+static int shakeTime = 4;
+
 static void clearScreenTatou() {
 	for (int i = 0; i < 45120; i++) {
 		frontBuffer[i] = 0;
 	}
 }
-
-static int shakeTime = 4;
 
 void process_events() {
 	// TODO: fix this

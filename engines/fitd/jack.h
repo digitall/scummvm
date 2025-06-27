@@ -23,8 +23,8 @@
 #define FITD_JACK_H
 
 namespace Fitd {
-void startJACK(int saveSlot);
-void JACK_ReadBook(int index, int type);
+void jackStart(int saveSlot);
+void jackReadBook(int index, int type);
 } // namespace Fitd
 
 #endif

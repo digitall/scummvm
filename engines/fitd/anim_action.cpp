@@ -62,9 +62,9 @@ int getCVarsIdx(int searchedType) {
 	return getCVarsIdx((enumCVars)searchedType);
 }
 
-static sceZoneStruct *processActor2Sub(int x, int y, int z, roomDataStruct *pRoomData) {
+static SceZone *processActor2Sub(int x, int y, int z, RoomData *pRoomData) {
 
-	sceZoneStruct *pCurrentZone = pRoomData->sceZoneTable.data();
+	SceZone *pCurrentZone = pRoomData->sceZoneTable.data();
 
 	for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 		if (pCurrentZone->zv.ZVX1 <= x && pCurrentZone->zv.ZVX2 >= x) {
@@ -123,7 +123,7 @@ void gereFrappe() {
 		int collision = checkObjectCollisions(currentProcessedActorIdx, &rangeZv);
 
 		for (int i = 0; i < collision; i++) {
-			tObject *actorPtr2;
+			Object *actorPtr2;
 
 			currentProcessedActorPtr->HIT = currentProcessedActorPtr->COL[i];
 			actorPtr2 = &objectTable[currentProcessedActorPtr->COL[i]];
@@ -200,7 +200,7 @@ void gereFrappe() {
 		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			int objIdx = currentProcessedActorPtr->animActionParam;
 
-			tWorldObject *objPtr = &ListWorldObjets[objIdx];
+			WorldObject *objPtr = &ListWorldObjets[objIdx];
 
 			int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
 			int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
@@ -253,7 +253,7 @@ void gereFrappe() {
 	{
 		int objIdx;
 		int actorIdx;
-		tObject *actorPtr;
+		Object *actorPtr;
 
 		currentProcessedActorPtr->animActionType = 0;
 
@@ -321,7 +321,7 @@ void gereFrappe() {
 				currentProcessedActorPtr->hotPoint.y = 0;
 				currentProcessedActorPtr->hotPoint.z = 0;
 				currentProcessedActorPtr->HIT = hitObjIndex;
-				tObject *hitObj = &objectTable[hitObjIndex];
+				Object *hitObj = &objectTable[hitObjIndex];
 				hitObj->HIT_BY = currentProcessedActorIdx;
 				hitObj->hitForce = currentProcessedActorPtr->hitForce;
 			}
@@ -330,7 +330,7 @@ void gereFrappe() {
 	}
 	case 9: // during throw
 	{
-		tWorldObject *objPtr = &ListWorldObjets[currentProcessedActorPtr->indexInWorld];
+		WorldObject *objPtr = &ListWorldObjets[currentProcessedActorPtr->indexInWorld];
 
 		ZVStruct rangeZv;
 		ZVStruct rangeZv2;
@@ -379,7 +379,7 @@ void gereFrappe() {
 
 		do {
 			int collision;
-			sceZoneStruct *ptr;
+			SceZone *ptr;
 
 			walkStep(0, -step, currentProcessedActorPtr->beta);
 			step += 100;
@@ -449,7 +449,7 @@ void gereFrappe() {
 						return;
 
 					} else {
-						tObject *actorPtr;
+						Object *actorPtr;
 
 						currentProcessedActorPtr->HIT = currentActorCol;
 						actorPtr = &objectTable[currentActorCol];

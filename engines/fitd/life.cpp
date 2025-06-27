@@ -49,7 +49,7 @@ int16 specialTable[4] = {144, 192, 48, 112};
 
 int numSequenceParam = 0;
 
-sequenceParamStruct sequenceParams[NUM_MAX_SEQUENCE_PARAM];
+SequenceParam sequenceParams[NUM_MAX_SEQUENCE_PARAM];
 
 static const char *sequenceListAITD2[] =
 	{
@@ -109,7 +109,7 @@ static void throwObj(int animThrow, int frameThrow, int arg_4, int objToThrowIdx
 }
 
 static void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamma, int idx) {
-	tWorldObject *objPtr = &ListWorldObjets[idx];
+	WorldObject *objPtr = &ListWorldObjets[idx];
 
 	objPtr->x = x;
 	objPtr->y = y;
@@ -155,7 +155,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 	memcpy(localSpecialTable, specialTable, 8);
 
-	tObject *currentActorPtr = objectTable;
+	Object *currentActorPtr = objectTable;
 
 	int i;
 	for (i = 0; i < NUM_MAX_OBJECT; i++) // count the number of active actors
@@ -530,7 +530,7 @@ void setupRealZv(ZVStruct *zvPtr) {
 	}
 }
 
-static void doRealZv(tObject *actorPtr) {
+static void doRealZv(Object *actorPtr) {
 
 	computeScreenBox(0, 0, 0, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, HQR_Get(listBody, actorPtr->bodyNum));
 
@@ -559,11 +559,11 @@ static void hit(int animNumber, int arg_2, int arg_4, int arg_6, int hitForce, i
 
 static void deleteObject(int objIdx) {
 
-	tWorldObject *objPtr = &ListWorldObjets[objIdx];
+	WorldObject *objPtr = &ListWorldObjets[objIdx];
 	const int actorIdx = objPtr->objIndex;
 
 	if (actorIdx != -1) {
-		tObject *actorPtr = &objectTable[actorIdx];
+		Object *actorPtr = &objectTable[actorIdx];
 
 		actorPtr->room = -1;
 		actorPtr->stage = -1;
@@ -586,13 +586,13 @@ static void readBook(int index, int type, int shadow) {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		aitd1_readBook(index, type, shadow);
+		aitd1ReadBook(index, type, shadow);
 		break;
 	case GID_JACK:
-		JACK_ReadBook(index, type);
+		jackReadBook(index, type);
 		break;
 	case GID_AITD2:
-		AITD2_ReadBook(index, type);
+		aitd2ReadBook(index, type);
 		break;
 	default:
 		assert(0);
@@ -699,7 +699,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 		assert(0);
 	}
 
-	const int numMaxFrames = PAK_getNumFiles(buffer.c_str());
+	const int numMaxFrames = pakGetNumFiles(buffer.c_str());
 
 	while (!quitPlayback) {
 		int currentFrameId = 0;
@@ -714,7 +714,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 				break;
 			}
 
-			if (!loadPak(buffer.c_str(), currentFrameId, logicalScreen)) {
+			if (!pakLoad(buffer.c_str(), currentFrameId, logicalScreen)) {
 				error("Error loading pak %s", buffer.c_str());
 			}
 
@@ -892,12 +892,12 @@ static void affCbm(byte *p1, byte *p2) {
 }
 
 static void endSequence() {
-	loadPak("CAMERA06.PAK", 7, aux);
+	pakLoad("CAMERA06.PAK", 7, aux);
 	gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
 	osystem_drawBackground();
 	osystem_updateScreen();
 
-	loadPak("ENDSEQ.PAK", 0, aux);
+	pakLoad("ENDSEQ.PAK", 0, aux);
 	fastCopyScreen(aux + 770, aux2);
 
 	byte pal1[256 * 3];
@@ -915,7 +915,7 @@ static void endSequence() {
 		for (int j = 1; j < 12; ++j) {
 			process_events();
 			fastCopyScreen(aux2, logicalScreen);
-			loadPak("ENDSEQ.PAK", j, aux);
+			pakLoad("ENDSEQ.PAK", j, aux);
 			affCbm((byte *)aux, (byte *)logicalScreen);
 			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
@@ -926,7 +926,7 @@ static void endSequence() {
 		for (int j = 12; j < 23; ++j) {
 			process_events();
 			fastCopyScreen(aux2, logicalScreen);
-			loadPak("ENDSEQ.PAK", j, aux);
+			pakLoad("ENDSEQ.PAK", j, aux);
 			affCbm((byte *)aux, (byte *)logicalScreen);
 			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
@@ -937,7 +937,7 @@ static void endSequence() {
 		for (int j = 23; j < 32; ++j) {
 			process_events();
 			fastCopyScreen(aux2, logicalScreen);
-			loadPak("ENDSEQ.PAK", j, aux);
+			pakLoad("ENDSEQ.PAK", j, aux);
 			affCbm((byte *)aux, (byte *)logicalScreen);
 			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
@@ -1012,9 +1012,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 					int opcodeLocated;
 
 					if (g_engine->getGameId() == GID_AITD1) {
-						opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+						opcodeLocated = aitd1LifeMacroTable[currentOpcode & 0x7FFF];
 					} else {
-						opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
+						opcodeLocated = aitd2LifeMacroTable[currentOpcode & 0x7FFF];
 					}
 
 					switch (opcodeLocated) {
@@ -1202,9 +1202,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 		processOpcode:
 
 			if (g_engine->getGameId() == GID_AITD1) {
-				opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+				opcodeLocated = aitd1LifeMacroTable[currentOpcode & 0x7FFF];
 			} else {
-				opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
+				opcodeLocated = aitd2LifeMacroTable[currentOpcode & 0x7FFF];
 			}
 
 			switch (opcodeLocated) {
@@ -1637,7 +1637,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar2 = readNextArgument("speed");
 
 				if (currentProcessedActorPtr->beta != lifeTempVar1) {
-					if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->rotate.newAngle != lifeTempVar1) {
+					if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->rotate.newValue != lifeTempVar1) {
 						initRealValue(currentProcessedActorPtr->beta, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
 					}
 
@@ -1653,7 +1653,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar2 = readNextArgument("speed");
 
 				if (currentProcessedActorPtr->alpha != lifeTempVar1) {
-					if (currentProcessedActorPtr->rotate.param == 0 || lifeTempVar1 != currentProcessedActorPtr->rotate.newAngle) {
+					if (currentProcessedActorPtr->rotate.param == 0 || lifeTempVar1 != currentProcessedActorPtr->rotate.newValue) {
 						initRealValue(currentProcessedActorPtr->alpha, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
 					}
 
@@ -2035,7 +2035,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				freezeTime();
 
 				fadeOutPhys(32, 0);
-				loadPak("ITD_RESS.PAK", lifeTempVar1, aux);
+				pakLoad("ITD_RESS.PAK", lifeTempVar1, aux);
 				unsigned char lpalette[0x300];
 				copyPalette((unsigned char *)aux + 64000, lpalette);
 				convertPaletteIfRequired(lpalette);
@@ -2341,7 +2341,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				freezeTime();
 
-				loadPak("ITD_RESS.PAK", pictureIndex, aux);
+				pakLoad("ITD_RESS.PAK", pictureIndex, aux);
 
 				if (g_engine->getGameId() > GID_AITD1) {
 					fadeOutPhys(0x10, 0);

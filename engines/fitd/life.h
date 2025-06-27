@@ -156,11 +156,11 @@ typedef enum enumLifeMacro {
 	LM_REP_SAMPLE_N_TIME,        // 118
 } enumLifeMacro;
 
-extern enumLifeMacro AITD1LifeMacroTable[];
-extern enumLifeMacro AITD2LifeMacroTable[];
+extern enumLifeMacro aitd1LifeMacroTable[];
+extern enumLifeMacro aitd2LifeMacroTable[];
 
 struct ZVStruct;
-struct tObject;
+struct Object;
 
 void processLife(int lifeNum, bool callFoundLife);
 int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr);

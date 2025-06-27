@@ -23,7 +23,9 @@
 #define FITD_AITD3_H
 
 namespace Fitd {
-void startAITD3(int saveSlot);
-void drawInventoryAITD3();
+
+void aitd3Start(int saveSlot);
+void aitd3DrawInventory();
+
 } // namespace Fitd
 #endif

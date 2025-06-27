@@ -50,8 +50,8 @@ void flushScreen();
 void setupCamera();
 void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut);
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr);
-struct sBody;
-int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody);
+struct Body;
+int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody);
 int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num, int16 *vertices);
 
 void osystem_startFrame();

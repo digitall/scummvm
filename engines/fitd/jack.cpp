@@ -35,16 +35,16 @@ namespace Fitd {
 #define JACK_LIVRE 2
 #define JACK_IM_EXT_JACK 3
 
-void startJACK(int saveSlot) {
+void jackStart(int saveSlot) {
 	fontHeight = 16; // TODO: check
 	startGame(16, 1, 1);
 }
 
-void JACK_ReadBook(int index, int type) {
+void jackReadBook(int index, int type) {
 	switch (type) {
 	case 1: // READ_BOOK
 	{
-		unsigned char *pImage = (unsigned char *)loadPak("ITD_RESS.PAK", JACK_LIVRE);
+		unsigned char *pImage = (unsigned char *)pakLoad("ITD_RESS.PAK", JACK_LIVRE);
 		memcpy(aux, pImage, 320 * 200);
 		unsigned char *lpalette = pImage + 320 * 200;
 		convertPaletteIfRequired(lpalette);

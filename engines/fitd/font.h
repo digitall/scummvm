@@ -26,7 +26,7 @@
 
 namespace Fitd {
 
-typedef struct textEntryStruct {
+typedef struct TextEntryStruct {
 	int16 index;
 	char *textPtr;
 	int16 width;

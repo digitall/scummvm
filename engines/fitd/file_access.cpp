@@ -44,7 +44,7 @@ char *loadFromItd(const char *name) {
 }
 
 char *checkLoadMallocPak(const char *name, int index) {
-	char *ptr = loadPak(name, index);
+	char *ptr = pakLoad(name, index);
 	if (!ptr) {
 		error("%s", name);
 	}

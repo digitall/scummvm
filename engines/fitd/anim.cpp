@@ -223,16 +223,16 @@ int initAnim(int animNum, int animType, int animInfo) {
 	return 1;
 }
 
-int evaluateReal(interpolatedValue *data) {
+int evaluateReal(InterpolatedValue *data) {
 	if (!data->param)
-		return data->newAngle;
+		return data->newValue;
 
 	if (timer - data->timeOfRotate > (unsigned int)data->param) {
 		data->param = 0;
-		return data->newAngle;
+		return data->newValue;
 	}
 
-	return (data->newAngle - data->oldAngle) * (timer - data->timeOfRotate) / data->param + data->oldAngle;
+	return (data->newValue - data->oldValue) * (timer - data->timeOfRotate) / data->param + data->oldValue;
 }
 
 int manageFall(int actorIdx, ZVStruct *zvPtr) {
@@ -240,7 +240,7 @@ int manageFall(int actorIdx, ZVStruct *zvPtr) {
 	const int room = objectTable[actorIdx].room;
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		tObject *currentTestedActorPtr = &objectTable[i];
+		Object *currentTestedActorPtr = &objectTable[i];
 
 		if (currentTestedActorPtr->indexInWorld != -1 && i != actorIdx) {
 			const ZVStruct *testedZv = &currentTestedActorPtr->zv;
@@ -376,11 +376,11 @@ void updateAnimation() {
 			stepY = evaluateReal(&currentProcessedActorPtr->YHandler) - oldStepY;
 		} else // stop falling
 		{
-			stepY = currentProcessedActorPtr->YHandler.newAngle - oldStepY;
+			stepY = currentProcessedActorPtr->YHandler.newValue - oldStepY;
 
 			currentProcessedActorPtr->YHandler.param = 0;
-			currentProcessedActorPtr->YHandler.newAngle = 0;
-			currentProcessedActorPtr->YHandler.oldAngle = 0;
+			currentProcessedActorPtr->YHandler.newValue = 0;
+			currentProcessedActorPtr->YHandler.oldValue = 0;
 		}
 	} else {
 		stepY = 0;
@@ -407,7 +407,7 @@ void updateAnimation() {
 			int numCol = asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
 
 			for (int i = 0; i < numCol; i++) {
-				hardColStruct *pHardCol = hardColTable[i];
+				HardCol *pHardCol = hardColTable[i];
 
 				if (pHardCol->type == 9) {
 					currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
@@ -461,7 +461,7 @@ void updateAnimation() {
 		{
 			int collisionIndex = currentProcessedActorPtr->COL[j];
 
-			tObject *actorTouchedPtr = &objectTable[collisionIndex];
+			Object *actorTouchedPtr = &objectTable[collisionIndex];
 
 			actorTouchedPtr->COL_BY = currentProcessedActorIdx;
 
@@ -619,7 +619,7 @@ void updateAnimation() {
 		int collisionIndex = localTable[i];
 
 		if (collisionIndex != -1) {
-			tObject *actorTouchedPtr = &objectTable[collisionIndex];
+			Object *actorTouchedPtr = &objectTable[collisionIndex];
 
 			if (actorTouchedPtr->_flags & AF_MOVABLE) {
 				int j;
@@ -805,7 +805,7 @@ void PatchInterStep(char **bodyPtr, int bp, int bx) // local
 int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 	int numOfBonesInAnim = *(int16 *)(animPtr + 2);
 
-	const sBody *pBody = getBodyFromPtr(bodyPtr);
+	const Body *pBody = getBodyFromPtr(bodyPtr);
 
 	const int flag = pBody->m_flags;
 

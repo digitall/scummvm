@@ -26,6 +26,7 @@ namespace Fitd {
 
 void affBigCadre(int x, int y, int width, int height);
 void affBigCadre2(int x, int y, int width, int height);
+void initCopyBox(char *var0, char *var1);
 
 }
 

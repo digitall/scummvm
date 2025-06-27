@@ -29,10 +29,10 @@
 
 namespace Fitd {
 
-Common::Array<sBody *> vBodies;
-Common::Array<sAnimation *> vAnimations;
+Common::Array<Body *> vBodies;
+Common::Array<Animation *> vAnimations;
 
-hqrSubEntryStruct *quickFindEntry(int index, int numMax, hqrSubEntryStruct *ptr) {
+HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 	// no RE. Original was probably faster
 	for (int i = 0; i < numMax; i++) {
 		if (ptr[i].key == index && ptr[i].ptr) {
@@ -43,9 +43,9 @@ hqrSubEntryStruct *quickFindEntry(int index, int numMax, hqrSubEntryStruct *ptr)
 	return nullptr;
 }
 
-hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
+HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries) {
 
-	hqrEntryStruct *dest = new hqrEntryStruct;
+	HqrEntry *dest = new HqrEntry;
 
 	if (!dest)
 		return nullptr;
@@ -58,7 +58,7 @@ hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntries;
 	dest->numUsedEntry = 0;
-	dest->entries = (hqrSubEntryStruct *)malloc(numEntries * sizeof(hqrSubEntryStruct));
+	dest->entries = (HqrSubEntry *)malloc(numEntries * sizeof(HqrSubEntry));
 
 	for (int i = 0; i < numEntries; i++) {
 		dest->entries[i].ptr = nullptr;
@@ -67,14 +67,14 @@ hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
 	return dest;
 }
 
-int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
+int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 
 	if (hqrPtr->sizeFreeData < size)
 		return -1;
 
 	const int entryNum = hqrPtr->numUsedEntry;
 
-	hqrSubEntryStruct *dataPtr1 = hqrPtr->entries;
+	HqrSubEntry *dataPtr1 = hqrPtr->entries;
 
 	const int hq_key = hqrKeyGen;
 
@@ -91,14 +91,14 @@ int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
 	return hq_key;
 }
 
-char *HQ_PtrMalloc(hqrEntryStruct *hqrPtr, int index) {
+char *HQ_PtrMalloc(HqrEntry *hqrPtr, int index) {
 
 	if (index < 0)
 		return nullptr;
 
-	hqrSubEntryStruct *dataPtr = hqrPtr->entries;
+	HqrSubEntry *dataPtr = hqrPtr->entries;
 
-	const hqrSubEntryStruct *ptr = quickFindEntry(index, hqrPtr->numUsedEntry, dataPtr);
+	const HqrSubEntry *ptr = quickFindEntry(index, hqrPtr->numUsedEntry, dataPtr);
 
 	if (!ptr)
 		return nullptr;
@@ -106,7 +106,7 @@ char *HQ_PtrMalloc(hqrEntryStruct *hqrPtr, int index) {
 	return ptr->ptr;
 }
 
-void moveHqrEntry(hqrEntryStruct *hqrPtr, int index) {
+void moveHqrEntry(HqrEntry *hqrPtr, int index) {
 	const int size = hqrPtr->entries[index].size;
 
 	free(hqrPtr->entries[index].ptr);
@@ -115,10 +115,10 @@ void moveHqrEntry(hqrEntryStruct *hqrPtr, int index) {
 	hqrPtr->sizeFreeData += size;
 }
 
-sAnimation *createAnimationFromPtr(void *ptr) {
+Animation *createAnimationFromPtr(void *ptr) {
 	const uint8 *animPtr = (uint8 *)ptr;
 
-	sAnimation *pAnimation = new sAnimation;
+	Animation *pAnimation = new Animation;
 
 	pAnimation->m_raw = ptr;
 	pAnimation->m_numFrames = READ_LE_U16(animPtr);
@@ -128,7 +128,7 @@ sAnimation *createAnimationFromPtr(void *ptr) {
 
 	pAnimation->m_frames.resize(pAnimation->m_numFrames);
 	for (int i = 0; i < pAnimation->m_numFrames; i++) {
-		sFrame *pFrame = &pAnimation->m_frames[i];
+		Frame *pFrame = &pAnimation->m_frames[i];
 
 		pFrame->m_timestamp = READ_LE_U16(animPtr);
 		animPtr += 2;
@@ -141,7 +141,7 @@ sAnimation *createAnimationFromPtr(void *ptr) {
 
 		pFrame->m_groups.resize(pAnimation->m_numGroups);
 		for (int j = 0; j < pAnimation->m_numGroups; j++) {
-			sGroupState *pGroup = &pFrame->m_groups[j];
+			GroupState *pGroup = &pFrame->m_groups[j];
 
 			pGroup->m_type = READ_LE_S16(animPtr);
 			animPtr += 2;
@@ -158,10 +158,10 @@ sAnimation *createAnimationFromPtr(void *ptr) {
 	return pAnimation;
 }
 
-static sBody *createBodyFromPtr(void *ptr) {
+static Body *createBodyFromPtr(void *ptr) {
 	uint8 *bodyBuffer = (uint8 *)ptr;
 
-	sBody *newBody = new sBody;
+	Body *newBody = new Body;
 
 	newBody->m_raw = ptr;
 	newBody->m_flags = READ_LE_U16(bodyBuffer);
@@ -281,7 +281,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 	bodyBuffer += 2;
 	newBody->m_primitives.resize(numPrimitives);
 	for (int i = 0; i < numPrimitives; i++) {
-		newBody->m_primitives[i].m_type = (primTypeEnum)READ_LE_U8(bodyBuffer);
+		newBody->m_primitives[i].m_type = (PrimType)READ_LE_U8(bodyBuffer);
 		bodyBuffer += 1;
 
 		switch (newBody->m_primitives[i].m_type) {
@@ -381,12 +381,12 @@ static sBody *createBodyFromPtr(void *ptr) {
 	return newBody;
 }
 
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
+char *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	if (index < 0)
 		return nullptr;
 
-	hqrSubEntryStruct *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
+	HqrSubEntry *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
 
 	if (foundEntry) {
 		foundEntry->lastTimeUsed = timer;
@@ -396,7 +396,7 @@ char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
 	}
 
 	freezeTime();
-	const int size = getPakSize(hqrPtr->string.c_str(), index);
+	const int size = pakGetPakSize(hqrPtr->string.c_str(), index);
 
 	if (size == 0)
 		return nullptr;
@@ -423,7 +423,7 @@ char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
 
 	char *ptr = foundEntry->ptr;
 
-	loadPak(hqrPtr->string.c_str(), index, foundEntry->ptr);
+	pakLoad(hqrPtr->string.c_str(), index, foundEntry->ptr);
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;
@@ -433,12 +433,12 @@ char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
 	return ptr;
 }
 
-hqrEntryStruct *HQR_Init(int size, int numEntry) {
+HqrEntry *HQR_Init(int size, int numEntry) {
 
 	assert(size > 0);
 	assert(numEntry > 0);
 
-	hqrEntryStruct *dest = new hqrEntryStruct;
+	HqrEntry *dest = new HqrEntry;
 
 	numEntry = 2000;
 
@@ -462,7 +462,7 @@ hqrEntryStruct *HQR_Init(int size, int numEntry) {
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntry;
 	dest->numUsedEntry = 0;
-	dest->entries = (hqrSubEntryStruct *)malloc(numEntry * sizeof(hqrSubEntryStruct));
+	dest->entries = (HqrSubEntry *)malloc(numEntry * sizeof(HqrSubEntry));
 
 	for (int i = 0; i < numEntry; i++) {
 		dest->entries[i].ptr = nullptr;
@@ -471,7 +471,7 @@ hqrEntryStruct *HQR_Init(int size, int numEntry) {
 	return dest;
 }
 
-void HQR_Reset(hqrEntryStruct *hqrPtr) {
+void HQR_Reset(HqrEntry *hqrPtr) {
 	hqrPtr->sizeFreeData = hqrPtr->maxFreeData;
 	hqrPtr->numUsedEntry = 0;
 
@@ -490,7 +490,7 @@ void HQR_Reset(hqrEntryStruct *hqrPtr) {
 	}
 }
 
-void HQR_Free(hqrEntryStruct *hqrPtr) {
+void HQR_Free(HqrEntry *hqrPtr) {
 	if (!hqrPtr)
 		return;
 
@@ -516,7 +516,7 @@ void HQR_Free(hqrEntryStruct *hqrPtr) {
 	delete hqrPtr;
 }
 
-sBody *getBodyFromPtr(void *ptr) {
+Body *getBodyFromPtr(void *ptr) {
 	for (uint i = 0; i < vBodies.size(); i++) {
 		if (vBodies[i]->m_raw == ptr) {
 			return vBodies[i];
@@ -526,7 +526,7 @@ sBody *getBodyFromPtr(void *ptr) {
 	return createBodyFromPtr(ptr);
 }
 
-sAnimation *getAnimationFromPtr(void *ptr) {
+Animation *getAnimationFromPtr(void *ptr) {
 	for (uint i = 0; i < vAnimations.size(); i++) {
 		if (vAnimations[i]->m_raw == ptr) {
 			return vAnimations[i];
@@ -536,7 +536,7 @@ sAnimation *getAnimationFromPtr(void *ptr) {
 	return createAnimationFromPtr(ptr);
 }
 
-void HQ_Name(hqrEntryStruct * ptr, const char * name) {
+void HQ_Name(HqrEntry * ptr, const char * name) {
 	ptr->string = name;
 }
 

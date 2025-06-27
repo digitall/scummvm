@@ -25,7 +25,7 @@
 #include "common/debug.h"
 
 namespace Fitd {
-typedef struct pakInfoStruct // warning: allignment unsafe
+typedef struct PakInfoStruct // warning: allignment unsafe
 {
 	int32 discSize;
 	int32 uncompressedSize;
@@ -42,7 +42,7 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 	pPakInfo->offset = f.readSint16LE();
 }
 
-unsigned int PAK_getNumFiles(const char* name)
+unsigned int pakGetNumFiles(const char* name)
 {
     Common::File f;
     f.open(name);
@@ -57,7 +57,7 @@ unsigned int PAK_getNumFiles(const char* name)
     return fileOffset / 4 - 2;
 }
 
-char *loadPak(const char *fileName, int index) {
+char *pakLoad(const char *fileName, int index) {
 	Common::File f;
 	f.open(fileName);
 	f.readUint32LE();
@@ -115,19 +115,19 @@ char *loadPak(const char *fileName, int index) {
 	return ptr;
 }
 
-int loadPak(const char* name, int index, char* ptr)
+int pakLoad(const char* name, int index, char* ptr)
 {
 
-	char *lptr = loadPak(name, index);
+	char *lptr = pakLoad(name, index);
 
-    memcpy(ptr,lptr,getPakSize(name,index));
+    memcpy(ptr,lptr,pakGetPakSize(name,index));
 
     free(lptr);
 
     return 1;
 }
 
-int getPakSize(const char* name, int index)
+int pakGetPakSize(const char* name, int index)
 {
 	pakInfoStruct pakInfo;
     int32 size=0;

@@ -28,42 +28,42 @@
 
 namespace Fitd {
 
-typedef struct hardColStruct {
+typedef struct HardCol {
 	ZVStruct zv;
 	uint32 type;
 	uint32 parameter;
-} hardColStruct;
+} HardCol;
 
-typedef struct sceZoneStruct {
+typedef struct SceZone {
 	ZVStruct zv;
 	uint32 type;
 	uint32 parameter;
-} sceZoneStruct;
+} SceZone;
 
-typedef struct cameraZonePointStruct {
+typedef struct CameraZonePoint {
 	int16 x;
 	int16 y;
-} cameraZonePointStruct;
+} CameraZonePoint;
 
-typedef struct cameraZoneEntryStruct {
+typedef struct CameraZoneEntry {
 	uint16 numPoints;
 
-	cameraZonePointStruct *pointTable;
-} cameraZoneEntryStruct;
+	CameraZonePoint *pointTable;
+} CameraZoneEntry;
 
-struct rectTestStruct {
+struct RectTest {
 	int16 zoneX1;
 	int16 zoneZ1;
 	int16 zoneX2;
 	int16 zoneZ2;
 };
 
-struct cameraMaskStruct {
+struct CameraMask {
 	uint16 numTestRect;
-	Common::Array<rectTestStruct> rectTests;
+	Common::Array<RectTest> rectTests;
 };
 
-struct cameraViewedRoomStruct {
+struct CameraViewedRoom {
 	int16 viewedRoomIdx;
 	int16 offsetToMask;
 	int16 offsetToCover;
@@ -74,12 +74,12 @@ struct cameraViewedRoomStruct {
 	int16 lightZ;
 
 	uint16 numMask;
-	Common::Array<cameraMaskStruct> masks;
+	Common::Array<CameraMask> masks;
 	uint16 numCoverZones;
-	Common::Array<cameraZoneEntryStruct> coverZones;
+	Common::Array<CameraZoneEntry> coverZones;
 };
 
-struct cameraDataStruct {
+struct CameraData {
 	int16 alpha;
 	int16 beta;
 	int16 gamma;
@@ -93,30 +93,30 @@ struct cameraDataStruct {
 	int16 focal3;
 
 	uint16 numViewedRooms;
-	Common::Array<cameraViewedRoomStruct> viewedRoomTable;
+	Common::Array<CameraViewedRoom> viewedRoomTable;
 };
 
-typedef struct roomDataStruct {
+typedef struct RoomData {
 	uint32 numCameraInRoom;
 
 	uint32 numHardCol;
-	Common::Array<hardColStruct> hardColTable;
+	Common::Array<HardCol> hardColTable;
 
 	uint32 numSceZone;
-	Common::Array<sceZoneStruct> sceZoneTable;
+	Common::Array<SceZone> sceZoneTable;
 
 	int32 worldX;
 	int32 worldY;
 	int32 worldZ;
 
 	Common::Array<uint16> cameraIdxTable;
-} roomDataStruct;
+} RoomData;
 
-extern cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
-extern cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
-extern Common::Array<roomDataStruct> roomDataTable;
+extern CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
+extern CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
+extern Common::Array<RoomData> roomDataTable;
 
-roomDefStruct *getRoomData(int roomNumber);
+RoomDef *getRoomData(int roomNumber);
 void loadRoom(int roomNumber);
 int getNumberOfRoom();
 } // namespace Fitd

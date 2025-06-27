@@ -36,7 +36,6 @@ int setAnimObjet(int frame, char *anim, char *body);
 int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr);
 int16 getNbFramesAnim(char *animPtr);
 void updateAnimation();
-void initCopyBox(char *var0, char *var1);
 
 } // namespace Fitd
 

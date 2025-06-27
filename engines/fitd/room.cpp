@@ -41,12 +41,12 @@ etageVar1 -> table for camera data
 
 */
 
-Common::Array<roomDataStruct> roomDataTable;
-cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
-cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
+Common::Array<RoomData> roomDataTable;
+CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
+CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
 
-roomDefStruct *getRoomData(int roomNumber) {
-	return (roomDefStruct *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + roomNumber * 4));
+RoomDef *getRoomData(int roomNumber) {
+	return (RoomDef *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + roomNumber * 4));
 }
 
 int getNumberOfRoom() {
@@ -66,10 +66,10 @@ int getNumberOfRoom() {
 		return j;
 	}
 	if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", g_currentFloor).c_str())) {
-		return PAK_getNumFiles(Common::String::format("ETAGE%02d", g_currentFloor).c_str());
+		return pakGetNumFiles(Common::String::format("ETAGE%02d", g_currentFloor).c_str());
 	}
 	if (Common::File::exists(Common::String::format("SAL%02d.PAK", g_currentFloor).c_str())) {
-		return PAK_getNumFiles(Common::String::format("SAL%02d", g_currentFloor).c_str());
+		return pakGetNumFiles(Common::String::format("SAL%02d", g_currentFloor).c_str());
 	}
 	assert(0);
 

@@ -23,10 +23,11 @@
 #define FITD_AITD2_H
 
 namespace Fitd {
-void startAITD2(int saveSlot);
-void drawInventoryAITD2();
-void redrawInventorySpriteAITD2();
-void AITD2_ReadBook(int index, int type);
+
+void aitd2Start(int saveSlot);
+void aitd2DrawInventory();
+void aitd2RedrawInventorySprite();
+void aitd2ReadBook(int index, int type);
 
 } // namespace Fitd
 #endif

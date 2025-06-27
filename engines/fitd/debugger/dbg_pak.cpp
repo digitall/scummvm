@@ -38,7 +38,7 @@
 
  namespace Fitd {
 
- typedef struct pakInfoStruct // warning: allignment unsafe
+ typedef struct PakInfoStruct // warning: allignment unsafe
  {
 	 int32 discSize;
 	 int32 uncompressedSize;
@@ -94,8 +94,8 @@
  static void selectRes(int resIndex) {
 	 // it should be an image
 	 if(_infos[resIndex].uncompressedSize == 64000) {
-		 byte *pal = (byte *)loadPak("ITD_RESS.PAK", 3);
-		 char *selectedResData = loadPak(_member.c_str(), resIndex);
+		 byte *pal = (byte *)pakLoad("ITD_RESS.PAK", 3);
+		 char *selectedResData = pakLoad(_member.c_str(), resIndex);
 		 Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
 		 Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
 		 s->setPalette(pal, 0, 256);

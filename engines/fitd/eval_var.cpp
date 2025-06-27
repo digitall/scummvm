@@ -49,7 +49,7 @@ int getMatrix(int param1, int actorIdx, int param2) {
 	return *(char *)matrixPtr;
 }
 
-int getPosRel(const tObject *actor1, const tObject *actor2) {
+int getPosRel(const Object *actor1, const Object *actor2) {
 	const int beta1 = actor1->beta;
 	int counter = 3;
 	ZVStruct localZv;
@@ -108,7 +108,7 @@ int calcDist(int X1, int Y1, int Z1, int X2, int Y2, int Z2) {
 	return Xdist + Ydist + Zdist; // recheck overflow
 }
 
-int testZvEndAnim(const tObject *actorPtr, char *animPtr, int param) {
+int testZvEndAnim(const Object *actorPtr, char *animPtr, int param) {
 	int16 var_E = 0;
 	// int16 var_12 = 0;
 	const int16 var_10 = param;
@@ -177,7 +177,7 @@ int evalVar(const char *name) {
 
 		return vars[temp];
 	} else {
-		tObject *actorPtr = currentLifeActorPtr;
+		Object *actorPtr = currentLifeActorPtr;
 
 		if (var1 & 0x8000) {
 
@@ -452,7 +452,7 @@ int evalVar2(const char *name) {
 
 		return vars[temp];
 	}
-	tObject *actorPtr = currentLifeActorPtr;
+	Object *actorPtr = currentLifeActorPtr;
 	int actorIdx = currentLifeActorIdx;
 
 	if (var1 & 0x8000) {

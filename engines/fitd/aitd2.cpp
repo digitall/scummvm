@@ -35,7 +35,9 @@
 #include "fitd/vars.h"
 
 namespace Fitd {
-char *pAITD2InventorySprite = nullptr;
+static char *pAITD2InventorySprite = nullptr;
+static int TabXSprite[3] = {127, 118, 124};
+static int TabYSprite[3] = {136, 104, 131};
 
 // ITD_RESS mapping
 #define AITD2_CADRE_SPF 0
@@ -58,7 +60,7 @@ char *pAITD2InventorySprite = nullptr;
 #define AITD2_OPTION_SCREEN 17
 #define AITD2_SPRITES_INVENTAIRE 18
 
-int AITD2KnownCVars[] =
+int aitd2KnownCVars[] =
 	{
 		SAMPLE_PAGE,
 		BODY_FLAMME,
@@ -79,7 +81,7 @@ int AITD2KnownCVars[] =
 		POIGNARD,
 		-1};
 
-enumLifeMacro AITD2LifeMacroTable[] =
+enumLifeMacro aitd2LifeMacroTable[] =
 	{
 		LM_DO_MOVE, // 0
 		LM_ANIM_ONCE,
@@ -204,9 +206,9 @@ enumLifeMacro AITD2LifeMacroTable[] =
 		LM_REP_SAMPLE_N_TIME,        // 118
 };
 
-void startAITD2(int saveSlot) {
+void aitd2Start(int saveSlot) {
 	fontHeight = 14;
-	pAITD2InventorySprite = loadPak("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE);
+	pAITD2InventorySprite = pakLoad("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE);
 	assert(pAITD2InventorySprite);
 
 	if (saveSlot == -1) {
@@ -255,16 +257,16 @@ void startAITD2(int saveSlot) {
 	}
 }
 
-void drawInventoryAITD2() {
+void aitd2DrawInventory() {
 	switch (CVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
 	case 0:
-		loadPak("ITD_RESS.PAK", AITD2_INVENTAIRE_PIRATE, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_PIRATE, logicalScreen);
 		break;
 	case 1:
-		loadPak("ITD_RESS.PAK", AITD2_INVENTAIRE_GANG, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GANG, logicalScreen);
 		break;
 	case 2:
-		loadPak("ITD_RESS.PAK", AITD2_INVENTAIRE_GRACE, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GRACE, logicalScreen);
 		break;
 	default:
 		assert(0);
@@ -278,20 +280,17 @@ void drawInventoryAITD2() {
 	setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 }
 
-int TabXSprite[3] = {127, 118, 124};
-int TabYSprite[3] = {136, 104, 131};
-
-void redrawInventorySpriteAITD2() {
+void aitd2RedrawInventorySprite() {
 	const int inventoryType = CVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
 	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, pAITD2InventorySprite);
 }
 
-void AITD2_ReadBook(int index, int type) {
+void aitd2ReadBook(int index, int type) {
 	switch (type) {
 	case 0: // READ_MESSAGE
 	{
-		loadPak("ITD_RESS.PAK", AITD2_LETTRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_LETTRE, aux);
 		unsigned char lpalette[0x300];
 		copyPalette((unsigned char *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
@@ -304,7 +303,7 @@ void AITD2_ReadBook(int index, int type) {
 	}
 	case 1: // READ_BOOK
 	{
-		loadPak("ITD_RESS.PAK", AITD2_LIVRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_LIVRE, aux);
 		unsigned char lpalette[0x300];
 		copyPalette((unsigned char *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
@@ -317,7 +316,7 @@ void AITD2_ReadBook(int index, int type) {
 	}
 	case 2: // READ_CARNET
 	{
-		loadPak("ITD_RESS.PAK", AITD2_CARNET, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_CARNET, aux);
 		unsigned char lpalette[0x300];
 		copyPalette((unsigned char *)aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);

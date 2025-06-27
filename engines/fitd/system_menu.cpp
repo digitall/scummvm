@@ -86,7 +86,7 @@ void aitd2AffOption(int n, int num, int selected) {
 }
 
 void aitd2DisplayOptions(int selectedStringNumber) {
-	loadPak("ITD_RESS.PAK", 17, logicalScreen);
+	pakLoad("ITD_RESS.PAK", 17, logicalScreen);
 	unsigned char lpalette[0x300];
 	copyPalette((unsigned char *)logicalScreen + 64000, lpalette);
 	convertPaletteIfRequired(lpalette);

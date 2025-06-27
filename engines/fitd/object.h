@@ -26,7 +26,7 @@
 
 namespace Fitd {
 
-int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animtype, int animInfo);
+int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animType, int animInfo);
 
 }
 

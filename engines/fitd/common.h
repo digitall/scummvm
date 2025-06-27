@@ -72,10 +72,10 @@ enum enumCVars {
 #define ANIM_UNINTERRUPTABLE 2
 #define ANIM_RESET 4
 
-typedef enum enumCVars enumCVars;
+typedef enumCVars enumCVars;
 
-extern int AITD1KnownCVars[];
-extern int AITD2KnownCVars[];
+extern int aitd1KnownCVars[];
+extern int aitd2KnownCVars[];
 extern int *currentCVarTable;
 
 int getCVarsIdx(int);
@@ -148,9 +148,9 @@ void createActorList();
 void mainDraw(int flagFlip);
 void checkIfCameraChangeIsRequired();
 void setMoveMode(int trackMode, int trackNumber);
-struct interpolatedValue;
-void initRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr);
-int16 updateActorRotation(interpolatedValue *rotatePtr);
+struct InterpolatedValue;
+void initRealValue(int16 beta, int16 newBeta, int16 param, InterpolatedValue *rotatePtr);
+int16 updateActorRotation(InterpolatedValue *rotatePtr);
 void take(int objIdx);
 void foundObject(int objIdx, int param);
 void putAtObjet(int objIdx, int objIdxToPutAt);

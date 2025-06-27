@@ -208,7 +208,7 @@ void processTrack() {
 			currentProcessedActorPtr->direction = 0;
 			currentProcessedActorPtr->speed = 0;
 		} else {
-			const tObject *followedActorPtr = &objectTable[followedActorIdx];
+			const Object *followedActorPtr = &objectTable[followedActorIdx];
 
 			const int roomNumber = followedActorPtr->room;
 			int x = followedActorPtr->roomX;
@@ -669,7 +669,7 @@ void processTrack2() {
 			currentProcessedActorPtr->direction = 0;
 			currentProcessedActorPtr->speed = 0;
 		} else {
-			const tObject *followedActorPtr = &objectTable[followedActorIdx];
+			const Object *followedActorPtr = &objectTable[followedActorIdx];
 
 			const int roomNumber = followedActorPtr->room;
 			const int x = followedActorPtr->roomX;

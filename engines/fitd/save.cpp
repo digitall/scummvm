@@ -36,12 +36,12 @@
 
 namespace Fitd {
 
-static void loadInterpolatedValue(interpolatedValue *pRotateStruct, Common::SeekableReadStream *in) {
-	assert(sizeof(pRotateStruct->oldAngle) == 2);
-	pRotateStruct->oldAngle = in->readSint16LE();
+static void loadInterpolatedValue(InterpolatedValue *pRotateStruct, Common::SeekableReadStream *in) {
+	assert(sizeof(pRotateStruct->oldValue) == 2);
+	pRotateStruct->oldValue = in->readSint16LE();
 
-	assert(sizeof(pRotateStruct->newAngle) == 2);
-	pRotateStruct->newAngle = in->readSint16LE();
+	assert(sizeof(pRotateStruct->newValue) == 2);
+	pRotateStruct->newValue = in->readSint16LE();
 
 	assert(sizeof(pRotateStruct->param) == 2);
 	pRotateStruct->param = in->readSint16LE();
@@ -50,12 +50,12 @@ static void loadInterpolatedValue(interpolatedValue *pRotateStruct, Common::Seek
 	pRotateStruct->timeOfRotate = in->readUint16LE();
 }
 
-static void saveInterpolatedValue(interpolatedValue *pRotateStruct, Common::WriteStream *out) {
-	assert(sizeof(pRotateStruct->oldAngle) == 2);
-	out->writeSint16LE(pRotateStruct->oldAngle);
+static void saveInterpolatedValue(InterpolatedValue *pRotateStruct, Common::WriteStream *out) {
+	assert(sizeof(pRotateStruct->oldValue) == 2);
+	out->writeSint16LE(pRotateStruct->oldValue);
 
-	assert(sizeof(pRotateStruct->newAngle) == 2);
-	out->writeSint16LE(pRotateStruct->newAngle);
+	assert(sizeof(pRotateStruct->newValue) == 2);
+	out->writeSint16LE(pRotateStruct->newValue);
 
 	assert(sizeof(pRotateStruct->param) == 2);
 	out->writeSint16LE(pRotateStruct->param);

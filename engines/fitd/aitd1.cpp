@@ -38,7 +38,7 @@
 
 namespace Fitd {
 
-int AITD1KnownCVars[] = {
+int aitd1KnownCVars[] = {
 	SAMPLE_PAGE,
 	BODY_FLAMME,
 	MAX_WEIGHT_LOADABLE,
@@ -57,7 +57,7 @@ int AITD1KnownCVars[] = {
 	DEAD_PERSO,
 	-1};
 
-enumLifeMacro AITD1LifeMacroTable[] =
+enumLifeMacro aitd1LifeMacroTable[] =
 	{
 		LM_DO_MOVE,
 		LM_ANIM_ONCE,
@@ -156,9 +156,9 @@ static void makeSlideshow() {
 	flushScreen();
 	for (int i = 0; i < 15; i++) {
 		if (i == 0) {
-			image = loadPak("ITD_RESS.PAK", AITD1_TITRE);
+			image = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
 		} else {
-			image = loadPak("PRESENT.PAK", i);
+			image = pakLoad("PRESENT.PAK", i);
 		}
 		paletteFill(currentGamePalette, 0, 0, 0);
 		gfx_setPalette(currentGamePalette);
@@ -181,14 +181,14 @@ static void makeSlideshow() {
 static int makeIntroScreens() {
 	unsigned int chrono;
 
-	char *data = loadPak("ITD_RESS.PAK", AITD1_TITRE);
+	char *data = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
 	fastCopyScreen(data + 770, frontBuffer);
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
 	memcpy(logicalScreen, frontBuffer, 320 * 200);
 	osystem_flip(nullptr);
 	free(data);
-	loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
+	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, aux);
 	startChrono(&chrono);
 
 	osystem_drawBackground();
@@ -215,7 +215,7 @@ static int makeIntroScreens() {
 	return 0;
 }
 
-static void copyBox_Aux_Log(int x1, int y1, int x2, int y2) {
+static void copyBoxAuxLog(int x1, int y1, int x2, int y2) {
 	int i;
 	int j;
 
@@ -239,16 +239,16 @@ int choosePerso() {
 
 		// TODO: missing code for music stop
 
-		loadPak("ITD_RESS.PAK", 10, aux);
+		pakLoad("ITD_RESS.PAK", 10, aux);
 		fastCopyScreen(aux, logicalScreen);
 		fastCopyScreen(logicalScreen, aux2);
 
 		if (choice == 0) {
 			affBigCadre(80, 100, 160, 200);
-			copyBox_Aux_Log(10, 10, 149, 190);
+			copyBoxAuxLog(10, 10, 149, 190);
 		} else {
 			affBigCadre(240, 100, 160, 200);
-			copyBox_Aux_Log(170, 10, 309, 190);
+			copyBoxAuxLog(170, 10, 309, 190);
 		}
 
 		fastCopyScreen(logicalScreen, frontBuffer);
@@ -274,7 +274,7 @@ int choosePerso() {
 				choice = 0;
 				fastCopyScreen(aux2, logicalScreen);
 				affBigCadre(80, 100, 160, 200);
-				copyBox_Aux_Log(10, 10, 149, 190);
+				copyBoxAuxLog(10, 10, 149, 190);
 				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 
 				while (JoyD != 0) {
@@ -287,7 +287,7 @@ int choosePerso() {
 				choice = 1;
 				fastCopyScreen(aux2, logicalScreen);
 				affBigCadre(240, 100, 160, 200);
-				copyBox_Aux_Log(170, 10, 309, 190);
+				copyBoxAuxLog(170, 10, 309, 190);
 				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 
 				while (JoyD != 0) {
@@ -309,8 +309,8 @@ int choosePerso() {
 		case 0: {
 			fastCopyScreen(frontBuffer, logicalScreen);
 			setClip(0, 0, 319, 199);
-			loadPak("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
-			copyBox_Aux_Log(160, 0, 319, 199);
+			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
+			copyBoxAuxLog(160, 0, 319, 199);
 			fastCopyScreen(logicalScreen, aux);
 			lire(CVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
 			CVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
@@ -319,8 +319,8 @@ int choosePerso() {
 		case 1: {
 			fastCopyScreen(frontBuffer, logicalScreen);
 			setClip(0, 0, 319, 199);
-			loadPak("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
-			copyBox_Aux_Log(0, 0, 159, 199);
+			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
+			copyBoxAuxLog(0, 0, 159, 199);
 			fastCopyScreen(logicalScreen, aux);
 			lire(CVars[getCVarsIdx(INTRO_DETECTIVE)] + 1, 5, 5, 154, 194, 2, 15, 0);
 			CVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
@@ -340,7 +340,7 @@ int choosePerso() {
 	return choice;
 }
 
-void startAITD1(int saveSlot) {
+void aitd1Start(int saveSlot) {
 	fontHeight = 16;
 	gfx_setPalette(currentGamePalette);
 
@@ -424,25 +424,25 @@ void startAITD1(int saveSlot) {
 	}
 }
 
-void aitd1_readBook(int index, int type, int shadow) {
+void aitd1ReadBook(int index, int type, int shadow) {
 	switch (type) {
 	case 0: // READ_MESSAGE
 	{
-		loadPak("ITD_RESS.PAK", AITD1_LETTRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD1_LETTRE, aux);
 		turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 26, shadow);
 		break;
 	}
 	case 1: // READ_BOOK
 	{
-		loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD1_LIVRE, aux);
 		turnPageFlag = 1;
 		lire(index, 48, 2, 260, 197, 0, 26, shadow);
 		break;
 	}
 	case 2: // READ_CARNET
 	{
-		loadPak("ITD_RESS.PAK", AITD1_CARNET, aux);
+		pakLoad("ITD_RESS.PAK", AITD1_CARNET, aux);
 		turnPageFlag = 0;
 		lire(index, 50, 20, 250, 199, 0, 26, shadow);
 		break;

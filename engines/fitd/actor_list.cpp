@@ -26,11 +26,11 @@
 #include "common/scummsys.h"
 
 namespace Fitd {
-int sortCompareFunction(const void *param1, const void *param2) {
+static int sortCompareFunction(const void *param1, const void *param2) {
 	int distance1 = 0;
 	int distance2 = 0;
-	tObject *actor1Ptr;
-	tObject *actor2Ptr;
+	Object *actor1Ptr;
+	Object *actor2Ptr;
 	ZVStruct *actor1ZvPtr;
 	ZVStruct *actor2ZvPtr;
 	ZVStruct localZv1;

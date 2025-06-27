@@ -66,7 +66,7 @@ namespace Fitd {
 #define MESSAGE_SAVE_GAME 45
 #define START_OPTIONS_INVENTAIRE 23 /* num message.eng */
 
-void startAITD3(int saveSlot) {
+void aitd3Start(int saveSlot) {
 	if (saveSlot == -1) {
 		startGame(1, 0, 0);
 	}
@@ -116,16 +116,16 @@ void startAITD3(int saveSlot) {
 	}
 }
 
-void drawInventoryAITD3() {
+void aitd3DrawInventory() {
 	switch (CVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
 	case 0:
-		loadPak("ITD_RESS.PAK", AITD3_INVENTAIRE_CAVERNE, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD3_INVENTAIRE_CAVERNE, logicalScreen);
 		break;
 	case 1:
-		loadPak("ITD_RESS.PAK", AITD3_INVENTAIRE_COWBOY, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD3_INVENTAIRE_COWBOY, logicalScreen);
 		break;
 	case 2:
-		loadPak("ITD_RESS.PAK", AITD3_INVENTAIRE_COUGUAR, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD3_INVENTAIRE_COUGUAR, logicalScreen);
 		break;
 	default:
 		assert(0);

@@ -35,37 +35,37 @@ extern char *currentFoundBody;
 extern int currentFoundBodyIdx;
 extern int statusVar1;
 
-typedef struct point3dStruct {
+typedef struct Point3d {
 	int16 x;
 	int16 y;
 	int16 z;
-} point3dStruct;
+} Point3d;
 
-struct textEntryStruct;
+struct TextEntryStruct;
 
-typedef struct messageStruct {
-	textEntryStruct *string;
+typedef struct Message {
+	TextEntryStruct *string;
 	int16 time;
-} messageStruct;
+} Message;
 
-typedef struct saveEntry {
+typedef struct SaveEntry {
 	void *ptr;
 	unsigned int size;
-} saveEntry;
+} SaveEntry;
 
-typedef struct regularTextEntryStruct {
+typedef struct RegularTextEntry {
 	char *textPtr;
 	int16 width;
-} regularTextEntryStruct;
+} RegularTextEntry;
 
-typedef struct interpolatedValue {
-	int16 oldAngle;
-	int16 newAngle;
+typedef struct InterpolatedValue {
+	int16 oldValue;
+	int16 newValue;
 	int16 param;
 	unsigned int timeOfRotate;
-} interpolatedValue;
+} InterpolatedValue;
 
-enum actorFlags {
+enum ActorFlags {
 	AF_ANIMATED = 0x0001,
 	// 0x02
 	AF_DRAWABLE = 0x0004,
@@ -80,7 +80,7 @@ enum actorFlags {
 };
 
 // used to read data from file too
-typedef struct tObject {
+typedef struct Object {
 	int16 indexInWorld;
 	int16 bodyNum;
 	uint16 _flags;
@@ -128,12 +128,12 @@ typedef struct tObject {
 	int16 animNegY;
 	int16 animNegZ;
 
-	interpolatedValue YHandler;
+	InterpolatedValue YHandler;
 	int16 falling;
-	interpolatedValue rotate;
+	InterpolatedValue rotate;
 	int16 direction;
 	int16 speed;
-	interpolatedValue speedChange;
+	InterpolatedValue speedChange;
 	int16 COL[3];
 	int16 COL_BY;
 	int16 HARD_DEC;
@@ -146,19 +146,19 @@ typedef struct tObject {
 	int16 animActionParam;
 	int16 hitForce;
 	int16 hotPointID;
-	point3dStruct hotPoint;
+	Point3d hotPoint;
 
 	// aitd2
 	int16 hardMat;
 	int16 field_A8;
-} tObject;
+} Object;
 
-typedef struct tWorldObject {
+typedef struct WorldObject {
 	int16 objIndex;
 	int16 body;
 	union {
 		int16 flags;
-		actorFlags bitField;
+		ActorFlags bitField;
 	};
 	int16 typeZV;
 	int16 foundBody;
@@ -186,29 +186,29 @@ typedef struct tWorldObject {
 
 	// AITD2
 	int16 mark;
-} tWorldObject;
+} WorldObject;
 
-typedef struct boxStruct {
+typedef struct Box {
 	int16 var0;
 	int16 var1;
 	int16 var2;
 	int16 var3;
-} boxStruct;
+} Box;
 
-typedef struct roomDefStruct {
+typedef struct RoomDef {
 	int16 offsetToCameraDef; // 0
 	int16 offsetToPosDef;    // 2
 	int16 worldX;            // 4
 	int16 worldY;            // 6
 	int16 worldZ;            // 8
 	int16 numCameraInRoom;   // 0xA
-} roomDefStruct;
+} RoomDef;
 
-struct hqrEntryStruct;
+struct HqrEntry;
 
-extern hqrEntryStruct *HQ_Memory;
-extern hqrEntryStruct *listMus;
-extern hqrEntryStruct *listSamp;
+extern HqrEntry *HQ_Memory;
+extern HqrEntry *listMus;
+extern HqrEntry *listSamp;
 
 extern int videoMode;
 extern int musicConfigured;
@@ -240,7 +240,6 @@ extern char *PtrCadre;
 
 extern unsigned char currentGamePalette[0x300];
 
-// extern OSystem osystem;
 extern unsigned char frontBuffer[320 * 200];
 extern char rgbaBuffer[320 * 200 * 4];
 
@@ -270,7 +269,7 @@ extern const char *languageNameString;
 extern const char *languageNameTable[];
 extern const char *languageShortNameTable[];
 
-extern regularTextEntryStruct textTable[40];
+extern RegularTextEntry textTable[40];
 
 extern int turnPageFlag;
 
@@ -282,35 +281,35 @@ extern char *screenSm3;
 extern char *screenSm4;
 extern char *screenSm5;
 
-extern tObject objectTable[NUM_MAX_OBJECT];
+extern Object objectTable[NUM_MAX_OBJECT];
 
 extern int16 currentWorldTarget;
 
 extern int fileSize;
 
-extern hqrEntryStruct *listBody;
-extern hqrEntryStruct *listAnim;
-extern hqrEntryStruct *listLife;
-extern hqrEntryStruct *listTrack;
-extern hqrEntryStruct *listMatrix;
+extern HqrEntry *listBody;
+extern HqrEntry *listAnim;
+extern HqrEntry *listLife;
+extern HqrEntry *listTrack;
+extern HqrEntry *listMatrix;
 
 extern int16 maxObjects;
 
-extern Common::Array<tWorldObject> ListWorldObjets; // may be less
+extern Common::Array<WorldObject> ListWorldObjets; // may be less
 
 extern int16 *vars;
 
 extern int varSize;
 
-extern messageStruct messageTable[5];
+extern Message messageTable[5];
 
 extern int16 currentMusic;
 extern int action;
 
-extern boxStruct genVar2[15]; // recheckSize
-extern boxStruct genVar4[50];
-extern boxStruct *genVar1;
-extern boxStruct *genVar3;
+extern Box genVar2[15]; // recheckSize
+extern Box genVar4[50];
+extern Box *genVar1;
+extern Box *genVar3;
 
 extern int genVar5;
 extern int genVar6;
@@ -333,7 +332,7 @@ extern int16 g_currentFloor;
 extern int needChangeRoom;
 
 extern char *cameraPtr;
-extern roomDefStruct *pCurrentRoomData;
+extern RoomDef *pCurrentRoomData;
 extern int16 currentRoom;
 extern int flagInitView;
 extern int numCameraInRoom;
@@ -372,10 +371,10 @@ extern char currentCameraVisibilityList[30];
 extern int actorTurnedToObj;
 
 extern int currentProcessedActorIdx;
-extern tObject *currentProcessedActorPtr;
+extern Object *currentProcessedActorPtr;
 
 extern int currentLifeActorIdx;
-extern tObject *currentLifeActorPtr;
+extern Object *currentLifeActorPtr;
 extern int currentLifeNum;
 
 extern char *currentLifePtr;
@@ -440,15 +439,15 @@ extern int16 flagRotPal;
 extern int16 saveFlagRotPal;
 extern int16 waterHeight;
 
-struct hardColStruct;
-extern hardColStruct *hardColTable[10];
+struct HardCol;
+extern HardCol *hardColTable[10];
 
 extern int16 hardColStepX;
 extern int16 hardColStepZ;
 
 extern ZVStruct hardClip;
 
-extern saveEntry saveTable[];
+extern SaveEntry saveTable[];
 
 extern int HQ_Load;
 extern int lightX;
@@ -461,22 +460,22 @@ extern int clipBottom;
 
 extern unsigned char *g_MaskPtr;
 
-struct sGroupState {
+struct GroupState {
 	int16 m_type;           // 8
 	int16 m_delta[3];       // A
 	int16 m_rotateDelta[3]; // 10 (AITD2+) if Info_optimise
 };
 
-struct sGroup {
+struct Group {
 	int16 m_start;        // 0
 	int16 m_numVertices;  // 2
 	int16 m_baseVertices; // 4
 	int8 m_orgGroup;      // 6
 	int8 m_numGroup;      // 7
-	sGroupState m_state;
+	GroupState m_state;
 };
 
-enum primTypeEnum {
+enum PrimType {
 	primTypeEnum_Line = 0,
 	primTypeEnum_Poly = 1,
 	primTypeEnum_Point = 2,
@@ -490,8 +489,8 @@ enum primTypeEnum {
 	processPrim_PolyTexture10 = 10,
 };
 
-struct sPrimitive {
-	primTypeEnum m_type;
+struct Primitive {
+	PrimType m_type;
 	uint8 m_material;
 	uint8 m_color;
 	uint8 m_even;
@@ -499,39 +498,39 @@ struct sPrimitive {
 	Common::Array<uint16> m_points;
 };
 
-struct sExtraBody {
+struct ExtraBody {
 	uint16 m_startOfKeyframe; // 2
 };
 
 // scratch buffer:
 // 4: uint16 timer
 
-struct sBody {
+struct Body {
 	void *m_raw;
 
 	uint16 m_flags;
 	ZVStruct m_zv;
 	Common::Array<uint8> m_scratchBuffer;
-	Common::Array<point3dStruct> m_vertices;
+	Common::Array<Point3d> m_vertices;
 	Common::Array<uint16> m_groupOrder;
-	Common::Array<sGroup> m_groups;
-	Common::Array<sPrimitive> m_primitives;
+	Common::Array<Group> m_groups;
+	Common::Array<Primitive> m_primitives;
 
 	void sync();
 };
 
-struct sFrame {
+struct Frame {
 	uint16 m_timestamp;
 	int16 m_animStep[3];
-	Common::Array<sGroupState> m_groups;
+	Common::Array<GroupState> m_groups;
 };
 
-struct sAnimation {
+struct Animation {
 	void *m_raw;
 
 	uint16 m_numFrames;
 	uint16 m_numGroups;
-	Common::Array<sFrame> m_frames;
+	Common::Array<Frame> m_frames;
 };
 
 } // namespace Fitd

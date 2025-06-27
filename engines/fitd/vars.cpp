@@ -29,7 +29,7 @@ char *currentFoundBody;
 int currentFoundBodyIdx;
 int statusVar1;
 
-hqrEntryStruct *HQ_Memory;
+HqrEntry *HQ_Memory;
 
 int videoMode;
 int musicConfigured;
@@ -101,7 +101,7 @@ const char *languageNameString = nullptr;
 
 #define NUM_MAX_TEXT 40
 
-regularTextEntryStruct textTable[NUM_MAX_TEXT];
+RegularTextEntry textTable[NUM_MAX_TEXT];
 
 int turnPageFlag;
 
@@ -113,35 +113,35 @@ char *screenSm3;
 char *screenSm4;
 char *screenSm5;
 
-tObject objectTable[NUM_MAX_OBJECT];
+Object objectTable[NUM_MAX_OBJECT];
 
 int16 currentWorldTarget;
 
 int fileSize;
 
-hqrEntryStruct *listBody = nullptr;
-hqrEntryStruct *listAnim = nullptr;
-hqrEntryStruct *listLife = nullptr;
-hqrEntryStruct *listTrack = nullptr;
-hqrEntryStruct *listMatrix = nullptr;
+HqrEntry *listBody = nullptr;
+HqrEntry *listAnim = nullptr;
+HqrEntry *listLife = nullptr;
+HqrEntry *listTrack = nullptr;
+HqrEntry *listMatrix = nullptr;
 
 int16 maxObjects;
 
-Common::Array<tWorldObject> ListWorldObjets;
+Common::Array<WorldObject> ListWorldObjets;
 
 int16 *vars;
 
 int varSize;
 
-messageStruct messageTable[NUM_MAX_MESSAGE];
+Message messageTable[NUM_MAX_MESSAGE];
 
 int16 currentMusic;
 int action;
 
-boxStruct genVar2[15]; // recheckSize
-boxStruct genVar4[50];
-boxStruct *genVar1;
-boxStruct *genVar3;
+Box genVar2[15]; // recheckSize
+Box genVar4[50];
+Box *genVar1;
+Box *genVar3;
 
 int genVar5;
 int genVar6;
@@ -164,7 +164,7 @@ int16 g_currentFloor;
 int needChangeRoom;
 
 char *cameraPtr;
-roomDefStruct *pCurrentRoomData;
+RoomDef *pCurrentRoomData;
 
 int16 currentRoom;
 int flagInitView;
@@ -204,10 +204,10 @@ char currentCameraVisibilityList[30];
 int actorTurnedToObj = 0;
 
 int currentProcessedActorIdx;
-tObject *currentProcessedActorPtr;
+Object *currentProcessedActorPtr;
 
 int currentLifeActorIdx;
-tObject *currentLifeActorPtr;
+Object *currentLifeActorPtr;
 int currentLifeNum;
 
 char *currentLifePtr;
@@ -285,7 +285,7 @@ int16 flagRotPal;
 int16 saveFlagRotPal;
 int16 waterHeight = 10000;
 
-hardColStruct *hardColTable[10];
+HardCol *hardColTable[10];
 
 int16 hardColStepX;
 int16 hardColStepZ;
@@ -301,7 +301,7 @@ const char *listAnimSelect[] = {
 	"LISTANI2.PAK",
 };
 
-saveEntry saveTable[40];
+SaveEntry saveTable[40];
 
 int HQ_Load = 0;
 int lightX = 4000;
@@ -314,10 +314,10 @@ int clipBottom = 119;
 
 unsigned char *g_MaskPtr = nullptr;
 
-hqrEntryStruct *listMus;
-hqrEntryStruct *listSamp;
+HqrEntry *listMus;
+HqrEntry *listSamp;
 
-void sBody::sync() {
+void Body::sync() {
 	const uint8 *ptr = (uint8 *)m_raw;
 
 	ptr += 2;                        // skip the flag

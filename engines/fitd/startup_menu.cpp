@@ -59,7 +59,7 @@ static void drawStartupMenu(int selectedEntry) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		loadPak("ITD_RESS.PAK", 13, logicalScreen);
+		pakLoad("ITD_RESS.PAK", 13, logicalScreen);
 	} else {
 		affBigCadre(160, 100, 320, 80);
 	}
@@ -90,7 +90,7 @@ int processStartupMenu() {
 	flushScreen();
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		loadPak("ITD_RESS.PAK", 47, aux);
+		pakLoad("ITD_RESS.PAK", 47, aux);
 		byte lpalette[768];
 		copyPalette((byte *)aux, lpalette);
 		convertPaletteIfRequired(lpalette);

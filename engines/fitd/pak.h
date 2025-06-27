@@ -24,10 +24,10 @@
 
 namespace Fitd {
 
-char *loadPak(const char *fileName, int index);
-int loadPak(const char *name, int index, char *ptr);
-unsigned int PAK_getNumFiles(const char* name);
-int getPakSize(const char *name, int index);
+char *pakLoad(const char *fileName, int index);
+int pakLoad(const char *name, int index, char *ptr);
+unsigned int pakGetNumFiles(const char* name);
+int pakGetPakSize(const char *name, int index);
 
 } // namespace Fitd
 

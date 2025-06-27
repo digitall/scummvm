@@ -46,8 +46,8 @@
 
 namespace Fitd {
 
-void startAITD1(int saveSlot);
-void aitd1_readBook(int index, int type, int shadow);
+void aitd1Start(int saveSlot);
+void aitd1ReadBook(int index, int type, int shadow);
 
 }
 

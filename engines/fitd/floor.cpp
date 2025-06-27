@@ -32,7 +32,7 @@ namespace Fitd {
 uint32 g_currentFloorRoomRawDataSize = 0;
 uint32 g_currentFloorCameraRawDataSize;
 uint32 g_currentFloorNumCamera = 0;
-Common::Array<cameraDataStruct> g_currentFloorCameraData;
+Common::Array<CameraData> g_currentFloorCameraData;
 
 void loadFloor(int floorNumber) {
 	int expectedNumberOfRoom;
@@ -53,8 +53,8 @@ void loadFloor(int floorNumber) {
 	if (g_engine->getGameId() <= GID_AITD3) {
 		Common::String floorFileName(Common::String::format("ETAGE%02d.pak", floorNumber));
 
-		g_currentFloorRoomRawDataSize = getPakSize(floorFileName.c_str(), 0);
-		g_currentFloorCameraRawDataSize = getPakSize(floorFileName.c_str(), 1);
+		g_currentFloorRoomRawDataSize = pakGetPakSize(floorFileName.c_str(), 0);
+		g_currentFloorCameraRawDataSize = pakGetPakSize(floorFileName.c_str(), 1);
 
 		g_currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
 		g_currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
@@ -92,7 +92,7 @@ void loadFloor(int floorNumber) {
 		assert(roomData);
 
 		roomDataTable.emplace_back();
-		roomDataStruct *currentRoomDataPtr = &roomDataTable.back();
+		RoomData *currentRoomDataPtr = &roomDataTable.back();
 
 		currentRoomDataPtr->worldX = READ_LE_S16(roomData + 4);
 		currentRoomDataPtr->worldY = READ_LE_S16(roomData + 6);
@@ -174,7 +174,7 @@ void loadFloor(int floorNumber) {
 			buffer = Common::String::format("CAMSAL%02d.PAK", floorNumber);
 		}
 
-		expectedNumberOfCamera = PAK_getNumFiles(buffer.c_str());
+		expectedNumberOfCamera = pakGetNumFiles(buffer.c_str());
 	} else {
 		int maxExpectedNumberOfCamera = READ_LE_U32(g_currentFloorCameraRawData) / 4;
 
@@ -251,7 +251,7 @@ void loadFloor(int floorNumber) {
 
 			for (k = 0; k < g_currentFloorCameraData[i].numViewedRooms; k++) {
 				g_currentFloorCameraData[i].viewedRoomTable.emplace_back();
-				cameraViewedRoomStruct *pCurrentCameraViewedRoom = &g_currentFloorCameraData[i].viewedRoomTable.back();
+				CameraViewedRoom *pCurrentCameraViewedRoom = &g_currentFloorCameraData[i].viewedRoomTable.back();
 
 				pCurrentCameraViewedRoom->viewedRoomIdx = READ_LE_U16(currentCameraData + 0x00);
 				pCurrentCameraViewedRoom->offsetToMask = READ_LE_U16(currentCameraData + 0x02);
@@ -284,7 +284,7 @@ void loadFloor(int floorNumber) {
 
 					for (int l = 0; l < pCurrentCameraViewedRoom->numMask; l++) {
 						pCurrentCameraViewedRoom->masks.emplace_back();
-						cameraMaskStruct* pCurrentCameraMask = &pCurrentCameraViewedRoom->masks.back();
+						CameraMask* pCurrentCameraMask = &pCurrentCameraViewedRoom->masks.back();
 
 						// for this overlay zone, how many
 						pCurrentCameraMask->numTestRect = READ_LE_U16(pMaskData);
@@ -294,7 +294,7 @@ void loadFloor(int floorNumber) {
 
 						for (int j = 0; j < pCurrentCameraMask->numTestRect; j++) {
 							pCurrentCameraMask->rectTests.emplace_back();
-							rectTestStruct* pCurrentRectTest = &pCurrentCameraMask->rectTests.back();
+							RectTest* pCurrentRectTest = &pCurrentCameraMask->rectTests.back();
 
 							pCurrentRectTest->zoneX1 = READ_LE_S16(pMaskData);
 							pCurrentRectTest->zoneZ1 = READ_LE_S16(pMaskData + 2);
@@ -328,7 +328,7 @@ void loadFloor(int floorNumber) {
 						pCurrentCameraViewedRoom->coverZones[j].numPoints = numPoints = READ_LE_U16(pZoneData);
 						pZoneData += 2;
 
-						pCurrentCameraViewedRoom->coverZones[j].pointTable = (cameraZonePointStruct *)malloc(sizeof(cameraZonePointStruct) * (numPoints + 1));
+						pCurrentCameraViewedRoom->coverZones[j].pointTable = (CameraZonePoint *)malloc(sizeof(CameraZonePoint) * (numPoints + 1));
 
 						for (pointIdx = 0; pointIdx < pCurrentCameraViewedRoom->coverZones[j].numPoints; pointIdx++) {
 							pCurrentCameraViewedRoom->coverZones[j].pointTable[pointIdx].x = READ_LE_U16(pZoneData);

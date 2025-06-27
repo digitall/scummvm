@@ -168,10 +168,10 @@ void executeFoundLife(int objIdx) {
 	if (ListWorldObjets[objIdx].foundLife == -1)
 		return;
 
-	tObject *currentActorPtr = currentProcessedActorPtr;
+	Object *currentActorPtr = currentProcessedActorPtr;
 	const int currentActorIdx = currentProcessedActorIdx;
 	const int currentActorLifeIdx = currentLifeActorIdx;
-	tObject *currentActorLifePtr = currentLifeActorPtr;
+	Object *currentActorLifePtr = currentLifeActorPtr;
 	const int currentActorLifeNum = currentLifeNum;
 
 	if (currentLifeNum != -1) {
@@ -183,7 +183,7 @@ void executeFoundLife(int objIdx) {
 	int actorIdx = ListWorldObjets[objIdx].objIndex;
 
 	if (actorIdx == -1) {
-		const tObject *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+		const Object *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
 		int currentActorEntry = NUM_MAX_OBJECT - 1;
 
 		while (currentActorEntry >= 0) {
@@ -233,15 +233,6 @@ void executeFoundLife(int objIdx) {
 		currentLifeNum = currentActorLifeNum;
 		currentLifePtr = HQR_Get(listLife, currentLifeNum) + lifeOffset * 2;
 	}
-}
-
-void initCopyBox(char *var0, char *var1) {
-	screenSm1 = var0;
-	screenSm2 = var0;
-
-	screenSm3 = var1;
-	screenSm4 = var1;
-	screenSm5 = var1;
 }
 
 void freeAll() {
@@ -349,10 +340,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 	const int maxStringWidth = endx - startx + 4;
 
-	const int textIndexMalloc = HQ_Malloc(HQ_Memory, getPakSize(languageNameString, index) + 300);
+	const int textIndexMalloc = HQ_Malloc(HQ_Memory, pakGetPakSize(languageNameString, index) + 300);
 	char *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
 
-	if (!loadPak(languageNameString, index, textPtr)) {
+	if (!pakLoad(languageNameString, index, textPtr)) {
 		error("Failed to load pak %s", languageNameString);
 	}
 
@@ -378,7 +369,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			int currentStringWidth;
 			int currentTextX;
 
-			regularTextEntryStruct *currentText = textTable;
+			RegularTextEntry *currentText = textTable;
 
 			int numWordInLine = 0;
 
@@ -420,7 +411,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							ptrt++;
 						}
 
-						if (loadPak("ITD_RESS.PAK", AITD1_TEXT_GRAPH, aux2)) {
+						if (pakLoad("ITD_RESS.PAK", AITD1_TEXT_GRAPH, aux2)) {
 							assert(0); // when is this used?
 									   /*  var_C = printTextSub3(currentTextIdx,aux2);
 									   var_A = printTextSub4(currentTextIdx,aux2);
@@ -924,7 +915,7 @@ static void loadCamera(int cameraIdx) {
 		}
 	}
 
-	if (!loadPak(name.c_str(), cameraIdx, aux)) {
+	if (!pakLoad(name.c_str(), cameraIdx, aux)) {
 		error("Cannot load pak %s", name.c_str());
 	}
 
@@ -973,10 +964,10 @@ static void loadMask(int cameraIdx) {
 		free(g_MaskPtr);
 	}
 
-	g_MaskPtr = (unsigned char *)loadPak(name.c_str(), cameraIdx);
+	g_MaskPtr = (unsigned char *)pakLoad(name.c_str(), cameraIdx);
 
 	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
-		const cameraViewedRoomStruct *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
+		const CameraViewedRoom *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
 		unsigned char *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
@@ -1033,7 +1024,7 @@ extern unsigned char *polyBackBuffer;
 
 static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
-		const cameraViewedRoomStruct *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
+		const CameraViewedRoom *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
 
 		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
 		char *data = data2;
@@ -1197,7 +1188,7 @@ static void setupCameraSub1() {
 
 static void deleteObjet(int index) // remove actor
 {
-	tObject *actorPtr = &objectTable[index];
+	Object *actorPtr = &objectTable[index];
 
 	if (actorPtr->indexInWorld == -2) // flow
 	{
@@ -1210,7 +1201,7 @@ static void deleteObjet(int index) // remove actor
 		// HQ_Free_Malloc(HQ_Memory,actorPtr->FRAME);
 	} else {
 		if (actorPtr->indexInWorld >= 0) {
-			tWorldObject *objectPtr = &ListWorldObjets[actorPtr->indexInWorld];
+			WorldObject *objectPtr = &ListWorldObjets[actorPtr->indexInWorld];
 
 			objectPtr->objIndex = -1;
 			actorPtr->indexInWorld = -1;
@@ -1299,7 +1290,7 @@ int IsInCamRectTestAITD2(int X, int Z) // TODO: not 100% exact
 }
 
 int updateActorAitd2Only(int actorIdx) {
-	tObject *currentActor = &objectTable[actorIdx];
+	Object *currentActor = &objectTable[actorIdx];
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		return 0;
@@ -1319,7 +1310,7 @@ int updateActorAitd2Only(int actorIdx) {
 
 void updateAllActorAndObjectsAITD2() {
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		tObject *pObject = &objectTable[i];
+		Object *pObject = &objectTable[i];
 
 		if (pObject->indexInWorld == -1) {
 			continue;
@@ -1357,7 +1348,7 @@ void updateAllActorAndObjectsAITD2() {
 	}
 
 	for (int i = 0; i < maxObjects; i++) {
-		tWorldObject *currentObject = &ListWorldObjets[i];
+		WorldObject *currentObject = &ListWorldObjets[i];
 
 		if (currentObject->objIndex != -1) {
 			if (currentWorldTarget == i) {
@@ -1470,7 +1461,7 @@ void updateAllActorAndObjectsAITD2() {
 
 void updateAllActorAndObjects() {
 	int i;
-	const tObject *currentActor = objectTable;
+	const Object *currentActor = objectTable;
 
 	if (g_engine->getGameId() > GID_JACK) {
 		updateAllActorAndObjectsAITD2();
@@ -1514,7 +1505,7 @@ void updateAllActorAndObjects() {
 		currentActor++;
 	}
 
-	tWorldObject *currentObject = &ListWorldObjets[0];
+	WorldObject *currentObject = &ListWorldObjets[0];
 
 	for (i = 0; i < maxObjects; i++) {
 		if (currentObject->objIndex != -1) {
@@ -1609,7 +1600,7 @@ void createActorList() {
 
 	numActorInList = 0;
 
-	tObject *actorPtr = objectTable;
+	Object *actorPtr = objectTable;
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (actorPtr->indexInWorld != -1 && actorPtr->bodyNum != -1) {
@@ -1643,7 +1634,7 @@ void setupCamera() {
 	}
 	cameraBackgroundChanged = true;
 
-	const cameraDataStruct *pCamera = cameraDataTable[currentCamera];
+	const CameraData *pCamera = cameraDataTable[currentCamera];
 
 	setAngleCamera(pCamera->alpha, pCamera->beta, pCamera->gamma);
 
@@ -1693,43 +1684,43 @@ int16 computeDistanceToPoint(int x1, int z1, int x2, int z2) {
 	}
 }
 
-void initRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr) {
-	rotatePtr->oldAngle = beta;
-	rotatePtr->newAngle = newBeta;
+void initRealValue(int16 beta, int16 newBeta, int16 param, InterpolatedValue *rotatePtr) {
+	rotatePtr->oldValue = beta;
+	rotatePtr->newValue = newBeta;
 	rotatePtr->param = param;
 	rotatePtr->timeOfRotate = timer;
 }
 
-int16 updateActorRotation(interpolatedValue *rotatePtr) {
+int16 updateActorRotation(InterpolatedValue *rotatePtr) {
 
 	if (!rotatePtr->param)
-		return rotatePtr->newAngle;
+		return rotatePtr->newValue;
 
 	const int timeDif = timer - rotatePtr->timeOfRotate;
 
 	if (timeDif > rotatePtr->param) {
 		rotatePtr->param = 0;
-		return rotatePtr->newAngle;
+		return rotatePtr->newValue;
 	}
 
-	const int angleDif = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
+	const int angleDif = (rotatePtr->newValue & 0x3FF) - (rotatePtr->oldValue & 0x3FF);
 
 	if (angleDif <= 0x200) {
 		if (angleDif >= -0x200) {
-			const int angle = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
-			return (rotatePtr->oldAngle & 0x3FF) + angle * timeDif / rotatePtr->param;
+			const int angle = (rotatePtr->newValue & 0x3FF) - (rotatePtr->oldValue & 0x3FF);
+			return (rotatePtr->oldValue & 0x3FF) + angle * timeDif / rotatePtr->param;
 		} else {
-			const int16 angle = (rotatePtr->newAngle & 0x3FF) + 0x400 - (rotatePtr->oldAngle & 0x3FF);
-			return (rotatePtr->oldAngle & 0x3FF) + angle * timeDif / rotatePtr->param;
+			const int16 angle = (rotatePtr->newValue & 0x3FF) + 0x400 - (rotatePtr->oldValue & 0x3FF);
+			return (rotatePtr->oldValue & 0x3FF) + angle * timeDif / rotatePtr->param;
 		}
 	} else {
-		const int angle = (rotatePtr->newAngle & 0x3FF) - ((rotatePtr->oldAngle & 0x3FF) + 0x400);
-		return angle * timeDif / rotatePtr->param + (rotatePtr->oldAngle & 0x3FF);
+		const int angle = (rotatePtr->newValue & 0x3FF) - ((rotatePtr->oldValue & 0x3FF) + 0x400);
+		return angle * timeDif / rotatePtr->param + (rotatePtr->oldValue & 0x3FF);
 	}
 }
 
 void removeFromBGIncrust(int actorIdx) {
-	tObject *actorPtr = &objectTable[actorIdx];
+	Object *actorPtr = &objectTable[actorIdx];
 
 	actorPtr->_flags &= ~AF_BOXIFY;
 
@@ -1790,7 +1781,7 @@ static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int p
 	return 0;
 }
 
-static void drawBgOverlay(tObject *actorPtr) {
+static void drawBgOverlay(Object *actorPtr) {
 
 	actorPtr->screenXMin = BBox3D1;
 	actorPtr->screenYMin = BBox3D2;
@@ -1802,10 +1793,10 @@ static void drawBgOverlay(tObject *actorPtr) {
 
 	setClip(BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 
-	const cameraDataStruct *pCamera = cameraDataTable[currentCamera];
+	const CameraData *pCamera = cameraDataTable[currentCamera];
 
 	// look for the correct room data of that camera
-	const cameraViewedRoomStruct *pcameraViewedRoomData = nullptr;
+	const CameraViewedRoom *pcameraViewedRoomData = nullptr;
 	int relativeCameraIndex = -1;
 	for (int i = 0; i < pCamera->numViewedRooms; i++) {
 		if (pCamera->viewedRoomTable[i].viewedRoomIdx == actorPtr->room) {
@@ -1862,10 +1853,10 @@ static void drawBgOverlay(tObject *actorPtr) {
 		}
 	} else {
 		for (int i = 0; i < pcameraViewedRoomData->numMask; i++) {
-			const cameraMaskStruct *pMaskZones = &pcameraViewedRoomData->masks[i];
+			const CameraMask *pMaskZones = &pcameraViewedRoomData->masks[i];
 
 			for (int j = 0; j < pMaskZones->numTestRect; j++) {
-				const rectTestStruct *pRect = &pMaskZones->rectTests[j];
+				const RectTest *pRect = &pMaskZones->rectTests[j];
 
 				const int actorX1 = actorPtr->zv.ZVX1 / 10;
 				const int actorX2 = actorPtr->zv.ZVX2 / 10;
@@ -1912,7 +1903,7 @@ static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
 }
 
 static void drawSpecialObject(int actorIdx) {
-	tObject *actorPtr = &objectTable[actorIdx];
+	Object *actorPtr = &objectTable[actorIdx];
 
 	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
 	if (!flowPtr)
@@ -2079,7 +2070,7 @@ static void drawSpecialObject(int actorIdx) {
 	// TODO: finish
 }
 
-static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint) {
+static void getHotPoint(int hotPointIdx, char *bodyPtr, Point3d *hotPoint) {
 
 	const int16 flag = *(int16 *)bodyPtr;
 	bodyPtr += 2;
@@ -2158,7 +2149,7 @@ void mainDraw(int flagFlip) {
 	for (int i = 0; i < numActorInList; i++) {
 		const int currentDrawActor = sortedActorTable[i];
 
-		tObject *actorPtr = &objectTable[currentDrawActor];
+		Object *actorPtr = &objectTable[currentDrawActor];
 
 		// this is commented out to draw actors incrusted in background
 		// if(actorPtr->_flags & (AF_ANIMATED | AF_DRAWABLE | AF_SPECIAL))
@@ -2297,7 +2288,7 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 }
 
 void take(int objIdx) {
-	tWorldObject *objPtr = &ListWorldObjets[objIdx];
+	WorldObject *objPtr = &ListWorldObjets[objIdx];
 
 	if (numObjInInventoryTable[currentInventory] == 0) {
 		inventoryTable[currentInventory][0] = objIdx;
@@ -2340,7 +2331,7 @@ void foundObject(int objIdx, int param) {
 		debug("foundObject with param == 2\n");
 	}
 
-	tWorldObject *objPtr = &ListWorldObjets[objIdx];
+	WorldObject *objPtr = &ListWorldObjets[objIdx];
 
 	if (param != 0 && objPtr->flags2 & 0xC000) {
 		return;
@@ -2494,7 +2485,7 @@ static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int 
 	return returnFlag;
 }
 
-static int isInPoly(int x1, int x2, int z1, int z2, cameraViewedRoomStruct *pCameraZoneDef) {
+static int isInPoly(int x1, int x2, int z1, int z2, CameraViewedRoom *pCameraZoneDef) {
 	const int xMid = (x1 + x2) / 2;
 	const int zMid = (z1 + z2) / 2;
 
@@ -2529,7 +2520,7 @@ static int findBestCamera() {
 	int foundAngle = 32000;
 	int foundCamera = -1;
 
-	const tObject *actorPtr = &objectTable[currentCameraTargetActor];
+	const Object *actorPtr = &objectTable[currentCameraTargetActor];
 
 	const int x1 = actorPtr->zv.ZVX1 / 10;
 	const int x2 = actorPtr->zv.ZVX2 / 10;
@@ -2563,7 +2554,7 @@ void checkIfCameraChangeIsRequired() {
 
 	if (currentCamera != -1) {
 
-		const tObject *actorPtr = &objectTable[currentCameraTargetActor];
+		const Object *actorPtr = &objectTable[currentCameraTargetActor];
 
 		const int zvx1 = actorPtr->zv.ZVX1 / 10;
 		const int zvx2 = actorPtr->zv.ZVX2 / 10;
@@ -2608,9 +2599,9 @@ void processActor2() {
 
 	do {
 		onceMore = false;
-		roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
+		RoomData *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
 		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
-			sceZoneStruct *pCurrentZone = &pRoomData->sceZoneTable[i];
+			SceZone *pCurrentZone = &pRoomData->sceZoneTable[i];
 
 			if (isPointInZV(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 							currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY,
@@ -2730,7 +2721,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 		if (asmCheckListCol(&localZv, &roomDataTable[room]) <= 0) {
 			foundFlag = -1;
 		} else {
-			tObject *currentActorPtr = objectTable;
+			Object *currentActorPtr = objectTable;
 
 			for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 				if (currentActorPtr->indexInWorld != -1 && i != actorIdx && !(currentActorPtr->_flags & AF_SPECIAL)) {
@@ -2770,11 +2761,11 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 }
 
 void putAtObjet(int objIdx, int objIdxToPutAt) {
-	tWorldObject *objPtr = &ListWorldObjets[objIdx];
-	const tWorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
+	WorldObject *objPtr = &ListWorldObjets[objIdx];
+	const WorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
 
 	if (objPtrToPutAt->objIndex != -1) {
-		const tObject *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
+		const Object *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
 
 		deleteInventoryObjet(objIdx);
 
@@ -2961,7 +2952,7 @@ static int drawTextOverlay() {
 	BBox3D1 = 319;
 	BBox3D3 = 0;
 
-	messageStruct *currentMessage = messageTable;
+	Message *currentMessage = messageTable;
 
 	if (lightOff == 0) {
 		for (int i = 0; i < 5; i++) {
@@ -3016,9 +3007,9 @@ static void loadPalette() {
 	unsigned char localPalette[768];
 
 	if (g_engine->getGameId() == GID_AITD2) {
-		loadPak("ITD_RESS.PAK", 59, aux);
+		pakLoad("ITD_RESS.PAK", 59, aux);
 	} else {
-		loadPak("ITD_RESS.PAK", AITD1_PALETTE_JEU, aux);
+		pakLoad("ITD_RESS.PAK", AITD1_PALETTE_JEU, aux);
 	}
 	copyPalette((byte *)aux, currentGamePalette);
 
@@ -3054,7 +3045,7 @@ static void allocTextes() {
 	}
 
 	systemTextes = checkLoadMallocPak(languageNameString, 0); // todo: use real language name
-	const int textLength = getPakSize(languageNameString, 0);
+	const int textLength = pakGetPakSize(languageNameString, 0);
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
 		tabTextes[currentIndex].index = -1;
@@ -3119,16 +3110,16 @@ void runGame() {
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
 		CVarsSize = 45;
-		currentCVarTable = AITD1KnownCVars;
+		currentCVarTable = aitd1KnownCVars;
 		break;
 	case GID_JACK:
 		CVarsSize = 15;
-		currentCVarTable = AITD2KnownCVars;
+		currentCVarTable = aitd2KnownCVars;
 		break;
 	case GID_AITD2:
 	case GID_AITD3:
 		CVarsSize = 70;
-		currentCVarTable = AITD2KnownCVars;
+		currentCVarTable = aitd2KnownCVars;
 		break;
 	default:
 		break;
@@ -3226,16 +3217,16 @@ void runGame() {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		startAITD1(saveSlot);
+		aitd1Start(saveSlot);
 		break;
 	case GID_JACK:
-		startJACK(saveSlot);
+		jackStart(saveSlot);
 		break;
 	case GID_AITD2:
-		startAITD2(saveSlot);
+		aitd2Start(saveSlot);
 		break;
 	case GID_AITD3:
-		startAITD3(saveSlot);
+		aitd3Start(saveSlot);
 		break;
 	// case GID_TIMEGATE:
 	// 	startGame(0, 5, 1);
