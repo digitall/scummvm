@@ -81,7 +81,7 @@ void loadFloor(int floorNumber) {
 			if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", floorNumber).c_str())) {
 				roomData = (uint8 *)checkLoadMallocPak(Common::String::format("ETAGE%02d", floorNumber).c_str(), i);
 			} else if (Common::File::exists(Common::String::format("SAL%02d.PAK", floorNumber).c_str())) {
-				roomData = (uint8 *)checkLoadMallocPak(Common::String::format("SAL{:02d}", floorNumber).c_str(), i);
+				roomData = (uint8 *)checkLoadMallocPak(Common::String::format("SAL%02d", floorNumber).c_str(), i);
 			} else {
 				assert(0);
 			}
@@ -192,7 +192,7 @@ void loadFloor(int floorNumber) {
 			}
 		}
 	}
-	
+
 	g_currentFloorCameraData.clear();
     g_currentFloorCameraData.resize(expectedNumberOfCamera);
 
