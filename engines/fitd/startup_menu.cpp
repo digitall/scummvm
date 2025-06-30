@@ -109,7 +109,7 @@ int processStartupMenu() {
 
 	while (evalChrono(&chrono) <= 0x10000) // exit loop only if time out or if choice made
 	{
-		if (Engine::shouldQuit()) {
+		if (::Engine::shouldQuit()) {
 			selectedEntry = 2;
 		}
 

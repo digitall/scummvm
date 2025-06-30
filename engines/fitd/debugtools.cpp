@@ -21,11 +21,13 @@
 
 #include "backends/imgui/imgui.h"
 #include "common/debug.h"
-#include "fitd/debugger/dbg_vars.h"
-#include "fitd/debugger/dbg_utils.h"
 #include "fitd/debugger/dbg_pak.h"
+#include "fitd/debugger/dbg_utils.h"
+#include "fitd/debugger/dbg_vars.h"
 #include "fitd/debugtools.h"
 #include "fitd/detection.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/room.h"
 
@@ -88,16 +90,16 @@ static void drawObjects() {
 	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("World objects")) {
 
-		if (!ListWorldObjets.empty()) {
+		if (!g_engine->_engine->worldObjets.empty()) {
 			static int selectedWorldObject = 0;
 			ImGui::InputInt("Index", &selectedWorldObject);
 
 			ImGui::Separator();
 
-			if ((uint)selectedWorldObject > ListWorldObjets.size())
-				selectedWorldObject = ListWorldObjets.size() - 1;
+			if ((uint)selectedWorldObject > g_engine->_engine->worldObjets.size())
+				selectedWorldObject = g_engine->_engine->worldObjets.size() - 1;
 
-			WorldObject *pWorldObject = &ListWorldObjets[selectedWorldObject];
+			WorldObject *pWorldObject = &g_engine->_engine->worldObjets[selectedWorldObject];
 
 			if (pWorldObject) {
 				InputS16("objectIndex", &pWorldObject->objIndex);
@@ -135,7 +137,7 @@ static void drawObjects() {
 	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Active objects");
 
-	if (ListWorldObjets.size()) {
+	if (g_engine->_engine->worldObjets.size()) {
 		static int selectedObject = 0;
 		ImGui::InputInt("Index", &selectedObject);
 

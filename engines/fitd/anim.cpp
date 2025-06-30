@@ -20,26 +20,14 @@
  */
 
 #include "fitd/anim.h"
-#include "common/hashmap.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
 
-namespace Common {
-template<>
-struct Hash<void *> {
-	uint operator()(void *s) const {
-		uint64 u = (uint64)s;
-		return ((u >> 32) & 0xFFFFFFFF) ^ (u & 0xFFFFFFFF);
-	}
-};
-} // namespace Common
-
 namespace Fitd {
-
-static Common::HashMap<void *, byte *> g_bodyBufferMap;
 
 static void initBufferAnim(int16 *buffer, byte *bodyPtr);
 
@@ -76,7 +64,7 @@ int setAnimObjet(int frame, byte *anim, byte *body) {
 
 	body += 14;
 
-	g_bodyBufferMap[body + 2] = anim;
+	g_engine->_engine->bodyBufferMap[body + 2] = anim;
 	*(uint16 *)(body + 6) = timer;
 
 	body += *(int16 *)body;
@@ -404,7 +392,7 @@ void updateAnimation() {
 
 		if (currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
 		{
-			int numCol = asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
+			int numCol = asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]);
 
 			for (int i = 0; i < numCol; i++) {
 				HardCol *pHardCol = hardColTable[i];
@@ -448,7 +436,7 @@ void updateAnimation() {
 			}
 		} else // no hard collision -> just update the flag without performing the position update
 		{
-			if (asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->HARD_COL = 1;
 			} else {
 				currentProcessedActorPtr->HARD_COL = 0;
@@ -488,7 +476,7 @@ void updateAnimation() {
 					localZv2.ZVZ1 += stepZ;
 					localZv2.ZVZ2 += stepZ;
 
-					if (!asmCheckListCol(&localZv2, &roomDataTable[currentProcessedActorPtr->room])) {
+					if (!asmCheckListCol(&localZv2, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 						if (checkObjectCollisions(collisionIndex, &localZv2)) {
 							isPushPossible = false;
 						}
@@ -603,7 +591,7 @@ void updateAnimation() {
 
 			zvLocal.ZVY2 += 100;
 
-			if (currentProcessedActorPtr->roomY < -10 && !asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
+			if (currentProcessedActorPtr->roomY < -10 && !asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
 				initRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
 			} else {
 				currentProcessedActorPtr->falling = 0;
@@ -692,7 +680,7 @@ static void initBufferAnim(int16 *buffer, byte *bodyPtr) {
 
 		*(uint16 *)(source + 4) = (uint16)timer;
 
-		g_bodyBufferMap[source] = (byte *)&buffer[0];
+		g_engine->_engine->bodyBufferMap[source] = (byte *)&buffer[0];
 
 		source += *(int16 *)(source - 2);
 
@@ -833,7 +821,7 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 	const uint16 timeOfKeyframeStart = *(uint16 *)(bodyPtr + 4); // time of start of keyframe
 
-	byte *animBufferPtr = g_bodyBufferMap[bodyPtr];
+	byte *animBufferPtr = g_engine->_engine->bodyBufferMap[bodyPtr];
 
 	if (!animBufferPtr) {
 		animBufferPtr = animVar1;
@@ -964,7 +952,7 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 		} while (--numOfBonesInAnim);
 
-		g_bodyBufferMap[animVar3] = animVar1;
+		g_engine->_engine->bodyBufferMap[animVar3] = animVar1;
 		//*(char**)animVar3 = animVar1;
 
 		*(uint16 *)(animVar3 + 4) = (uint16)timer;

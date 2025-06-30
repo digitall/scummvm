@@ -133,7 +133,7 @@ int make3dTatou() {
 
 			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
 
-			while (!Engine::shouldQuit() && key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
+			while (!::Engine::shouldQuit() && key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
 			{
 				const int deltaTime = 50;
 				process_events();
@@ -158,7 +158,7 @@ int make3dTatou() {
 
 			break;
 		}
-	} while (!Engine::shouldQuit());
+	} while (!::Engine::shouldQuit());
 
 	free(tatouPal);
 	free(tatou3d);

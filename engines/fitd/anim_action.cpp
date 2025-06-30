@@ -19,9 +19,11 @@
  *
  */
 
-#include "fitd/anim_action.h"
 #include "common/debug.h"
+#include "fitd/anim_action.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/life.h"
 #include "fitd/room.h"
@@ -200,7 +202,7 @@ void gereFrappe() {
 		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			int objIdx = currentProcessedActorPtr->animActionParam;
 
-			WorldObject *objPtr = &ListWorldObjets[objIdx];
+			WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
 
 			int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
 			int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
@@ -217,7 +219,7 @@ void gereFrappe() {
 			rangeZv.ZVZ1 += z;
 			rangeZv.ZVZ2 += z;
 
-			if (asmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->animActionType = 0;
 				putAtObjet(objIdx, currentProcessedActorPtr->indexInWorld);
 			} else {
@@ -263,7 +265,7 @@ void gereFrappe() {
 
 		objIdx = currentProcessedActorPtr->animActionParam;
 
-		actorIdx = ListWorldObjets[objIdx].objIndex;
+		actorIdx = g_engine->_engine->worldObjets[objIdx].objIndex;
 
 		if (actorIdx == -1)
 			return;
@@ -286,11 +288,11 @@ void gereFrappe() {
 		actorPtr->_flags |= AF_ANIMATED;
 		actorPtr->_flags &= ~AF_BOXIFY;
 
-		ListWorldObjets[objIdx].x = x;
-		ListWorldObjets[objIdx].y = y;
-		ListWorldObjets[objIdx].z = z;
+		g_engine->_engine->worldObjets[objIdx].x = x;
+		g_engine->_engine->worldObjets[objIdx].y = y;
+		g_engine->_engine->worldObjets[objIdx].z = z;
 
-		ListWorldObjets[objIdx].alpha = currentProcessedActorPtr->indexInWorld; // original thrower
+		g_engine->_engine->worldObjets[objIdx].alpha = currentProcessedActorPtr->indexInWorld; // original thrower
 
 		actorPtr->dynFlags = 0;
 		actorPtr->animActionType = 9;
@@ -330,7 +332,7 @@ void gereFrappe() {
 	}
 	case 9: // during throw
 	{
-		WorldObject *objPtr = &ListWorldObjets[currentProcessedActorPtr->indexInWorld];
+		WorldObject *objPtr = &g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld];
 
 		ZVStruct rangeZv;
 		ZVStruct rangeZv2;
@@ -465,7 +467,7 @@ void gereFrappe() {
 				}
 			}
 
-			ptr = processActor2Sub(x2, y2, z2, &roomDataTable[currentProcessedActorPtr->room]);
+			ptr = processActor2Sub(x2, y2, z2, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]);
 
 			if (ptr) {
 				if (ptr->type == 0 || ptr->type == 10) {
@@ -475,7 +477,7 @@ void gereFrappe() {
 				}
 			}
 
-			if (asmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->hotPoint.x = 0;
 				currentProcessedActorPtr->hotPoint.y = 0;
 				currentProcessedActorPtr->hotPoint.z = 0;

@@ -71,7 +71,7 @@ void aitd3Start(int saveSlot) {
 		startGame(1, 0, 0);
 	}
 
-	while (!Engine::shouldQuit()) {
+	while (!::Engine::shouldQuit()) {
 		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 
 		switch (startupMenuResult) {
@@ -107,7 +107,7 @@ void aitd3Start(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			Engine::quitGame();
+			::Engine::quitGame();
 
 			break;
 		}

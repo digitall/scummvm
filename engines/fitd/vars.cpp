@@ -121,8 +121,6 @@ HqrEntry *listMatrix = nullptr;
 
 int16 maxObjects;
 
-Common::Array<WorldObject> ListWorldObjets;
-
 int16 *vars;
 
 int varSize;
@@ -206,21 +204,6 @@ int currentLifeNum;
 
 byte *currentLifePtr;
 
-int16 readNextArgument(const char *name) {
-	const int16 value = *(int16 *)currentLifePtr;
-	currentLifePtr += 2;
-
-	// if (name)
-	// {
-	//     appendFormated("%s:%d, ",name, value);
-	// }
-	// else
-	// {
-	//     appendFormated("%d, ", value);
-	// }
-
-	return value;
-}
 bool cameraBackgroundChanged = false;
 int flagRedraw;
 

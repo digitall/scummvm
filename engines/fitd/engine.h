@@ -19,17 +19,34 @@
  *
  */
 
- #ifndef _FITD_FLOOR_H_
- #define _FITD_FLOOR_H_
+#ifndef FITD_ENGINE_H
+#define FITD_ENGINE_H
 
- #include "common/scummsys.h"
+#include "common/array.h"
+#include "common/hashmap.h"
+#include "common/scummsys.h"
+#include "fitd/room.h"
+
+namespace Common {
+template<>
+struct Hash<void *> {
+	uint operator()(void *s) const {
+		uint64 u = (uint64)s;
+		return ((u >> 32) & 0xFFFFFFFF) ^ (u & 0xFFFFFFFF);
+	}
+};
+} // namespace Common
 
 namespace Fitd {
+class Engine {
+public:
+	Common::HashMap<void *, byte *> bodyBufferMap;
+	Common::Array<CameraData> currentFloorCameraData;
+	Common::Array<Body *> bodies;
+	Common::Array<Animation *> animations;
+	Common::Array<RoomData> roomDataTable;
+	Common::Array<WorldObject> worldObjets;
+};
+} // namespace Fitd
 
-extern uint32 g_currentFloorRoomRawDataSize;
-
-void loadFloor(int floorNumber);
-}
-
-#endif
-
+#endif // FITD_ENGINE_H

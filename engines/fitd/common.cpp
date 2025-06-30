@@ -19,7 +19,6 @@
  *
  */
 
-#include "fitd/common.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
@@ -32,8 +31,10 @@
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
+#include "fitd/common.h"
 #include "fitd/console.h"
 #include "fitd/debugtools.h"
+#include "fitd/engine.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
@@ -53,7 +54,6 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
-#include "gob/detection/detection.h"
 
 namespace Fitd {
 
@@ -163,9 +163,9 @@ void executeFoundLife(int objIdx) {
 	if (objIdx == -1)
 		return;
 
-	const int foundLife = ListWorldObjets[objIdx].foundLife;
+	const int foundLife = g_engine->_engine->worldObjets[objIdx].foundLife;
 
-	if (ListWorldObjets[objIdx].foundLife == -1)
+	if (g_engine->_engine->worldObjets[objIdx].foundLife == -1)
 		return;
 
 	Object *currentActorPtr = currentProcessedActorPtr;
@@ -180,7 +180,7 @@ void executeFoundLife(int objIdx) {
 
 	int var_2 = 0;
 
-	int actorIdx = ListWorldObjets[objIdx].objIndex;
+	int actorIdx = g_engine->_engine->worldObjets[objIdx].objIndex;
 
 	if (actorIdx == -1) {
 		const Object *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
@@ -353,7 +353,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	//  LastSample = -1;
 	//  LastPriority = -1;
 
-	while (!Engine::shouldQuit() && !quit) {
+	while (!::Engine::shouldQuit() && !quit) {
 		fastCopyScreen(aux, logicalScreen);
 		process_events();
 		setClip(startx, top, endx, bottom);
@@ -375,7 +375,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 			int interWordSpace = 0;
 
-			while (!Engine::shouldQuit()) {
+			while (!::Engine::shouldQuit()) {
 				while (*ptrt == '#') {
 					// char* var_1BE = var_1C2;
 					ptrt++;
@@ -594,7 +594,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				process_events();
 			} while (key || JoyD || Click);
 
-			while (!Engine::shouldQuit()) {
+			while (!::Engine::shouldQuit()) {
 				process_events();
 				localKey = key;
 				localJoyD = JoyD;
@@ -693,95 +693,95 @@ void initEngine() {
 	pObjectData += 2;
 
 	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
-		ListWorldObjets.resize(300);
+		g_engine->_engine->worldObjets.resize(300);
 	} else {
-		ListWorldObjets.resize(maxObjects);
+		g_engine->_engine->worldObjets.resize(maxObjects);
 	}
 
 	for (int i = 0; i < maxObjects; i++) {
-		ListWorldObjets[i].objIndex = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].objIndex = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].body = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].body = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].flags = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].flags = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].typeZV = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].typeZV = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].foundBody = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].foundBody = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].foundName = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].foundName = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].flags2 = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].flags2 = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].foundLife = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].foundLife = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].x = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].x = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].y = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].y = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].z = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].z = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].alpha = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].alpha = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].beta = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].beta = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].gamma = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].gamma = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].stage = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].stage = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].room = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].room = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].lifeMode = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].lifeMode = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].life = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].life = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].floorLife = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].floorLife = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].anim = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].anim = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].frame = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].frame = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].animType = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].animType = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].animInfo = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].animInfo = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].trackMode = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].trackMode = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].trackNumber = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].trackNumber = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		ListWorldObjets[i].positionInTrack = READ_LE_U16(pObjectData);
+		g_engine->_engine->worldObjets[i].positionInTrack = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
 		if (g_engine->getGameId() >= GID_JACK) {
-			ListWorldObjets[i].mark = READ_LE_U16(pObjectData);
+			g_engine->_engine->worldObjets[i].mark = READ_LE_U16(pObjectData);
 			pObjectData += 2;
 		}
-		ListWorldObjets[i].flags |= 0x20;
+		g_engine->_engine->worldObjets[i].flags |= 0x20;
 	}
 
 	free(pObjectDataBackup);
@@ -1167,9 +1167,9 @@ static void setupCameraSub1() {
 	*dataTabPos = -1;
 
 	// visibility list: add linked rooms
-	for (uint32 i = 0; i < roomDataTable[currentRoom].numSceZone; i++) {
-		if (roomDataTable[currentRoom].sceZoneTable[i].type == 0) {
-			const int var_10 = roomDataTable[currentRoom].sceZoneTable[i].parameter;
+	for (uint32 i = 0; i < g_engine->_engine->roomDataTable[currentRoom].numSceZone; i++) {
+		if (g_engine->_engine->roomDataTable[currentRoom].sceZoneTable[i].type == 0) {
+			const int var_10 = g_engine->_engine->roomDataTable[currentRoom].sceZoneTable[i].parameter;
 			if (!isInViewList(var_10)) {
 				*dataTabPos++ = var_10;
 				*dataTabPos = -1;
@@ -1201,7 +1201,7 @@ static void deleteObjet(int index) // remove actor
 		// HQ_Free_Malloc(HQ_Memory,actorPtr->FRAME);
 	} else {
 		if (actorPtr->indexInWorld >= 0) {
-			WorldObject *objectPtr = &ListWorldObjets[actorPtr->indexInWorld];
+			WorldObject *objectPtr = &g_engine->_engine->worldObjets[actorPtr->indexInWorld];
 
 			objectPtr->objIndex = -1;
 			actorPtr->indexInWorld = -1;
@@ -1348,7 +1348,7 @@ void updateAllActorAndObjectsAITD2() {
 	}
 
 	for (int i = 0; i < maxObjects; i++) {
-		WorldObject *currentObject = &ListWorldObjets[i];
+		WorldObject *currentObject = &g_engine->_engine->worldObjets[i];
 
 		if (currentObject->objIndex != -1) {
 			if (currentWorldTarget == i) {
@@ -1505,7 +1505,7 @@ void updateAllActorAndObjects() {
 		currentActor++;
 	}
 
-	WorldObject *currentObject = &ListWorldObjets[0];
+	WorldObject *currentObject = &g_engine->_engine->worldObjets[0];
 
 	for (i = 0; i < maxObjects; i++) {
 		if (currentObject->objIndex != -1) {
@@ -1624,11 +1624,11 @@ void setupCamera() {
 
 	currentCamera = startGameVar1;
 
-	assert((uint32)startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
+	assert((uint32)startGameVar1 < g_engine->_engine->roomDataTable[currentRoom].numCameraInRoom);
 
-	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+	loadCamera(g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
 	if (g_engine->getGameId() >= GID_JACK) {
-		loadMask(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+		loadMask(g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
 	} else {
 		createAITD1Mask();
 	}
@@ -1638,9 +1638,9 @@ void setupCamera() {
 
 	setAngleCamera(pCamera->alpha, pCamera->beta, pCamera->gamma);
 
-	const int x = (pCamera->x - roomDataTable[currentRoom].worldX) * 10;
-	const int y = (roomDataTable[currentRoom].worldY - pCamera->y) * 10;
-	const int z = (roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
+	const int x = (pCamera->x - g_engine->_engine->roomDataTable[currentRoom].worldX) * 10;
+	const int y = (g_engine->_engine->roomDataTable[currentRoom].worldY - pCamera->y) * 10;
+	const int z = (g_engine->_engine->roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
 
 	setPosCamera(x, y, z); // setup camera position
 
@@ -1757,7 +1757,7 @@ void deleteInventoryObjet(int objIdx) {
 		numObjInInventoryTable[currentInventory]--;
 	}
 
-	ListWorldObjets[objIdx].flags2 &= 0x7FFF;
+	g_engine->_engine->worldObjets[objIdx].flags2 &= 0x7FFF;
 }
 
 static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int param) {
@@ -2288,7 +2288,7 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 }
 
 void take(int objIdx) {
-	WorldObject *objPtr = &ListWorldObjets[objIdx];
+	WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
 
 	if (numObjInInventoryTable[currentInventory] == 0) {
 		inventoryTable[currentInventory][0] = objIdx;
@@ -2331,7 +2331,7 @@ void foundObject(int objIdx, int param) {
 		debug("foundObject with param == 2\n");
 	}
 
-	WorldObject *objPtr = &ListWorldObjets[objIdx];
+	WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
 
 	if (param != 0 && objPtr->flags2 & 0xC000) {
 		return;
@@ -2349,7 +2349,7 @@ void foundObject(int objIdx, int param) {
 
 	int weight = 0;
 	for (int i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
-		weight += ListWorldObjets[inventoryTable[currentInventory][i]].positionInTrack;
+		weight += g_engine->_engine->worldObjets[inventoryTable[currentInventory][i]].positionInTrack;
 	}
 
 	if (objPtr->positionInTrack + weight > CVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
@@ -2377,7 +2377,7 @@ void foundObject(int objIdx, int param) {
 
 	input5 = 1;
 
-	while (!var_C && !Engine::shouldQuit()) {
+	while (!var_C && !::Engine::shouldQuit()) {
 		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
 		process_events();
@@ -2599,7 +2599,7 @@ void processActor2() {
 
 	do {
 		onceMore = false;
-		RoomData *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
+		RoomData *pRoomData = &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room];
 		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 			SceZone *pCurrentZone = &pRoomData->sceZoneTable[i];
 
@@ -2614,9 +2614,9 @@ void processActor2() {
 
 					currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
 
-					const int x = (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[oldRoom].worldX) * 10;
-					const int y = (roomDataTable[currentProcessedActorPtr->room].worldY - roomDataTable[oldRoom].worldY) * 10;
-					const int z = (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[oldRoom].worldZ) * 10;
+					const int x = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[oldRoom].worldX) * 10;
+					const int y = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[oldRoom].worldY) * 10;
+					const int z = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[oldRoom].worldZ) * 10;
 
 					currentProcessedActorPtr->roomX -= x;
 					currentProcessedActorPtr->roomY += y;
@@ -2663,7 +2663,7 @@ void processActor2() {
 				case 10: // stage
 				{
 
-					const int life = ListWorldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
+					const int life = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
 
 					if (life == -1)
 						return;
@@ -2718,7 +2718,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 			break;
 		}
 
-		if (asmCheckListCol(&localZv, &roomDataTable[room]) <= 0) {
+		if (asmCheckListCol(&localZv, &g_engine->_engine->roomDataTable[room]) <= 0) {
 			foundFlag = -1;
 		} else {
 			Object *currentActorPtr = objectTable;
@@ -2761,8 +2761,8 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 }
 
 void putAtObjet(int objIdx, int objIdxToPutAt) {
-	WorldObject *objPtr = &ListWorldObjets[objIdx];
-	const WorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
+	WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
+	const WorldObject *objPtrToPutAt = &g_engine->_engine->worldObjets[objIdxToPutAt];
 
 	if (objPtrToPutAt->objIndex != -1) {
 		const Object *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
@@ -2794,8 +2794,8 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 			currentProcessedActorPtr->beta = actorToPutAtPtr->beta;
 			currentProcessedActorPtr->gamma = actorToPutAtPtr->gamma;
 
-			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
 
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
@@ -2829,8 +2829,8 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 			currentProcessedActorPtr->beta = objPtrToPutAt->beta;
 			currentProcessedActorPtr->gamma = objPtrToPutAt->gamma;
 
-			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
 
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
@@ -2870,7 +2870,7 @@ void throwStoppedAt(int x, int z) {
 		zvCopy.ZVZ1 += z2;
 		zvCopy.ZVZ2 += z2;
 
-		if (!asmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+		if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 			foundPosition = 1;
 		}
 
@@ -2879,7 +2879,7 @@ void throwStoppedAt(int x, int z) {
 				zvCopy.ZVY1 += 100; // is the object reachable ? (100 is Carnby height. If hard col at Y + 100, carnby can't reach that spot)
 				zvCopy.ZVY2 += 100;
 
-				if (!asmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+				if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
 					y2 += 2000;
 					foundPosition = 0;
 				} else {
@@ -2915,8 +2915,8 @@ void throwStoppedAt(int x, int z) {
 	currentProcessedActorPtr->zv.ZVZ1 += z2;
 	currentProcessedActorPtr->zv.ZVZ2 += z2;
 
-	ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-	ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 &= 0xEFFF;
+	g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+	g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 &= 0xEFFF;
 
 	addActorToBgInscrust(currentProcessedActorIdx);
 }

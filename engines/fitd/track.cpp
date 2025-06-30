@@ -19,11 +19,13 @@
  *
  */
 
+#include "fitd/track.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
-#include "fitd/track.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
@@ -202,7 +204,7 @@ void processTrack() {
 	}
 	case 2: // follow
 	{
-		const int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = g_engine->_engine->worldObjets[currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
 			currentProcessedActorPtr->direction = 0;
@@ -283,9 +285,9 @@ void processTrack() {
 			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			currentProcessedActorPtr->worldX -= (int16)((roomDataTable[currentRoom].worldX - roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
-			currentProcessedActorPtr->worldY += (int16)((roomDataTable[currentRoom].worldY - roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
-			currentProcessedActorPtr->worldZ += (int16)((roomDataTable[currentRoom].worldZ - roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
+			currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
+			currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
+			currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
 
 			currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
 			currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
@@ -314,8 +316,8 @@ void processTrack() {
 
 			if (roomNumber != currentProcessedActorPtr->room) {
 				// TODO: fix bug here...
-				x -= (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[roomNumber].worldX) * 10;
-				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
+				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
 			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
@@ -364,9 +366,9 @@ void processTrack() {
 
 			if (roomNumber != currentProcessedActorPtr->room) {
 				// TODO: fix bug here...
-				x -= (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[roomNumber].worldX) * 10;
-				y += (roomDataTable[currentProcessedActorPtr->room].worldY - roomDataTable[roomNumber].worldY) * 10;
-				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
+				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				y += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[roomNumber].worldY) * 10;
+				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
 			// reached position?
@@ -481,9 +483,9 @@ void processTrack() {
 		case TL_MEMO_COOR: {
 			const int objNum = currentProcessedActorPtr->indexInWorld;
 
-			ListWorldObjets[objNum].x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			ListWorldObjets[objNum].y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			ListWorldObjets[objNum].z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->worldObjets[objNum].x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
+			g_engine->_engine->worldObjets[objNum].y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
+			g_engine->_engine->worldObjets[objNum].z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
 
 			currentProcessedActorPtr->positionInTrack++;
 
@@ -499,9 +501,9 @@ void processTrack() {
 			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			const int objX = ListWorldObjets[currentProcessedActorPtr->indexInWorld].x;
-			const int objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
-			// objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
+			const int objX = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].x;
+			const int objY = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].y;
+			// objZ = g_engine->_engine->ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
 
 			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
 				const int propX = makeProportional(objY, y, x - objX, currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX - objX);
@@ -554,8 +556,8 @@ void processTrack() {
 			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			const int objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
-			const int objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
+			const int objY = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].y;
+			const int objZ = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].z;
 
 			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
 				const int propZ = makeProportional(objY, y, z - objZ, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ - objZ);
@@ -663,7 +665,7 @@ void processTrack2() {
 	}
 	case 2: // follow
 	{
-		const int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = g_engine->_engine->worldObjets[currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
 			currentProcessedActorPtr->direction = 0;
@@ -744,9 +746,9 @@ void processTrack2() {
 			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			currentProcessedActorPtr->worldX -= (int16)((roomDataTable[currentRoom].worldX - roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
-			currentProcessedActorPtr->worldY += (int16)((roomDataTable[currentRoom].worldY - roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
-			currentProcessedActorPtr->worldZ += (int16)((roomDataTable[currentRoom].worldZ - roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
+			currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
+			currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
+			currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
 
 			currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
 			currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
@@ -774,8 +776,8 @@ void processTrack2() {
 			trackPtr += 2;
 
 			if (roomNumber != currentProcessedActorPtr->room) {
-				x -= (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[roomNumber].worldX) * 10;
-				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
+				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
 			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,

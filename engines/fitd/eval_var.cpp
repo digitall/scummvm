@@ -22,8 +22,8 @@
 #include "fitd/eval_var.h"
 #include "common/debug.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/floor.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
 #include "fitd/room.h"
@@ -144,14 +144,14 @@ int testZvEndAnim(const Object *actorPtr, byte *animPtr, int param) {
 	localZv.ZVZ1 += animMoveZ;
 	localZv.ZVZ2 += animMoveZ;
 
-	if (asmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
+	if (asmCheckListCol(&localZv, &g_engine->_engine->roomDataTable[actorPtr->room])) {
 		return 0;
 	}
 
 	localZv.ZVY1 += 100;
 	localZv.ZVY2 += 100;
 
-	if (asmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
+	if (asmCheckListCol(&localZv, &g_engine->_engine->roomDataTable[actorPtr->room])) {
 		return 1;
 	}
 
@@ -183,7 +183,7 @@ int evalVar(const char *name) {
 
 			const int objectNumber = *(int16 *)currentLifePtr;
 
-			int actorIdx = ListWorldObjets[objectNumber].objIndex;
+			int actorIdx = g_engine->_engine->worldObjets[objectNumber].objIndex;
 
 			currentLifePtr += 2;
 			actorPtr = &objectTable[actorIdx];
@@ -191,11 +191,11 @@ int evalVar(const char *name) {
 			if (actorIdx == -1) {
 				switch (var1 & 0x7FFF) {
 				case 0x1F: {
-					return ListWorldObjets[objectNumber].room;
+					return g_engine->_engine->worldObjets[objectNumber].room;
 					break;
 				}
 				case 0x26: {
-					return ListWorldObjets[objectNumber].stage;
+					return g_engine->_engine->worldObjets[objectNumber].stage;
 					break;
 				}
 				default: {
@@ -274,7 +274,7 @@ int evalVar(const char *name) {
 			}
 			case 0xE: // DIST
 			{
-				const int actorNumber = ListWorldObjets[*(int16 *)currentLifePtr].objIndex;
+				const int actorNumber = g_engine->_engine->worldObjets[*(int16 *)currentLifePtr].objIndex;
 				currentLifePtr += 2;
 
 				if (actorNumber == -1) {
@@ -294,7 +294,7 @@ int evalVar(const char *name) {
 			}
 			case 0x10: // found
 			{
-				if (ListWorldObjets[evalVar()].flags2 & 0x8000) {
+				if (g_engine->_engine->worldObjets[evalVar()].flags2 & 0x8000) {
 					return 1;
 				}
 				return 0;
@@ -308,11 +308,11 @@ int evalVar(const char *name) {
 				const int objNum = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
 
-				if (ListWorldObjets[objNum].objIndex == -1) {
+				if (g_engine->_engine->worldObjets[objNum].objIndex == -1) {
 					return 0;
 				}
 
-				return getPosRel(actorPtr, &objectTable[ListWorldObjets[objNum].objIndex]);
+				return getPosRel(actorPtr, &objectTable[g_engine->_engine->worldObjets[objNum].objIndex]);
 			}
 			case 0x13: {
 				if (localJoyD & 4)
@@ -377,7 +377,7 @@ int evalVar(const char *name) {
 				const int objNum = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
 
-				if (ListWorldObjets[objNum].flags2 & 0xC000) {
+				if (g_engine->_engine->worldObjets[objNum].flags2 & 0xC000) {
 					return 1;
 				}
 				return 0;
@@ -413,7 +413,7 @@ int evalVar(const char *name) {
 				const int objNum = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
 
-				if (ListWorldObjets[objNum].flags2 & 0x1000) {
+				if (g_engine->_engine->worldObjets[objNum].flags2 & 0x1000) {
 					return 1;
 				}
 				return 0;
@@ -459,7 +459,7 @@ int evalVar2(const char *name) {
 
 		const int objectNumber = *(int16 *)currentLifePtr;
 
-		actorIdx = ListWorldObjets[objectNumber].objIndex;
+		actorIdx = g_engine->_engine->worldObjets[objectNumber].objIndex;
 
 		currentLifePtr += 2;
 		actorPtr = &objectTable[actorIdx];
@@ -471,7 +471,7 @@ int evalVar2(const char *name) {
 				// 	appendFormated("%s:", name);
 				// appendFormated("worldObjects[%d].room, ", objectNumber);
 
-				return ListWorldObjets[objectNumber].room;
+				return g_engine->_engine->worldObjets[objectNumber].room;
 				break;
 			}
 			case 0x24: {
@@ -479,7 +479,7 @@ int evalVar2(const char *name) {
 				// 	appendFormated("%s:", name);
 				// appendFormated("worldObjects[%d].stage, ", objectNumber);
 
-				return ListWorldObjets[objectNumber].stage;
+				return g_engine->_engine->worldObjets[objectNumber].stage;
 				break;
 			}
 			default: {
@@ -578,17 +578,17 @@ int evalVar2(const char *name) {
 			const int worldObjectIdx = *(int16 *)currentLifePtr;
 			currentLifePtr += 2;
 
-			const int objectIdx = ListWorldObjets[worldObjectIdx].objIndex;
+			const int objectIdx = g_engine->_engine->worldObjets[worldObjectIdx].objIndex;
 
 			int tempX;
 			int tempY;
 			int tempZ;
 
 			if (objectIdx == -1) {
-				if (ListWorldObjets[worldObjectIdx].room == currentRoom) {
-					tempX = ListWorldObjets[worldObjectIdx].x;
-					tempY = ListWorldObjets[worldObjectIdx].y;
-					tempZ = ListWorldObjets[worldObjectIdx].z;
+				if (g_engine->_engine->worldObjets[worldObjectIdx].room == currentRoom) {
+					tempX = g_engine->_engine->worldObjets[worldObjectIdx].x;
+					tempY = g_engine->_engine->worldObjets[worldObjectIdx].y;
+					tempZ = g_engine->_engine->worldObjets[worldObjectIdx].z;
 				} else {
 					return 32000;
 				}
@@ -608,7 +608,7 @@ int evalVar2(const char *name) {
 		}
 		case 0x10: // found
 		{
-			if (ListWorldObjets[evalVar()].flags2 & 0x8000) {
+			if (g_engine->_engine->worldObjets[evalVar()].flags2 & 0x8000) {
 				return 1;
 			}
 			return 0;
@@ -622,11 +622,11 @@ int evalVar2(const char *name) {
 			const int objNum = *(int16 *)currentLifePtr;
 			currentLifePtr += 2;
 
-			if (ListWorldObjets[objNum].objIndex == -1) {
+			if (g_engine->_engine->worldObjets[objNum].objIndex == -1) {
 				return 0;
 			}
 
-			return getPosRel(actorPtr, &objectTable[ListWorldObjets[objNum].objIndex]);
+			return getPosRel(actorPtr, &objectTable[g_engine->_engine->worldObjets[objNum].objIndex]);
 		}
 		case 0x13: {
 			if (localJoyD & 4)
@@ -669,7 +669,7 @@ int evalVar2(const char *name) {
 			return actorPtr->hitForce;
 		}
 		case 0x1B: {
-			return cameraDataTable[currentCamera] - &g_currentFloorCameraData[0];
+			return cameraDataTable[currentCamera] - &g_engine->_engine->currentFloorCameraData[0];
 		}
 		case 0x1C: {
 			const int temp = *(int16 *)currentLifePtr;
@@ -691,7 +691,7 @@ int evalVar2(const char *name) {
 			const int objNum = *(int16 *)currentLifePtr;
 			currentLifePtr += 2;
 
-			if (ListWorldObjets[objNum].flags2 & 0xC000) {
+			if (g_engine->_engine->worldObjets[objNum].flags2 & 0xC000) {
 				return 1;
 			}
 			return 0;
@@ -714,7 +714,7 @@ int evalVar2(const char *name) {
 			const int objNum = *(int16 *)currentLifePtr;
 			currentLifePtr += 2;
 
-			if (ListWorldObjets[objNum].flags2 & 0x1000) {
+			if (g_engine->_engine->worldObjets[objNum].flags2 & 0x1000) {
 				return 1;
 			}
 			return 0;
@@ -728,7 +728,7 @@ int evalVar2(const char *name) {
 			const int param2 = *(int16 *)currentLifePtr;
 			currentLifePtr += 2;
 
-			return getMatrix(param1, actorIdx, ListWorldObjets[param2].objIndex);
+			return getMatrix(param1, actorIdx, g_engine->_engine->worldObjets[param2].objIndex);
 		}
 		case 0x26: // hard_mat
 		{

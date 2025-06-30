@@ -21,6 +21,7 @@
 
 #include "common/file.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/game_time.h"
@@ -41,7 +42,6 @@ etageVar1 -> table for camera data
 
 */
 
-Common::Array<RoomData> roomDataTable;
 CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
 
@@ -90,11 +90,11 @@ void loadRoom(int roomNumber) {
 	if (currentCamera == -1) {
 		oldCameraIdx = -1;
 	} else {
-		cameraVar0 = roomDataTable[currentRoom].worldX;
-		cameraVar1 = roomDataTable[currentRoom].worldY;
-		cameraVar2 = roomDataTable[currentRoom].worldZ;
+		cameraVar0 = g_engine->_engine->roomDataTable[currentRoom].worldX;
+		cameraVar1 = g_engine->_engine->roomDataTable[currentRoom].worldY;
+		cameraVar2 = g_engine->_engine->roomDataTable[currentRoom].worldZ;
 
-		oldCameraIdx = roomDataTable[currentRoom].cameraIdxTable[currentCamera];
+		oldCameraIdx = g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[currentCamera];
 	}
 
 	if (g_engine->getGameId() < GID_AITD3) {
@@ -104,7 +104,7 @@ void loadRoom(int roomNumber) {
 
 	currentRoom = roomNumber;
 
-	numCameraInRoom = roomDataTable[roomNumber].numCameraInRoom;
+	numCameraInRoom = g_engine->_engine->roomDataTable[roomNumber].numCameraInRoom;
 
 	assert(numCameraInRoom < NUM_MAX_CAMERA_IN_ROOM);
 
@@ -125,7 +125,7 @@ void loadRoom(int roomNumber) {
 
 	// load the new camera table and try to keep the same camera (except if changing floor)
 	for (i = 0; i < numCameraInRoom; i++) {
-		uint currentCameraIdx = roomDataTable[currentRoom].cameraIdxTable[i]; // indexes are between the roomDefStruct and the first zone data
+		uint currentCameraIdx = g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[i]; // indexes are between the roomDefStruct and the first zone data
 
 		assert(currentCameraIdx <= 40);
 
@@ -138,7 +138,7 @@ void loadRoom(int roomNumber) {
 			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 
-		cameraDataTable[i] = &g_currentFloorCameraData[currentCameraIdx];
+		cameraDataTable[i] = &g_engine->_engine->currentFloorCameraData[currentCameraIdx];
 
 		currentCameraIdx = cameraDataTable[i]->numViewedRooms;
 
@@ -157,9 +157,9 @@ void loadRoom(int roomNumber) {
 	// reajust world coordinates
 	if (oldCameraIdx != -1) // if a camera was selected before loading room
 	{
-		int var_E = (roomDataTable[roomNumber].worldX - cameraVar0) * 10;
-		int var_C = (roomDataTable[roomNumber].worldY - cameraVar1) * 10;
-		int var_A = (roomDataTable[roomNumber].worldZ - cameraVar2) * 10;
+		int var_E = (g_engine->_engine->roomDataTable[roomNumber].worldX - cameraVar0) * 10;
+		int var_C = (g_engine->_engine->roomDataTable[roomNumber].worldY - cameraVar1) * 10;
+		int var_A = (g_engine->_engine->roomDataTable[roomNumber].worldZ - cameraVar2) * 10;
 
 		for (i = 0; i < NUM_MAX_OBJECT; i++) {
 			if (objectTable[i].indexInWorld != -1) {

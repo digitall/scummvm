@@ -19,10 +19,12 @@
  *
  */
 
-#include "fitd/zv.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/costable.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
+#include "fitd/zv.h"
 
 namespace Fitd {
 
@@ -239,9 +241,9 @@ void copyZv(const ZVStruct *source, ZVStruct *dest) {
 }
 
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom) {
-	const uint Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
-	const uint Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
-	const uint Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
+	const uint Xdif = 10 * (g_engine->_engine->roomDataTable[destRoom].worldX - g_engine->_engine->roomDataTable[startRoom].worldX);
+	const uint Ydif = 10 * (g_engine->_engine->roomDataTable[destRoom].worldY - g_engine->_engine->roomDataTable[startRoom].worldY);
+	const uint Zdif = 10 * (g_engine->_engine->roomDataTable[destRoom].worldZ - g_engine->_engine->roomDataTable[startRoom].worldZ);
 
 	zvPtr->ZVX1 -= Xdif;
 	zvPtr->ZVX2 -= Xdif;

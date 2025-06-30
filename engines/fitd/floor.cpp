@@ -21,6 +21,7 @@
 
 #include "common/file.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
@@ -32,7 +33,6 @@ namespace Fitd {
 uint32 g_currentFloorRoomRawDataSize = 0;
 uint32 g_currentFloorCameraRawDataSize;
 uint32 g_currentFloorNumCamera = 0;
-Common::Array<CameraData> g_currentFloorCameraData;
 
 void loadFloor(int floorNumber) {
 	int expectedNumberOfRoom;
@@ -66,11 +66,11 @@ void loadFloor(int floorNumber) {
 
 	//////////////////////////////////
 
-	roomDataTable.clear();
+	g_engine->_engine->roomDataTable.clear();
 
 	expectedNumberOfRoom = getNumberOfRoom();
 	assert(expectedNumberOfRoom);
-	roomDataTable.reserve(expectedNumberOfRoom);
+	g_engine->_engine->roomDataTable.reserve(expectedNumberOfRoom);
 
 	for (int i = 0; i < expectedNumberOfRoom; i++) {
 		uint32 j;
@@ -91,8 +91,8 @@ void loadFloor(int floorNumber) {
 
 		assert(roomData);
 
-		roomDataTable.emplace_back();
-		RoomData *currentRoomDataPtr = &roomDataTable.back();
+		g_engine->_engine->roomDataTable.emplace_back();
+		RoomData *currentRoomDataPtr = &g_engine->_engine->roomDataTable.back();
 
 		currentRoomDataPtr->worldX = READ_LE_S16(roomData + 4);
 		currentRoomDataPtr->worldY = READ_LE_S16(roomData + 6);
@@ -193,8 +193,8 @@ void loadFloor(int floorNumber) {
 		}
 	}
 
-	g_currentFloorCameraData.clear();
-    g_currentFloorCameraData.resize(expectedNumberOfCamera);
+	g_engine->_engine->currentFloorCameraData.clear();
+    g_engine->_engine->currentFloorCameraData.resize(expectedNumberOfCamera);
 
 	assert(expectedNumberOfCamera < 40);
 
@@ -231,27 +231,27 @@ void loadFloor(int floorNumber) {
 
 			backupDataPtr = currentCameraData;
 
-			g_currentFloorCameraData[i].alpha = READ_LE_U16(currentCameraData + 0x00);
-			g_currentFloorCameraData[i].beta = READ_LE_U16(currentCameraData + 0x02);
-			g_currentFloorCameraData[i].gamma = READ_LE_U16(currentCameraData + 0x04);
+			g_engine->_engine->currentFloorCameraData[i].alpha = READ_LE_U16(currentCameraData + 0x00);
+			g_engine->_engine->currentFloorCameraData[i].beta = READ_LE_U16(currentCameraData + 0x02);
+			g_engine->_engine->currentFloorCameraData[i].gamma = READ_LE_U16(currentCameraData + 0x04);
 
-			g_currentFloorCameraData[i].x = READ_LE_U16(currentCameraData + 0x06);
-			g_currentFloorCameraData[i].y = READ_LE_U16(currentCameraData + 0x08);
-			g_currentFloorCameraData[i].z = READ_LE_U16(currentCameraData + 0x0A);
+			g_engine->_engine->currentFloorCameraData[i].x = READ_LE_U16(currentCameraData + 0x06);
+			g_engine->_engine->currentFloorCameraData[i].y = READ_LE_U16(currentCameraData + 0x08);
+			g_engine->_engine->currentFloorCameraData[i].z = READ_LE_U16(currentCameraData + 0x0A);
 
-			g_currentFloorCameraData[i].focal1 = READ_LE_U16(currentCameraData + 0x0C);
-			g_currentFloorCameraData[i].focal2 = READ_LE_U16(currentCameraData + 0x0E);
-			g_currentFloorCameraData[i].focal3 = READ_LE_U16(currentCameraData + 0x10);
+			g_engine->_engine->currentFloorCameraData[i].focal1 = READ_LE_U16(currentCameraData + 0x0C);
+			g_engine->_engine->currentFloorCameraData[i].focal2 = READ_LE_U16(currentCameraData + 0x0E);
+			g_engine->_engine->currentFloorCameraData[i].focal3 = READ_LE_U16(currentCameraData + 0x10);
 
-			g_currentFloorCameraData[i].numViewedRooms = READ_LE_U16(currentCameraData + 0x12);
+			g_engine->_engine->currentFloorCameraData[i].numViewedRooms = READ_LE_U16(currentCameraData + 0x12);
 
 			currentCameraData += 0x14;
 
-			g_currentFloorCameraData[i].viewedRoomTable.reserve(g_currentFloorCameraData[i].numViewedRooms);
+			g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.reserve(g_engine->_engine->currentFloorCameraData[i].numViewedRooms);
 
-			for (k = 0; k < g_currentFloorCameraData[i].numViewedRooms; k++) {
-				g_currentFloorCameraData[i].viewedRoomTable.emplace_back();
-				CameraViewedRoom *pCurrentCameraViewedRoom = &g_currentFloorCameraData[i].viewedRoomTable.back();
+			for (k = 0; k < g_engine->_engine->currentFloorCameraData[i].numViewedRooms; k++) {
+				g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.emplace_back();
+				CameraViewedRoom *pCurrentCameraViewedRoom = &g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.back();
 
 				pCurrentCameraViewedRoom->viewedRoomIdx = READ_LE_U16(currentCameraData + 0x00);
 				pCurrentCameraViewedRoom->offsetToMask = READ_LE_U16(currentCameraData + 0x02);
@@ -274,7 +274,7 @@ void loadFloor(int floorNumber) {
 				// load camera mask
 				byte *pMaskData = nullptr;
 				if (g_engine->getGameId() >= GID_JACK) {
-					pMaskData = backupDataPtr + g_currentFloorCameraData[i].viewedRoomTable[k].offsetToMask;
+					pMaskData = backupDataPtr + g_engine->_engine->currentFloorCameraData[i].viewedRoomTable[k].offsetToMask;
 
 					// for this camera, how many masks zone
 					pCurrentCameraViewedRoom->numMask = READ_LE_U16(pMaskData);
@@ -310,7 +310,7 @@ void loadFloor(int floorNumber) {
 					int numZones;
 					int j;
 
-					pZoneData = backupDataPtr + g_currentFloorCameraData[i].viewedRoomTable[k].offsetToCover;
+					pZoneData = backupDataPtr + g_engine->_engine->currentFloorCameraData[i].viewedRoomTable[k].offsetToCover;
 					if (pMaskData) {
 						assert(pZoneData == pMaskData);
 					}

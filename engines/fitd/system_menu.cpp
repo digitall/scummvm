@@ -200,7 +200,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 		desc = saveStateList[selectedSlot].getDescription();
 	}
 
-	while (!Engine::shouldQuit()) {
+	while (!::Engine::shouldQuit()) {
 		drawSavegames(menuChoice, saveStateList, selectedSlot);
 		if (save) {
 			drawEditString(desc.c_str(), selectedSlot + (edit ? 0x4000 : 0));
@@ -230,7 +230,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				desc = saveStateList[selectedSlot].getDescription();
 			}
 
-			while (!Engine::shouldQuit() && JoyD) {
+			while (!::Engine::shouldQuit() && JoyD) {
 				process_events();
 			}
 		}
@@ -243,7 +243,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				selectedSlot = 0;
 			}
 
-			while (!Engine::shouldQuit() && JoyD) {
+			while (!::Engine::shouldQuit() && JoyD) {
 				process_events();
 			}
 
@@ -266,7 +266,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				edit = true;
 				desc.deleteLastChar();
 
-				while (!Engine::shouldQuit() && Backspace) {
+				while (!::Engine::shouldQuit() && Backspace) {
 					process_events();
 				}
 			}
@@ -282,7 +282,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 					}
 				}
 
-				while (!Engine::shouldQuit() && Character) {
+				while (!::Engine::shouldQuit() && Character) {
 					process_events();
 				}
 			}
@@ -332,7 +332,7 @@ void processSystemMenu() {
 
 	int currentSelectedEntry = 0;
 
-	while (!exitMenu && !Engine::shouldQuit()) {
+	while (!exitMenu && !::Engine::shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
@@ -383,7 +383,7 @@ void processSystemMenu() {
 						detailToggle = detailToggle ? 0 : 1;
 						break;
 					case 6: // quit
-						Engine::quitGame();
+						::Engine::quitGame();
 						break;
 					}
 				} else {
@@ -420,7 +420,7 @@ void processSystemMenu() {
 	}
 
 	// fadeOut(32,2);
-	while ((key || JoyD || Click) && !Engine::shouldQuit()) {
+	while ((key || JoyD || Click) && !::Engine::shouldQuit()) {
 		process_events();
 	}
 	localKey = localClick = localJoyD = 0;

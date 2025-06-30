@@ -19,12 +19,13 @@
  *
  */
 
-#include "fitd/object.h"
 #include "common/debug.h"
 #include "fitd/anim.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/object.h"
 #include "fitd/room.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -59,9 +60,9 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->worldZ = actorPtr->roomZ = z;
 
 	if (room != currentRoom) {
-		actorPtr->worldX -= (int16)((roomDataTable[currentRoom].worldX - roomDataTable[actorPtr->room].worldX) * 10);
-		actorPtr->worldY += (int16)((roomDataTable[currentRoom].worldY - roomDataTable[actorPtr->room].worldY) * 10);
-		actorPtr->worldZ += (int16)((roomDataTable[currentRoom].worldZ - roomDataTable[actorPtr->room].worldZ) * 10);
+		actorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[actorPtr->room].worldX) * 10);
+		actorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[actorPtr->room].worldY) * 10);
+		actorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[actorPtr->room].worldZ) * 10);
 	}
 
 	actorPtr->alpha = alpha;
@@ -201,9 +202,9 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	{
 		bool bFound = false;
 
-		for (uint hardColIdx = 0; hardColIdx < roomDataTable[room].numHardCol; hardColIdx++) {
-			if (roomDataTable[room].hardColTable[hardColIdx].type == 9 && roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx) {
-				copyZv(&roomDataTable[room].hardColTable[hardColIdx].zv, zvPtr);
+		for (uint hardColIdx = 0; hardColIdx < g_engine->_engine->roomDataTable[room].numHardCol; hardColIdx++) {
+			if (g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].type == 9 && g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx) {
+				copyZv(&g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].zv, zvPtr);
 
 				x = 0;
 				y = 0;
@@ -214,9 +215,9 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 				actorPtr->worldZ = actorPtr->roomZ = zvPtr->ZVZ1 / 2 + zvPtr->ZVZ2 / 2;
 
 				if (room != currentRoom) {
-					actorPtr->worldX -= (roomDataTable[currentRoom].worldX - roomDataTable[room].worldX) * 10;
-					actorPtr->worldY += (roomDataTable[currentRoom].worldY - roomDataTable[room].worldY) * 10;
-					actorPtr->worldZ += (roomDataTable[currentRoom].worldZ - roomDataTable[room].worldZ) * 10;
+					actorPtr->worldX -= (g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[room].worldX) * 10;
+					actorPtr->worldY += (g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[room].worldY) * 10;
+					actorPtr->worldZ += (g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[room].worldZ) * 10;
 				}
 
 				bFound = true;

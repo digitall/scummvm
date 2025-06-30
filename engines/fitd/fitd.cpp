@@ -19,16 +19,15 @@
  *
  */
 
-#include "fitd/fitd.h"
 #include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "fitd/common.h"
 #include "fitd/detection.h"
-#include "fitd/gfx.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/save.h"
-#include "fitd/system_menu.h"
 
 namespace Fitd {
 
@@ -38,9 +37,11 @@ int *currentCVarTable = nullptr;
 FitdEngine::FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc)
 	: Engine(syst), _gameDescription(gameDesc), _randomSource("Fitd") {
 	g_engine = this;
+	_engine = new Fitd::Engine();
 }
 
 FitdEngine::~FitdEngine() {
+	delete _engine;
 }
 
 FitdGameId FitdEngine::getGameId() const {

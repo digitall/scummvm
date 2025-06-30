@@ -19,17 +19,17 @@
  *
  */
 
-#include "fitd/inventory.h"
-
 #include "fitd/aitd2.h"
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/inventory.h"
 #include "fitd/life.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -74,7 +74,7 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 
 		const int currentObj = inventoryTable[currentInventory][startIdx];
 
-		const WorldObject *objPtr = &ListWorldObjets[currentObj];
+		const WorldObject *objPtr = &g_engine->_engine->worldObjets[currentObj];
 
 		if (startIdx == selectIdx) {
 			if (g_engine->getGameId() <= GID_JACK) {
@@ -289,11 +289,11 @@ void processInventory() {
 			if (lastSelectedObjectIdx != selectedObjectIdx) {
 				selectedWorldObjectIdx = DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 15);
 
-				currentFoundBodyIdx = ListWorldObjets[selectedWorldObjectIdx].foundBody;
+				currentFoundBodyIdx = g_engine->_engine->worldObjets[selectedWorldObjectIdx].foundBody;
 
 				currentFoundBody = HQR_Get(listBody, currentFoundBodyIdx);
 
-				const int var_C = ListWorldObjets[selectedWorldObjectIdx].flags2;
+				const int var_C = g_engine->_engine->worldObjets[selectedWorldObjectIdx].flags2;
 
 				numInventoryActions = 0;
 				int numActionForObject = 0;
@@ -357,7 +357,7 @@ void processInventory() {
 				}
 			}
 		}
-		renderInventoryObject(ListWorldObjets[selectedWorldObjectIdx].floorLife);
+		renderInventoryObject(g_engine->_engine->worldObjets[selectedWorldObjectIdx].floorLife);
 
 		if (firstTime) {
 			firstTime = 0;

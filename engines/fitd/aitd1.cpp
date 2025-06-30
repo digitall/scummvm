@@ -199,7 +199,7 @@ static int makeIntroScreens() {
 
 		const int time = evalChrono(&chrono);
 
-		if (Engine::shouldQuit() || time >= 0x30)
+		if (::Engine::shouldQuit() || time >= 0x30)
 			break;
 
 	} while (key == 0 && Click == 0);
@@ -233,7 +233,7 @@ int choosePerso() {
 
 	initCopyBox(aux, logicalScreen);
 
-	while (!Engine::shouldQuit() && choiceMade == 0) {
+	while (!::Engine::shouldQuit() && choiceMade == 0) {
 		process_events();
 		osystem_drawBackground();
 
@@ -344,11 +344,11 @@ void aitd1Start(int saveSlot) {
 	fontHeight = 16;
 	gfx_setPalette(currentGamePalette);
 
-	if (saveSlot == -1 && !make3dTatou() && !Engine::shouldQuit()) {
+	if (saveSlot == -1 && !make3dTatou() && !::Engine::shouldQuit()) {
 		makeIntroScreens();
 	}
 
-	while (!Engine::shouldQuit()) {
+	while (!::Engine::shouldQuit()) {
 		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 		switch (startupMenuResult) {
 		case -1: // timeout
@@ -414,7 +414,7 @@ void aitd1Start(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			Engine::quitGame();
+			::Engine::quitGame();
 
 			break;
 		}

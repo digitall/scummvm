@@ -21,16 +21,16 @@
 
 #include "fitd/hqr.h"
 #include "common/array.h"
+#include "engines/engine.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/game_time.h"
 #include "fitd/pak.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
-
-Common::Array<Body *> vBodies;
-Common::Array<Animation *> vAnimations;
 
 HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 	// no RE. Original was probably faster
@@ -154,7 +154,7 @@ Animation *createAnimationFromPtr(void *ptr) {
 		}
 	}
 
-	vAnimations.push_back(pAnimation);
+	g_engine->_engine->animations.push_back(pAnimation);
 	return pAnimation;
 }
 
@@ -377,7 +377,7 @@ static Body *createBodyFromPtr(void *ptr) {
 		}
 	}
 
-	vBodies.push_back(newBody);
+	g_engine->_engine->bodies.push_back(newBody);
 	return newBody;
 }
 
@@ -476,10 +476,10 @@ void HQR_Reset(HqrEntry *hqrPtr) {
 	hqrPtr->numUsedEntry = 0;
 
 	if (hqrPtr == listBody) {
-		for (uint i = 0; i < vBodies.size(); i++) {
-			delete vBodies[i];
+		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
+			delete g_engine->_engine->bodies[i];
 		}
-		vBodies.resize(0);
+		g_engine->_engine->bodies.resize(0);
 	}
 
 	for (uint i = 0; i < hqrPtr->numMaxEntry; i++) {
@@ -495,17 +495,17 @@ void HQR_Free(HqrEntry *hqrPtr) {
 		return;
 
 	if (hqrPtr == listBody) {
-		for (uint i = 0; i < vBodies.size(); i++) {
-			delete vBodies[i];
+		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
+			delete g_engine->_engine->bodies[i];
 		}
-		vBodies.clear();
+		g_engine->_engine->bodies.clear();
 	}
 
 	if (hqrPtr == listAnim) {
-		for (uint i = 0; i < vAnimations.size(); i++) {
-			delete vAnimations[i];
+		for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
+			delete g_engine->_engine->animations[i];
 		}
-		vAnimations.clear();
+		g_engine->_engine->animations.clear();
 	}
 
 	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
@@ -517,9 +517,9 @@ void HQR_Free(HqrEntry *hqrPtr) {
 }
 
 Body *getBodyFromPtr(void *ptr) {
-	for (uint i = 0; i < vBodies.size(); i++) {
-		if (vBodies[i]->m_raw == ptr) {
-			return vBodies[i];
+	for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
+		if (g_engine->_engine->bodies[i]->m_raw == ptr) {
+			return g_engine->_engine->bodies[i];
 		}
 	}
 
@@ -527,9 +527,9 @@ Body *getBodyFromPtr(void *ptr) {
 }
 
 Animation *getAnimationFromPtr(void *ptr) {
-	for (uint i = 0; i < vAnimations.size(); i++) {
-		if (vAnimations[i]->m_raw == ptr) {
-			return vAnimations[i];
+	for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
+		if (g_engine->_engine->animations[i]->m_raw == ptr) {
+			return g_engine->_engine->animations[i];
 		}
 	}
 

@@ -19,7 +19,6 @@
  *
  */
 
-#include "fitd/main_loop.h"
 #include "common/scummsys.h"
 #include "fitd/actor_list.h"
 #include "fitd/anim.h"
@@ -30,6 +29,8 @@
 #include "fitd/gfx.h"
 #include "fitd/inventory.h"
 #include "fitd/life.h"
+#include "fitd/main_loop.h"
+#include "fitd/room.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -69,7 +70,7 @@ void updatePendingEvents() {
 }
 
 void mainLoop(int allowSystemMenu, int deltaTime) {
-	while (!Engine::shouldQuit()) {
+	while (!::Engine::shouldQuit()) {
 		process_events();
 
 		localKey = key;
@@ -82,7 +83,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 					process_events();
 				}
 				processSystemMenu();
-				while ((key == 0x1B || key == 0x1C) && !Engine::shouldQuit()) {
+				while ((key == 0x1B || key == 0x1C) && !::Engine::shouldQuit()) {
 					process_events();
 					localKey = key;
 				}

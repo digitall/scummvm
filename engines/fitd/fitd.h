@@ -34,8 +34,9 @@ class Screen;
 namespace Fitd {
 
 struct FitdGameDescription;
+class Engine;
 
-class FitdEngine : public Engine {
+class FitdEngine : public ::Engine {
 private:
 	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;
@@ -49,6 +50,7 @@ protected:
 
 public:
 	Graphics::Screen *_screen = nullptr;
+	Fitd::Engine *_engine = nullptr;
 	FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc);
 	~FitdEngine() override;
 

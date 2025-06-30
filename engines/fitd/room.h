@@ -79,7 +79,7 @@ struct CameraViewedRoom {
 	Common::Array<CameraZoneEntry> coverZones;
 };
 
-struct CameraData {
+typedef struct CameraData {
 	int16 alpha;
 	int16 beta;
 	int16 gamma;
@@ -94,7 +94,7 @@ struct CameraData {
 
 	uint16 numViewedRooms;
 	Common::Array<CameraViewedRoom> viewedRoomTable;
-};
+} CameraData;
 
 typedef struct RoomData {
 	uint32 numCameraInRoom;
@@ -114,7 +114,6 @@ typedef struct RoomData {
 
 extern CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 extern CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
-extern Common::Array<RoomData> roomDataTable;
 
 RoomDef *getRoomData(int roomNumber);
 void loadRoom(int roomNumber);

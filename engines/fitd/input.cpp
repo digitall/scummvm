@@ -99,7 +99,7 @@ static void handleKeyUp(const Common::Event &event) {
 
 void readKeyboard() {
 	Common::Event event;
-	while (!Engine::shouldQuit() && g_system->getEventManager()->pollEvent(event)) {
+	while (!::Engine::shouldQuit() && g_system->getEventManager()->pollEvent(event)) {
 
 		switch (event.type) {
 		case Common::EventType::EVENT_KEYDOWN:

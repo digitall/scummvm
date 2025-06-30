@@ -23,6 +23,7 @@
 #include "common/stream.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/gfx.h"
@@ -85,33 +86,33 @@ static int loadJack(Common::SeekableReadStream *in) {
 	currentCameraTargetActor = in->readSint16LE();
 	maxObjects = in->readSint16LE();
 	for (int i = 0; i < 300; i++) {
-		ListWorldObjets[i].objIndex = in->readSint16LE();
-		ListWorldObjets[i].body = in->readSint16LE();
-		ListWorldObjets[i].flags = in->readSint16LE();
-		ListWorldObjets[i].typeZV = in->readSint16LE();
-		ListWorldObjets[i].foundBody = in->readSint16LE();
-		ListWorldObjets[i].foundName = in->readSint16LE();
-		ListWorldObjets[i].flags2 = in->readSint16LE();
-		ListWorldObjets[i].foundLife = in->readSint16LE();
-		ListWorldObjets[i].x = in->readSint16LE();
-		ListWorldObjets[i].y = in->readSint16LE();
-		ListWorldObjets[i].z = in->readSint16LE();
-		ListWorldObjets[i].alpha = in->readSint16LE();
-		ListWorldObjets[i].beta = in->readSint16LE();
-		ListWorldObjets[i].gamma = in->readSint16LE();
-		ListWorldObjets[i].stage = in->readSint16LE();
-		ListWorldObjets[i].room = in->readSint16LE();
-		ListWorldObjets[i].lifeMode = in->readSint16LE();
-		ListWorldObjets[i].life = in->readSint16LE();
-		ListWorldObjets[i].floorLife = in->readSint16LE();
-		ListWorldObjets[i].anim = in->readSint16LE();
-		ListWorldObjets[i].frame = in->readSint16LE();
-		ListWorldObjets[i].animType = in->readSint16LE();
-		ListWorldObjets[i].animInfo = in->readSint16LE();
-		ListWorldObjets[i].trackMode = in->readSint16LE();
-		ListWorldObjets[i].trackNumber = in->readSint16LE();
-		ListWorldObjets[i].positionInTrack = in->readSint16LE();
-		ListWorldObjets[i].mark = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].objIndex = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].body = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].flags = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].typeZV = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].foundBody = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].foundName = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].flags2 = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].foundLife = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].x = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].y = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].z = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].alpha = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].beta = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].gamma = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].stage = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].room = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].lifeMode = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].life = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].floorLife = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].anim = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].frame = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].animType = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].animInfo = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].trackMode = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].trackNumber = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].positionInTrack = in->readSint16LE();
+		g_engine->_engine->worldObjets[i].mark = in->readSint16LE();
 	}
 
 	assert(CVarsSize == 15);
@@ -285,83 +286,83 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	}
 
 	for (i = 0; i < maxObjects; i++) {
-		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
-		ListWorldObjets[i].objIndex = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].objIndex) == 2);
+		g_engine->_engine->worldObjets[i].objIndex = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].body) == 2);
-		ListWorldObjets[i].body = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].body) == 2);
+		g_engine->_engine->worldObjets[i].body = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].flags) == 2);
-		ListWorldObjets[i].flags = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags) == 2);
+		g_engine->_engine->worldObjets[i].flags = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
-		ListWorldObjets[i].typeZV = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].typeZV) == 2);
+		g_engine->_engine->worldObjets[i].typeZV = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
-		ListWorldObjets[i].foundBody = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundBody) == 2);
+		g_engine->_engine->worldObjets[i].foundBody = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundName) == 2);
-		ListWorldObjets[i].foundName = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundName) == 2);
+		g_engine->_engine->worldObjets[i].foundName = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].flags2) == 2);
-		ListWorldObjets[i].flags2 = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags2) == 2);
+		g_engine->_engine->worldObjets[i].flags2 = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
-		ListWorldObjets[i].foundLife = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundLife) == 2);
+		g_engine->_engine->worldObjets[i].foundLife = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].x) == 2);
-		ListWorldObjets[i].x = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].x) == 2);
+		g_engine->_engine->worldObjets[i].x = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].y) == 2);
-		ListWorldObjets[i].y = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].y) == 2);
+		g_engine->_engine->worldObjets[i].y = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].z) == 2);
-		ListWorldObjets[i].z = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].z) == 2);
+		g_engine->_engine->worldObjets[i].z = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].alpha) == 2);
-		ListWorldObjets[i].alpha = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].alpha) == 2);
+		g_engine->_engine->worldObjets[i].alpha = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].beta) == 2);
-		ListWorldObjets[i].beta = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].beta) == 2);
+		g_engine->_engine->worldObjets[i].beta = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].gamma) == 2);
-		ListWorldObjets[i].gamma = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].gamma) == 2);
+		g_engine->_engine->worldObjets[i].gamma = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].stage) == 2);
-		ListWorldObjets[i].stage = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].stage) == 2);
+		g_engine->_engine->worldObjets[i].stage = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].room) == 2);
-		ListWorldObjets[i].room = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].room) == 2);
+		g_engine->_engine->worldObjets[i].room = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
-		ListWorldObjets[i].lifeMode = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].lifeMode) == 2);
+		g_engine->_engine->worldObjets[i].lifeMode = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].life) == 2);
-		ListWorldObjets[i].life = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].life) == 2);
+		g_engine->_engine->worldObjets[i].life = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
-		ListWorldObjets[i].floorLife = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].floorLife) == 2);
+		g_engine->_engine->worldObjets[i].floorLife = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].anim) == 2);
-		ListWorldObjets[i].anim = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].anim) == 2);
+		g_engine->_engine->worldObjets[i].anim = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].frame) == 2);
-		ListWorldObjets[i].frame = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].frame) == 2);
+		g_engine->_engine->worldObjets[i].frame = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].animType) == 2);
-		ListWorldObjets[i].animType = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].animType) == 2);
+		g_engine->_engine->worldObjets[i].animType = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
-		ListWorldObjets[i].animInfo = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].animInfo) == 2);
+		g_engine->_engine->worldObjets[i].animInfo = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
-		ListWorldObjets[i].trackMode = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackMode) == 2);
+		g_engine->_engine->worldObjets[i].trackMode = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
-		ListWorldObjets[i].trackNumber = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackNumber) == 2);
+		g_engine->_engine->worldObjets[i].trackNumber = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
-		ListWorldObjets[i].positionInTrack = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].positionInTrack) == 2);
+		g_engine->_engine->worldObjets[i].positionInTrack = in->readSint16LE();
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
@@ -716,83 +717,83 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	}
 
 	for (int i = 0; i < maxObjects; i++) {
-		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
-		ListWorldObjets[i].objIndex = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].objIndex) == 2);
+		g_engine->_engine->worldObjets[i].objIndex = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].body) == 2);
-		ListWorldObjets[i].body = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].body) == 2);
+		g_engine->_engine->worldObjets[i].body = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].flags) == 2);
-		ListWorldObjets[i].flags = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags) == 2);
+		g_engine->_engine->worldObjets[i].flags = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
-		ListWorldObjets[i].typeZV = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].typeZV) == 2);
+		g_engine->_engine->worldObjets[i].typeZV = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
-		ListWorldObjets[i].foundBody = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundBody) == 2);
+		g_engine->_engine->worldObjets[i].foundBody = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundName) == 2);
-		ListWorldObjets[i].foundName = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundName) == 2);
+		g_engine->_engine->worldObjets[i].foundName = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].flags2) == 2);
-		ListWorldObjets[i].flags2 = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags2) == 2);
+		g_engine->_engine->worldObjets[i].flags2 = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
-		ListWorldObjets[i].foundLife = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundLife) == 2);
+		g_engine->_engine->worldObjets[i].foundLife = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].x) == 2);
-		ListWorldObjets[i].x = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].x) == 2);
+		g_engine->_engine->worldObjets[i].x = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].y) == 2);
-		ListWorldObjets[i].y = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].y) == 2);
+		g_engine->_engine->worldObjets[i].y = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].z) == 2);
-		ListWorldObjets[i].z = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].z) == 2);
+		g_engine->_engine->worldObjets[i].z = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].alpha) == 2);
-		ListWorldObjets[i].alpha = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].alpha) == 2);
+		g_engine->_engine->worldObjets[i].alpha = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].beta) == 2);
-		ListWorldObjets[i].beta = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].beta) == 2);
+		g_engine->_engine->worldObjets[i].beta = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].gamma) == 2);
-		ListWorldObjets[i].gamma = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].gamma) == 2);
+		g_engine->_engine->worldObjets[i].gamma = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].stage) == 2);
-		ListWorldObjets[i].stage = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].stage) == 2);
+		g_engine->_engine->worldObjets[i].stage = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].room) == 2);
-		ListWorldObjets[i].room = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].room) == 2);
+		g_engine->_engine->worldObjets[i].room = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
-		ListWorldObjets[i].lifeMode = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].lifeMode) == 2);
+		g_engine->_engine->worldObjets[i].lifeMode = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].life) == 2);
-		ListWorldObjets[i].life = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].life) == 2);
+		g_engine->_engine->worldObjets[i].life = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
-		ListWorldObjets[i].floorLife = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].floorLife) == 2);
+		g_engine->_engine->worldObjets[i].floorLife = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].anim) == 2);
-		ListWorldObjets[i].anim = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].anim) == 2);
+		g_engine->_engine->worldObjets[i].anim = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].frame) == 2);
-		ListWorldObjets[i].frame = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].frame) == 2);
+		g_engine->_engine->worldObjets[i].frame = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].animType) == 2);
-		ListWorldObjets[i].animType = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].animType) == 2);
+		g_engine->_engine->worldObjets[i].animType = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
-		ListWorldObjets[i].animInfo = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].animInfo) == 2);
+		g_engine->_engine->worldObjets[i].animInfo = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
-		ListWorldObjets[i].trackMode = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackMode) == 2);
+		g_engine->_engine->worldObjets[i].trackMode = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
-		ListWorldObjets[i].trackNumber = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackNumber) == 2);
+		g_engine->_engine->worldObjets[i].trackNumber = in->readSint16LE();
 
-		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
-		ListWorldObjets[i].positionInTrack = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->worldObjets[i].positionInTrack) == 2);
+		g_engine->_engine->worldObjets[i].positionInTrack = in->readSint16LE();
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
@@ -1168,83 +1169,83 @@ static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 	maxObjects = 300; // fix for save engine...
 
 	for (int16 i = 0; i < maxObjects; i++) {
-		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
-		out->writeSint16LE(ListWorldObjets[i].objIndex);
+		assert(sizeof(g_engine->_engine->worldObjets[i].objIndex) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].objIndex);
 
-		assert(sizeof(ListWorldObjets[i].body) == 2);
-		out->writeSint16LE(ListWorldObjets[i].body);
+		assert(sizeof(g_engine->_engine->worldObjets[i].body) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].body);
 
-		assert(sizeof(ListWorldObjets[i].flags) == 2);
-		out->writeSint16LE(ListWorldObjets[i].flags);
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags);
 
-		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
-		out->writeSint16LE(ListWorldObjets[i].typeZV);
+		assert(sizeof(g_engine->_engine->worldObjets[i].typeZV) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].typeZV);
 
-		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundBody);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundBody) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundBody);
 
-		assert(sizeof(ListWorldObjets[i].foundName) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundName);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundName) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundName);
 
-		assert(sizeof(ListWorldObjets[i].flags2) == 2);
-		out->writeSint16LE(ListWorldObjets[i].flags2);
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags2) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags2);
 
-		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundLife);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundLife) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundLife);
 
-		assert(sizeof(ListWorldObjets[i].x) == 2);
-		out->writeSint16LE(ListWorldObjets[i].x);
+		assert(sizeof(g_engine->_engine->worldObjets[i].x) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].x);
 
-		assert(sizeof(ListWorldObjets[i].y) == 2);
-		out->writeSint16LE(ListWorldObjets[i].y);
+		assert(sizeof(g_engine->_engine->worldObjets[i].y) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].y);
 
-		assert(sizeof(ListWorldObjets[i].z) == 2);
-		out->writeSint16LE(ListWorldObjets[i].z);
+		assert(sizeof(g_engine->_engine->worldObjets[i].z) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].z);
 
-		assert(sizeof(ListWorldObjets[i].alpha) == 2);
-		out->writeSint16LE(ListWorldObjets[i].alpha);
+		assert(sizeof(g_engine->_engine->worldObjets[i].alpha) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].alpha);
 
-		assert(sizeof(ListWorldObjets[i].beta) == 2);
-		out->writeSint16LE(ListWorldObjets[i].beta);
+		assert(sizeof(g_engine->_engine->worldObjets[i].beta) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].beta);
 
-		assert(sizeof(ListWorldObjets[i].gamma) == 2);
-		out->writeSint16LE(ListWorldObjets[i].gamma);
+		assert(sizeof(g_engine->_engine->worldObjets[i].gamma) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].gamma);
 
-		assert(sizeof(ListWorldObjets[i].stage) == 2);
-		out->writeSint16LE(ListWorldObjets[i].stage);
+		assert(sizeof(g_engine->_engine->worldObjets[i].stage) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].stage);
 
-		assert(sizeof(ListWorldObjets[i].room) == 2);
-		out->writeSint16LE(ListWorldObjets[i].room);
+		assert(sizeof(g_engine->_engine->worldObjets[i].room) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].room);
 
-		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
-		out->writeSint16LE(ListWorldObjets[i].lifeMode);
+		assert(sizeof(g_engine->_engine->worldObjets[i].lifeMode) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].lifeMode);
 
-		assert(sizeof(ListWorldObjets[i].life) == 2);
-		out->writeSint16LE(ListWorldObjets[i].life);
+		assert(sizeof(g_engine->_engine->worldObjets[i].life) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].life);
 
-		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
-		out->writeSint16LE(ListWorldObjets[i].floorLife);
+		assert(sizeof(g_engine->_engine->worldObjets[i].floorLife) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].floorLife);
 
-		assert(sizeof(ListWorldObjets[i].anim) == 2);
-		out->writeSint16LE(ListWorldObjets[i].anim);
+		assert(sizeof(g_engine->_engine->worldObjets[i].anim) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].anim);
 
-		assert(sizeof(ListWorldObjets[i].frame) == 2);
-		out->writeSint16LE(ListWorldObjets[i].frame);
+		assert(sizeof(g_engine->_engine->worldObjets[i].frame) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].frame);
 
-		assert(sizeof(ListWorldObjets[i].animType) == 2);
-		out->writeSint16LE(ListWorldObjets[i].animType);
+		assert(sizeof(g_engine->_engine->worldObjets[i].animType) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animType);
 
-		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
-		out->writeSint16LE(ListWorldObjets[i].animInfo);
+		assert(sizeof(g_engine->_engine->worldObjets[i].animInfo) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animInfo);
 
-		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
-		out->writeSint16LE(ListWorldObjets[i].trackMode);
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackMode) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackMode);
 
-		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
-		out->writeSint16LE(ListWorldObjets[i].trackNumber);
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackNumber) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackNumber);
 
-		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
-		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
+		assert(sizeof(g_engine->_engine->worldObjets[i].positionInTrack) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].positionInTrack);
 	}
 
 	maxObjects = oldNumMaxObj;
@@ -1537,33 +1538,33 @@ static int saveJack(Common::WriteStream *out, const Common::String& desc) {
 	out->writeSint16LE(maxObjects);
 
 	for (int16 i = 0; i < 300; i++) {
-		out->writeSint16LE(ListWorldObjets[i].objIndex);
-		out->writeSint16LE(ListWorldObjets[i].body);
-		out->writeSint16LE(ListWorldObjets[i].flags);
-		out->writeSint16LE(ListWorldObjets[i].typeZV);
-		out->writeSint16LE(ListWorldObjets[i].foundBody);
-		out->writeSint16LE(ListWorldObjets[i].foundName);
-		out->writeSint16LE(ListWorldObjets[i].flags2);
-		out->writeSint16LE(ListWorldObjets[i].foundLife);
-		out->writeSint16LE(ListWorldObjets[i].x);
-		out->writeSint16LE(ListWorldObjets[i].y);
-		out->writeSint16LE(ListWorldObjets[i].z);
-		out->writeSint16LE(ListWorldObjets[i].alpha);
-		out->writeSint16LE(ListWorldObjets[i].beta);
-		out->writeSint16LE(ListWorldObjets[i].gamma);
-		out->writeSint16LE(ListWorldObjets[i].stage);
-		out->writeSint16LE(ListWorldObjets[i].room);
-		out->writeSint16LE(ListWorldObjets[i].lifeMode);
-		out->writeSint16LE(ListWorldObjets[i].life);
-		out->writeSint16LE(ListWorldObjets[i].floorLife);
-		out->writeSint16LE(ListWorldObjets[i].anim);
-		out->writeSint16LE(ListWorldObjets[i].frame);
-		out->writeSint16LE(ListWorldObjets[i].animType);
-		out->writeSint16LE(ListWorldObjets[i].animInfo);
-		out->writeSint16LE(ListWorldObjets[i].trackMode);
-		out->writeSint16LE(ListWorldObjets[i].trackNumber);
-		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
-		out->writeSint16LE(ListWorldObjets[i].mark);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].objIndex);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].body);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].typeZV);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundBody);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundName);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundLife);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].x);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].y);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].z);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].alpha);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].beta);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].gamma);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].stage);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].room);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].lifeMode);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].life);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].floorLife);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].anim);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].frame);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animType);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animInfo);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackMode);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackNumber);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].positionInTrack);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].mark);
 	}
 
 	for (uint i = 0; i < 15; i++) {
@@ -1731,83 +1732,83 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String& desc) {
 	}
 
 	for (int16 i = 0; i < maxObjects; i++) {
-		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
-		out->writeSint16LE(ListWorldObjets[i].objIndex);
+		assert(sizeof(g_engine->_engine->worldObjets[i].objIndex) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].objIndex);
 
-		assert(sizeof(ListWorldObjets[i].body) == 2);
-		out->writeSint16LE(ListWorldObjets[i].body);
+		assert(sizeof(g_engine->_engine->worldObjets[i].body) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].body);
 
-		assert(sizeof(ListWorldObjets[i].flags) == 2);
-		out->writeSint16LE(ListWorldObjets[i].flags);
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags);
 
-		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
-		out->writeSint16LE(ListWorldObjets[i].typeZV);
+		assert(sizeof(g_engine->_engine->worldObjets[i].typeZV) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].typeZV);
 
-		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundBody);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundBody) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundBody);
 
-		assert(sizeof(ListWorldObjets[i].foundName) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundName);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundName) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundName);
 
-		assert(sizeof(ListWorldObjets[i].flags2) == 2);
-		out->writeSint16LE(ListWorldObjets[i].flags2);
+		assert(sizeof(g_engine->_engine->worldObjets[i].flags2) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags2);
 
-		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
-		out->writeSint16LE(ListWorldObjets[i].foundLife);
+		assert(sizeof(g_engine->_engine->worldObjets[i].foundLife) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].foundLife);
 
-		assert(sizeof(ListWorldObjets[i].x) == 2);
-		out->writeSint16LE(ListWorldObjets[i].x);
+		assert(sizeof(g_engine->_engine->worldObjets[i].x) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].x);
 
-		assert(sizeof(ListWorldObjets[i].y) == 2);
-		out->writeSint16LE(ListWorldObjets[i].y);
+		assert(sizeof(g_engine->_engine->worldObjets[i].y) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].y);
 
-		assert(sizeof(ListWorldObjets[i].z) == 2);
-		out->writeSint16LE(ListWorldObjets[i].z);
+		assert(sizeof(g_engine->_engine->worldObjets[i].z) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].z);
 
-		assert(sizeof(ListWorldObjets[i].alpha) == 2);
-		out->writeSint16LE(ListWorldObjets[i].alpha);
+		assert(sizeof(g_engine->_engine->worldObjets[i].alpha) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].alpha);
 
-		assert(sizeof(ListWorldObjets[i].beta) == 2);
-		out->writeSint16LE(ListWorldObjets[i].beta);
+		assert(sizeof(g_engine->_engine->worldObjets[i].beta) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].beta);
 
-		assert(sizeof(ListWorldObjets[i].gamma) == 2);
-		out->writeSint16LE(ListWorldObjets[i].gamma);
+		assert(sizeof(g_engine->_engine->worldObjets[i].gamma) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].gamma);
 
-		assert(sizeof(ListWorldObjets[i].stage) == 2);
-		out->writeSint16LE(ListWorldObjets[i].stage);
+		assert(sizeof(g_engine->_engine->worldObjets[i].stage) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].stage);
 
-		assert(sizeof(ListWorldObjets[i].room) == 2);
-		out->writeSint16LE(ListWorldObjets[i].room);
+		assert(sizeof(g_engine->_engine->worldObjets[i].room) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].room);
 
-		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
-		out->writeSint16LE(ListWorldObjets[i].lifeMode);
+		assert(sizeof(g_engine->_engine->worldObjets[i].lifeMode) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].lifeMode);
 
-		assert(sizeof(ListWorldObjets[i].life) == 2);
-		out->writeSint16LE(ListWorldObjets[i].life);
+		assert(sizeof(g_engine->_engine->worldObjets[i].life) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].life);
 
-		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
-		out->writeSint16LE(ListWorldObjets[i].floorLife);
+		assert(sizeof(g_engine->_engine->worldObjets[i].floorLife) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].floorLife);
 
-		assert(sizeof(ListWorldObjets[i].anim) == 2);
-		out->writeSint16LE(ListWorldObjets[i].anim);
+		assert(sizeof(g_engine->_engine->worldObjets[i].anim) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].anim);
 
-		assert(sizeof(ListWorldObjets[i].frame) == 2);
-		out->writeSint16LE(ListWorldObjets[i].frame);
+		assert(sizeof(g_engine->_engine->worldObjets[i].frame) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].frame);
 
-		assert(sizeof(ListWorldObjets[i].animType) == 2);
-		out->writeSint16LE(ListWorldObjets[i].animType);
+		assert(sizeof(g_engine->_engine->worldObjets[i].animType) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animType);
 
-		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
-		out->writeSint16LE(ListWorldObjets[i].animInfo);
+		assert(sizeof(g_engine->_engine->worldObjets[i].animInfo) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].animInfo);
 
-		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
-		out->writeSint16LE(ListWorldObjets[i].trackMode);
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackMode) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackMode);
 
-		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
-		out->writeSint16LE(ListWorldObjets[i].trackNumber);
+		assert(sizeof(g_engine->_engine->worldObjets[i].trackNumber) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackNumber);
 
-		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
-		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
+		assert(sizeof(g_engine->_engine->worldObjets[i].positionInTrack) == 2);
+		out->writeSint16LE(g_engine->_engine->worldObjets[i].positionInTrack);
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {

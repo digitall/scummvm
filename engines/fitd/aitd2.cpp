@@ -215,7 +215,7 @@ void aitd2Start(int saveSlot) {
 		startGame(8, 0, 0); // intro
 	}
 
-	while (!Engine::shouldQuit()) {
+	while (!::Engine::shouldQuit()) {
 		const int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 
 		switch (startupMenuResult) {
@@ -248,7 +248,7 @@ void aitd2Start(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			Engine::quitGame();
+			::Engine::quitGame();
 			break;
 		}
 		default:

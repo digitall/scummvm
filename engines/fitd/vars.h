@@ -30,10 +30,9 @@ namespace Fitd {
 
 #define NUM_MAX_OBJECT 50
 #define NUM_MAX_CAMERA_IN_ROOM 20
-
-extern byte *currentFoundBody;
-extern int currentFoundBodyIdx;
-extern int statusVar1;
+#define NB_BUFFER_ANIM 25         // AITD1 was  20
+#define SIZE_BUFFER_ANIM (8 * 41) // AITD1 was 4*31
+#define LANGUAGE_NAME_SIZE 5
 
 typedef struct Point3d {
 	int16 x;
@@ -204,6 +203,76 @@ typedef struct RoomDef {
 	int16 numCameraInRoom;   // 0xA
 } RoomDef;
 
+struct GroupState {
+	int16 m_type;           // 8
+	int16 m_delta[3];       // A
+	int16 m_rotateDelta[3]; // 10 (AITD2+) if Info_optimise
+};
+
+struct Group {
+	int16 m_start;        // 0
+	int16 m_numVertices;  // 2
+	int16 m_baseVertices; // 4
+	int8 m_orgGroup;      // 6
+	int8 m_numGroup;      // 7
+	GroupState m_state;
+};
+
+enum PrimType {
+	primTypeEnum_Line = 0,
+	primTypeEnum_Poly = 1,
+	primTypeEnum_Point = 2,
+	primTypeEnum_Sphere = 3,
+	primTypeEnum_Disk = 4,
+	primTypeEnum_Cylinder = 5,
+	primTypeEnum_BigPoint = 6,
+	primTypeEnum_Zixel = 7,
+	processPrim_PolyTexture8 = 8,
+	processPrim_PolyTexture9 = 9,
+	processPrim_PolyTexture10 = 10,
+};
+
+struct Primitive {
+	PrimType m_type;
+	uint8 m_material;
+	uint8 m_color;
+	uint8 m_even;
+	uint16 m_size;
+	Common::Array<uint16> m_points;
+};
+
+struct Body {
+	void *m_raw;
+
+	uint16 m_flags;
+	ZVStruct m_zv;
+	Common::Array<uint8> m_scratchBuffer;
+	Common::Array<Point3d> m_vertices;
+	Common::Array<uint16> m_groupOrder;
+	Common::Array<Group> m_groups;
+	Common::Array<Primitive> m_primitives;
+
+	void sync();
+};
+
+struct Frame {
+	uint16 m_timestamp;
+	int16 m_animStep[3];
+	Common::Array<GroupState> m_groups;
+};
+
+struct Animation {
+	void *m_raw;
+
+	uint16 m_numFrames;
+	uint16 m_numGroups;
+	Common::Array<Frame> m_frames;
+};
+
+extern byte *currentFoundBody;
+extern int currentFoundBodyIdx;
+extern int statusVar1;
+
 struct HqrEntry;
 
 extern HqrEntry *HQ_Memory;
@@ -219,14 +288,10 @@ extern int detailToggle;
 extern char *aux;
 extern char *aux2;
 
-#define NB_BUFFER_ANIM 25         // AITD1 was  20
-#define SIZE_BUFFER_ANIM (8 * 41) // AITD1 was 4*31
-
 extern int16 BufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
 
 extern char *logicalScreen;
 
-// extern int screenBufferSize;
 extern int unkScreenVar2;
 
 extern int16 CVars[70];
@@ -258,8 +323,6 @@ extern char localKey;
 extern char localJoyD;
 extern char localClick;
 
-#define LANGUAGE_NAME_SIZE 5
-
 extern const char *languageNameString;
 extern const char *languageNameTable[];
 extern const char *languageShortNameTable[];
@@ -289,8 +352,6 @@ extern HqrEntry *listTrack;
 extern HqrEntry *listMatrix;
 
 extern int16 maxObjects;
-
-extern Common::Array<WorldObject> ListWorldObjets; // may be less
 
 extern int16 *vars;
 
@@ -374,8 +435,6 @@ extern int currentLifeNum;
 
 extern byte *currentLifePtr;
 
-int16 readNextArgument(const char *name = nullptr);
-
 extern bool cameraBackgroundChanged;
 extern int flagRedraw;
 
@@ -454,79 +513,6 @@ extern int clipRight;
 extern int clipBottom;
 
 extern byte *g_MaskPtr;
-
-struct GroupState {
-	int16 m_type;           // 8
-	int16 m_delta[3];       // A
-	int16 m_rotateDelta[3]; // 10 (AITD2+) if Info_optimise
-};
-
-struct Group {
-	int16 m_start;        // 0
-	int16 m_numVertices;  // 2
-	int16 m_baseVertices; // 4
-	int8 m_orgGroup;      // 6
-	int8 m_numGroup;      // 7
-	GroupState m_state;
-};
-
-enum PrimType {
-	primTypeEnum_Line = 0,
-	primTypeEnum_Poly = 1,
-	primTypeEnum_Point = 2,
-	primTypeEnum_Sphere = 3,
-	primTypeEnum_Disk = 4,
-	primTypeEnum_Cylinder = 5,
-	primTypeEnum_BigPoint = 6,
-	primTypeEnum_Zixel = 7,
-	processPrim_PolyTexture8 = 8,
-	processPrim_PolyTexture9 = 9,
-	processPrim_PolyTexture10 = 10,
-};
-
-struct Primitive {
-	PrimType m_type;
-	uint8 m_material;
-	uint8 m_color;
-	uint8 m_even;
-	uint16 m_size;
-	Common::Array<uint16> m_points;
-};
-
-struct ExtraBody {
-	uint16 m_startOfKeyframe; // 2
-};
-
-// scratch buffer:
-// 4: uint16 timer
-
-struct Body {
-	void *m_raw;
-
-	uint16 m_flags;
-	ZVStruct m_zv;
-	Common::Array<uint8> m_scratchBuffer;
-	Common::Array<Point3d> m_vertices;
-	Common::Array<uint16> m_groupOrder;
-	Common::Array<Group> m_groups;
-	Common::Array<Primitive> m_primitives;
-
-	void sync();
-};
-
-struct Frame {
-	uint16 m_timestamp;
-	int16 m_animStep[3];
-	Common::Array<GroupState> m_groups;
-};
-
-struct Animation {
-	void *m_raw;
-
-	uint16 m_numFrames;
-	uint16 m_numGroups;
-	Common::Array<Frame> m_frames;
-};
 
 } // namespace Fitd
 
