@@ -19,167 +19,174 @@
  *
  */
 
- #include "backends/imgui/imgui.h"
- #include "backends/imgui/imgui.h"
- #include "common/archive.h"
- #include "common/array.h"
- #include "common/config-manager.h"
- #include "common/file.h"
- #include "common/fs.h"
- #include "common/system.h"
- #include "graphics/pixelformat.h"
- #include "graphics/surface.h"
- #include "graphics/managed_surface.h"
- #include "fitd/debugger/dbg_utils.h"
- #include "fitd/debugger/dbg_vars.h"
- #include "fitd/fitd.h"
- #include "fitd/pak.h"
- #include "fitd/vars.h"
+#include "backends/imgui/imgui.h"
+#include "common/archive.h"
+#include "common/array.h"
+#include "common/config-manager.h"
+#include "common/file.h"
+#include "common/fs.h"
+#include "common/system.h"
+#include "fitd/pak.h"
+#include "graphics/managed_surface.h"
+#include "graphics/pixelformat.h"
 
- namespace Fitd {
+namespace Fitd {
 
- typedef struct PakInfoStruct // warning: allignment unsafe
- {
-	 int32 discSize;
-	 int32 uncompressedSize;
-	 byte compressionFlag;
-	 byte info5;
-	 int16 offset;
- } pakInfoStruct;
+typedef struct PakInfoStruct // warning: alignment unsafe
+{
+	int32 discSize;
+	int32 uncompressedSize;
+	byte compressionFlag;
+	byte info5;
+	int16 offset;
+} pakInfoStruct;
 
- static Common::ArchiveMemberList _members;
- static Common::String _member;
- static Common::Array<pakInfoStruct> _infos;
- static int _selectedRes = -1;
- static void *_selectedTexture = nullptr;
+class State {
+public:
+	Common::StringArray members;
+	Common::String member;
+	Common::Array<pakInfoStruct> infos;
+	uint selectedRes = UINT_MAX;
+	void *selectedTexture = nullptr;
+};
 
- static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
-	 pPakInfo->discSize = f.readSint32LE();
-	 pPakInfo->uncompressedSize = f.readSint32LE();
-	 pPakInfo->compressionFlag = f.readByte();
-	 pPakInfo->info5 = f.readByte();
-	 pPakInfo->offset = f.readSint16LE();
- }
+static State *_state = nullptr;
 
- static Common::String toHumanReadableBytes(uint64 size) {
-	 const char *units;
-	 Common::String text(Common::getHumanReadableBytes(size, units));
-	 return Common::String::format("%s %s", text.c_str(), units);
- }
+static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
+	pPakInfo->discSize = f.readSint32LE();
+	pPakInfo->uncompressedSize = f.readSint32LE();
+	pPakInfo->compressionFlag = f.readByte();
+	pPakInfo->info5 = f.readByte();
+	pPakInfo->offset = f.readSint16LE();
+}
 
- static void refreshPAK(const char* name) {
-	 _infos.clear();
+static Common::String toHumanReadableBytes(uint64 size) {
+	const char *units;
+	Common::String text(Common::getHumanReadableBytes(size, units));
+	return Common::String::format("%s %s", text.c_str(), units);
+}
 
-	 Common::File f;
-	 f.open(name);
-	 f.readUint32LE();
-	 uint32 fileOffset = f.readUint32LE();
-	 uint32 numFiles = fileOffset / 4 - 2;
+static void refreshPAK(const char *name) {
+	_state->infos.clear();
 
-	 for (uint32 i = 0; i < numFiles; ++i) {
-		 uint32 idOffset = (i + 1) * 4;
-		 f.seek(idOffset, SEEK_SET);
-		 fileOffset = f.readUint32LE();
-		 f.seek(fileOffset, SEEK_SET);
-		 uint32 additionalDescriptorSize = f.readUint32LE();
-		 if (additionalDescriptorSize) {
-			 f.seek(additionalDescriptorSize - 4, SEEK_CUR);
-		 }
-		 pakInfoStruct pakInfo;
-		 readPakInfo(&pakInfo, f);
-		 _infos.push_back(pakInfo);
-	 }
- }
+	Common::File f;
+	f.open(name);
+	f.readUint32LE();
+	uint32 fileOffset = f.readUint32LE();
+	uint32 numFiles = fileOffset / 4 - 2;
 
- static void selectRes(int resIndex) {
-	 // it should be an image
-	 if(_infos[resIndex].uncompressedSize == 64000) {
-		 byte *pal = (byte *)pakLoad("ITD_RESS.PAK", 3);
-		 char *selectedResData = pakLoad(_member.c_str(), resIndex);
-		 Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
-		 Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
-		 s->setPalette(pal, 0, 256);
-		 char *dst = (char *)s->getBasePtr(0, 0);
-		 memcpy(dst, selectedResData, 64000);
-		 _selectedTexture = g_system->getImGuiTexture(*s, pal, 256);
-		 free(pal);
-		 free(selectedResData);
-		 delete s;
-	 }
- }
+	for (uint32 i = 0; i < numFiles; ++i) {
+		uint32 idOffset = (i + 1) * 4;
+		f.seek(idOffset, SEEK_SET);
+		fileOffset = f.readUint32LE();
+		f.seek(fileOffset, SEEK_SET);
+		uint32 additionalDescriptorSize = f.readUint32LE();
+		if (additionalDescriptorSize) {
+			f.seek(additionalDescriptorSize - 4, SEEK_CUR);
+		}
+		pakInfoStruct pakInfo;
+		readPakInfo(&pakInfo, f);
+		_state->infos.push_back(pakInfo);
+	}
+}
 
- void drawPak() {
-	 ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-	 if (ImGui::Begin("PAKS")) {
-		 // first time: get all PAK files
-		 if (_members.empty()) {
-			 const Common::Path &path = ConfMan.getPath("path");
-			 Common::FSDirectory gameRoot(path);
+static void selectRes(int resIndex) {
+	// it should be an image
+	if (_state->infos[resIndex].uncompressedSize == 64000) {
+		byte *pal = (byte *)pakLoad("ITD_RESS.PAK", 3);
+		char *selectedResData = pakLoad(_state->member.c_str(), resIndex);
+		Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
+		Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
+		s->setPalette(pal, 0, 256);
+		char *dst = (char *)s->getBasePtr(0, 0);
+		memcpy(dst, selectedResData, 64000);
+		_state->selectedTexture = g_system->getImGuiTexture(*s, pal, 256);
+		free(pal);
+		free(selectedResData);
+		delete s;
+	}
+}
 
-			 gameRoot.listMatchingMembers(_members, "*.PAK");
-		 }
+void debugPakInit() {
+	_state = new State();
+	const Common::Path &path = ConfMan.getPath("path");
+	Common::FSDirectory gameRoot(path);
+	Common::ArchiveMemberList members;
+	gameRoot.listMatchingMembers(members, "*.PAK");
+	for (auto it = members.begin(); it != members.end(); ++it) {
+		_state->members.push_back((*it)->getName());
+	}
+}
 
-		 for (auto it = _members.begin(); it != _members.end(); ++it) {
-			 Common::String name((*it)->getName().c_str());
-			 bool isSelected = name == _member;
-			 if (ImGui::Selectable(name.c_str(), isSelected)) {
-				 if (_member != name) {
-					 refreshPAK(name.c_str());
-				 }
-				 _member = name;
-			 }
-		 }
-	 }
-	 ImGui::End();
+void debugPakCleanup() {
+	delete _state;
+	_state = nullptr;
+}
 
-	 // Resources
-	 ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-	 if (ImGui::Begin("Resources")) {
-		 if (!_infos.empty()) {
-			 if (ImGui::BeginTable("Entries", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg)) {
-				 ImGui::TableSetupColumn("Compressed Size");
-				 ImGui::TableSetupColumn("Uncompressed Size");
-				 ImGui::TableSetupColumn("Compression");
-				 ImGui::TableSetupColumn("Offset");
-				 ImGui::TableHeadersRow();
+void debugPakDraw() {
+	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("PAKS")) {
+		for (auto it = _state->members.begin(); it != _state->members.end(); ++it) {
+			// Common::String name((*it)->getName().c_str());
+			bool isSelected = *it == _state->member;
+			if (ImGui::Selectable(it->c_str(), isSelected)) {
+				if (_state->member != *it) {
+					refreshPAK(it->c_str());
+				}
+				_state->member = *it;
+			}
+		}
+	}
+	ImGui::End();
 
-				 static const char *compressions[] = {"None", "Explode", "??", "??", "Deflate"};
-				 for (uint i = 0; i < _infos.size(); ++i) {
-					 ImGui::PushID(i);
-					 ImGui::TableNextColumn();
-					 Common::String sizeText(toHumanReadableBytes(_infos[i].discSize));
+	// Resources
+	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Resources")) {
+		if (!_state->infos.empty()) {
+			if (ImGui::BeginTable("Entries", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg)) {
+				ImGui::TableSetupColumn("Compressed Size");
+				ImGui::TableSetupColumn("Uncompressed Size");
+				ImGui::TableSetupColumn("Compression");
+				ImGui::TableSetupColumn("Offset");
+				ImGui::TableHeadersRow();
 
-					 if (ImGui::Selectable(sizeText.c_str(), _selectedRes == i, ImGuiSelectableFlags_SpanAllColumns)) {
-						 if (_selectedRes != i) {
-							 selectRes(i);
-						 }
-						 _selectedRes = i;
-					 }
-					 ImGui::TableNextColumn();
-					 sizeText = toHumanReadableBytes(_infos[i].uncompressedSize);
-					 ImGui::Text("%s", sizeText.c_str());
-					 ImGui::TableNextColumn();
-					 ImGui::Text("%d %s", _infos[i].compressionFlag, compressions[_infos[i].compressionFlag]);
-					 ImGui::TableNextColumn();
-					 ImGui::Text("%d", _infos[i].offset);
-					 ImGui::PopID();
-				 }
-				 ImGui::EndTable();
-			 }
-		 }
-	 }
-	 ImGui::End();
+				static const char *compressions[] = {"None", "Explode", "??", "??", "Deflate"};
+				for (uint i = 0; i < _state->infos.size(); ++i) {
+					ImGui::PushID(i);
+					ImGui::TableNextColumn();
+					Common::String sizeText(toHumanReadableBytes(_state->infos[i].discSize));
 
-	 // Preview
-	 ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-	 if (ImGui::Begin("Preview")) {
-		 if (_selectedTexture) {
-			 ImGui::Image(_selectedTexture, ImVec2(320, 200));
-		 } else {
-			 ImGui::Text("No preview available, select a resource first.");
-		 }
-	 }
-	 ImGui::End();
- }
+					if (ImGui::Selectable(sizeText.c_str(), _state->selectedRes == i, ImGuiSelectableFlags_SpanAllColumns)) {
+						if (_state->selectedRes != i) {
+							selectRes(i);
+						}
+						_state->selectedRes = i;
+					}
+					ImGui::TableNextColumn();
+					sizeText = toHumanReadableBytes(_state->infos[i].uncompressedSize);
+					ImGui::Text("%s", sizeText.c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%d %s", _state->infos[i].compressionFlag, compressions[_state->infos[i].compressionFlag]);
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", _state->infos[i].offset);
+					ImGui::PopID();
+				}
+				ImGui::EndTable();
+			}
+		}
+	}
+	ImGui::End();
 
- } // namespace Fitd
+	// Preview
+	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Preview")) {
+		if (_state->selectedTexture) {
+			ImGui::Image(_state->selectedTexture, ImVec2(320, 200));
+		} else {
+			ImGui::Text("No preview available, select a resource first.");
+		}
+	}
+	ImGui::End();
+}
+
+} // namespace Fitd

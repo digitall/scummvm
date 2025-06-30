@@ -35,7 +35,7 @@ typedef struct ImGuiState {
 	bool showCamera = true;
 } ImGuiState;
 
-ImGuiState *_state = nullptr;
+static ImGuiState *_state = nullptr;
 
 static void drawCamera() {
 	if (!_state->showCamera)
@@ -139,8 +139,6 @@ static void drawObjects() {
 		static int selectedObject = 0;
 		ImGui::InputInt("Index", &selectedObject);
 
-		// ImGui::Separator();
-
 		if (selectedObject > NUM_MAX_OBJECT)
 			selectedObject = NUM_MAX_OBJECT - 1;
 
@@ -236,6 +234,7 @@ static void drawObjects() {
 
 void onImGuiInit() {
 	_state = new ImGuiState();
+	debugPakInit();
 }
 
 void onImGuiRender() {
@@ -248,10 +247,11 @@ void onImGuiRender() {
 	drawCamera();
 	drawObjects();
 	drawVars();
-	drawPak();
+	debugPakDraw();
 }
 
 void onImGuiCleanup() {
+	debugPakCleanup();
 	delete _state;
 	_state = nullptr;
 }

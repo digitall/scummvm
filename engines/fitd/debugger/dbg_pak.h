@@ -24,7 +24,9 @@
 
 namespace Fitd {
 
-void drawPak();
+void debugPakInit();
+void debugPakDraw();
+void debugPakCleanup();
 
 }
 
