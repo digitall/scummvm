@@ -329,6 +329,7 @@ static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color);
 static void renderer_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_drawBigPoint(float X, float Y, float Z, uint8 color);
+static void renderer_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 
@@ -350,6 +351,7 @@ Renderer createOpenGLRenderer() {
 	r.drawMask = renderer_drawMask;
 	r.drawPoint = renderer_drawPoint;
 	r.drawBigPoint = renderer_drawBigPoint;
+	r.drawSphere = renderer_drawSphere;
 	r.drawZixel = renderer_drawZixel;
 	r.updateScreen = renderer_updateScreen;
 	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
@@ -1040,6 +1042,10 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color) {
 
 static void renderer_drawBigPoint(float X, float Y, float Z, uint8 color) {
 	drawPoint(X, Y, Z, color, 0, 2);
+}
+
+static void renderer_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	// TODO:
 }
 
 static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {
