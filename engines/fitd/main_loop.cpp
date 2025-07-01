@@ -42,6 +42,16 @@ int mainLoopSwitch = 0;
 void updatePendingEvents() {
 	// TODO: miss pending events here
 
+	LastPriority = -1;
+	LastSample = -1;
+	if (nextSample != -1) {
+		if (nextSample == 0x4000) {
+			playRepeatedSound(0x4000 & 0x0BFFF);
+		} else {
+			playSound(nextSample);
+		}
+		nextSample = -1;
+	}
 	//     if(currentMusic!=-1)
 	//     {
 	//         if(currentMusic==-2)

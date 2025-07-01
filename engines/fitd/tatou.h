@@ -37,7 +37,7 @@ void fastCopyScreen(void* source, void* dest);
 void fadeInPhys(int step, int start);
 void fadeOutPhys(int var1, int var2);
 void playSound(int num);
-
+void playRepeatedSound(int num);
 }
 
 #endif

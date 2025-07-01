@@ -87,15 +87,40 @@ void fadeOutPhys(int var1, int var2) {
 	unfreezeTime();
 }
 
+void playRepeatedSound(int num) {
+	if (LastSample == num)
+		return;
+
+	int16 *priorities = (int16 *)PtrPrioritySample;
+	if (LastPriority < priorities[num]) {
+		LastSample = num;
+		LastPriority = priorities[num];
+		g_engine->_mixer->stopID(LastSample);
+
+		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
+		Audio::SoundHandle handle;
+		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
+		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
+		Audio::makeLoopingAudioStream(voc, Audio::Timestamp(), voc->getLength(), 0);
+		g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
+	}
+}
+
 void playSound(int num) {
 	if (num == -1)
 		return;
 
-	byte *samplePtr = (byte *)HQR_Get(listSamp, num);
-	Audio::SoundHandle handle;
-	Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
-	Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
-	g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
+	int16 *priorities = (int16 *)PtrPrioritySample;
+	if (LastPriority < priorities[num]) {
+		LastSample = num;
+		LastPriority = priorities[num];
+		g_engine->_mixer->stopID(LastSample);
+		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
+		Audio::SoundHandle handle;
+		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
+		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
+		g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc, num);
+	}
 }
 
 void makeBlackPalette() {
