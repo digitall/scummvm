@@ -342,6 +342,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 	const int textIndexMalloc = HQ_Malloc(HQ_Memory, pakGetPakSize(languageNameString, index) + 300);
 	byte *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
+	if (!textPtr) error("No memory left");
 
 	if (!pakLoad(languageNameString, index, (char *)textPtr)) {
 		error("Failed to load pak %s", languageNameString);

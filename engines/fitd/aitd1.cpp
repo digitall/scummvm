@@ -330,7 +330,7 @@ int choosePerso() {
 			assert(0);
 		}
 
-		if (localKey & 0x1C) {
+		if (localKey & 0x1C || Click) {
 			choiceMade = 1;
 		}
 	}
