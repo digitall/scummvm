@@ -130,19 +130,19 @@ Message messageTable[NUM_MAX_MESSAGE];
 int16 currentMusic;
 int action;
 
-Box genVar2[15]; // recheckSize
-Box genVar4[50];
-Box *genVar1;
-Box *genVar3;
+Box listBox1[50]; // recheckSize
+Box listBox2[50];
+Box *listPhysBox;
+Box *listLogBox;
 
-int genVar5;
-int genVar6;
+int nbPhysBoxs;
+int nbLogBoxs;
 int nextSample;
 int nextMusic;
 int16 currentCameraTargetActor;
 int16 giveUp;
 int16 lightOff;
-int lightVar2;
+int newFlagLight;
 int LastPriority;
 int LastSample;
 int16 statusScreenAllowed;
@@ -165,7 +165,7 @@ int numCameraZone;
 char *cameraZoneData;
 int numRoomZone;
 char *roomZoneData;
-char *room_PtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+char *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
 int startGameVar1;
 
 int transformX;
@@ -283,6 +283,8 @@ SaveEntry saveTable[40];
 int HQ_Load = 0;
 int lightX = 4000;
 int lightY = -2000;
+int ancLumiereX =  20000;
+int ancLumiereY =  20000;
 
 int clipLeft = 0;
 int clipTop = 0;

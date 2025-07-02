@@ -127,8 +127,8 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		if (changeFloor == 0) {
 			if (g_engine->getGameId() == GID_AITD1) {
 				if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
-					//        mainVar2 = 2000;
-					//        mainVar3 = 2000;
+					lightX = 2000;
+					lightY = 2000;
 				}
 			}
 

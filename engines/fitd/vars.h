@@ -362,19 +362,19 @@ extern Message messageTable[5];
 extern int16 currentMusic;
 extern int action;
 
-extern Box genVar2[15]; // recheckSize
-extern Box genVar4[50];
-extern Box *genVar1;
-extern Box *genVar3;
+extern Box listBox1[50]; // recheckSize
+extern Box listBox2[50];
+extern Box *listPhysBox;
+extern Box *listLogBox;
 
-extern int genVar5;
-extern int genVar6;
+extern int nbPhysBoxs;
+extern int nbLogBoxs;
 extern int nextSample;
 extern int nextMusic;
 extern int16 currentCameraTargetActor;
 extern int16 giveUp;
 extern int16 lightOff;
-extern int lightVar2;
+extern int newFlagLight;
 extern int LastPriority;
 extern int LastSample;
 extern int16 statusScreenAllowed;
@@ -396,7 +396,7 @@ extern int numCameraZone;
 extern char *cameraZoneData;
 extern int numRoomZone;
 extern char *roomZoneData;
-extern char *room_PtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+extern char *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
 extern int startGameVar1;
 
 extern int transformX;
@@ -506,6 +506,8 @@ extern SaveEntry saveTable[];
 extern int HQ_Load;
 extern int lightX;
 extern int lightY;
+extern int ancLumiereX;
+extern int ancLumiereY;
 
 extern int clipLeft;
 extern int clipTop;

@@ -2235,7 +2235,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				if (g_engine->getGameId() >= GID_JACK || !CVars[getCVarsIdx(KILLED_SORCERER)]) {
 					if (lightOff != lifeTempVar1) {
 						lightOff = lifeTempVar1;
-						lightVar2 = 1;
+						newFlagLight = 1;
 
 						if (lightOff) {
 							makeBlackPalette();

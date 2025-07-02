@@ -853,11 +853,11 @@ void initVars() {
 
 	action = 0;
 
-	genVar1 = genVar2;
-	genVar3 = genVar4;
+	listPhysBox = listBox1;
+	listLogBox = listBox2;
 
-	genVar5 = 0;
-	genVar6 = 0;
+	nbPhysBoxs = 0;
+	nbLogBoxs = 0;
 
 	LastSample = -1;
 	nextSample = -1;
@@ -866,7 +866,7 @@ void initVars() {
 	nextMusic = -1;
 
 	lightOff = 0;
-	lightVar2 = 0;
+	newFlagLight = 0;
 
 	currentCameraTargetActor = -1;
 	currentWorldTarget = -1;
@@ -1027,7 +1027,7 @@ static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
 		const CameraViewedRoom *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
 
-		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		char *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
 		char *data = data2;
 		data += 2;
 
@@ -1807,7 +1807,7 @@ static void drawBgOverlay(Object *actorPtr) {
 		return;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		char *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
 		char *data = data2;
 		data += 2;
 
@@ -2133,14 +2133,14 @@ void mainDraw(int flagFlip) {
 	if (flagFlip == 0) {
 		// restoreDirtyRects();
 	} else {
-		genVar5 = 0;
+		nbPhysBoxs = 0;
 		fastCopyScreen(aux2, logicalScreen);
 	}
 
 	// osystem_drawBackground();
 
 	setClip(0, 0, 319, 199);
-	genVar6 = 0;
+	nbLogBoxs = 0;
 
 	// osystem_startModelRender();
 
@@ -2216,11 +2216,11 @@ void mainDraw(int flagFlip) {
 
 	if (!lightOff) {
 		if (flagFlip) {
-			if (flagFlip == 2 || lightVar2) {
+			if (flagFlip == 2 || newFlagLight) {
 				makeBlackPalette();
 				osystem_flip(nullptr);
 				fadeInPhys(0x10, 0);
-				lightVar2 = 0;
+				newFlagLight = 0;
 			} else {
 				// osystem_flip(NULL);
 			}

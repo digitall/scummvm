@@ -908,7 +908,7 @@ static int primCompare(const void *prim1, const void *prim2) {
 
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {
 	Body *pBody = getBodyFromPtr(modelPtr);
-	const char *ptr = (char *)modelPtr;
+	const byte *ptr = (byte *)modelPtr;
 	int i;
 	char *out;
 
@@ -1003,47 +1003,9 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		}
 	}
 
-#if 0
-		 // TODO: poly sorting by depth
-#ifdef USE_GL2
-		 source = renderBuffer;
-#else
-		 inBuffer = renderBuffer;
-		 outBuffer = sortedBuffer;
-
-		 for(i=0;i<numOfPolyToRender;i++)
-		 {
-			 int j;
-			 int bestIdx;
-			 int bestDepth = -32000;
-			 char* readBuffer = renderBuffer;
-
-			 for(j=0;j<numOfPolyToRender;j++)
-			 {
-				 int depth = READ_LE_S16(readBuffer);
-
-				 if(depth>bestDepth)
-				 {
-					 bestIdx = j;
-					 bestDepth = depth;
-				 }
-
-				 readBuffer+=10;
-			 }
-
-			 memcpy(outBuffer,renderBuffer+10*bestIdx,10);
-			 *(int16*)(renderBuffer+10*bestIdx) = -32000;
-			 outBuffer+=10;
-		 }
-		 source = sortedBuffer;
-
-#endif
-#endif
 	if (numOfPrimitiveToRender) {
 		qsort(primTable, numOfPrimitiveToRender, sizeof(PrimEntry), primCompare);
 	}
-
-	//
 
 	if (!numOfPrimitiveToRender) {
 		BBox3D3 = -32000;
@@ -1053,26 +1015,9 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		return 1; // model ok, but out of screen
 	}
 
-	//  source += 10 * 1;
 	for (i = 0; i < numOfPrimitiveToRender; i++) {
 		renderFunctions[primTable[i].type](&primTable[i]);
 	}
-
-	// DEBUG
-	/*  for(i=0;i<numPointInPoly;i++)
-	{
-	int x;
-	int y;
-
-	x = renderPointList[i*3];
-	y = renderPointList[i*3+1];
-
-	if(x>=0 && x < 319 && y>=0 && y<199)
-	{
-	screen[y*320+x] = 15;
-	}
-	}*/
-	//
 
 	osystem_flushPendingPrimitives();
 	return 0;

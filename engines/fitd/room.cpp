@@ -135,7 +135,7 @@ void loadRoom(int roomNumber) {
 		}
 
 		if (g_engine->getGameId() < GID_AITD3) {
-			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
+			roomPtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 
 		cameraDataTable[i] = &g_engine->_engine->currentFloorCameraData[currentCameraIdx];
