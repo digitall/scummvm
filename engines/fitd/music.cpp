@@ -19,12 +19,12 @@
  *
  */
 
-#include "fitd/music.h"
 #include "audio/fmopl.h"
 #include "common/debug.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
+#include "fitd/music.h"
 #include "fitd/vars.h"
 
 namespace Fitd {

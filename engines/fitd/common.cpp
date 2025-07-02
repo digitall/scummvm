@@ -1749,15 +1749,12 @@ int findObjectInInventory(int objIdx) {
 }
 
 void deleteInventoryObjet(int objIdx) {
-
 	const int inventoryIdx = findObjectInInventory(objIdx);
+	if (inventoryIdx == -1)
+		return;
 
-	if (inventoryIdx != -1) {
-		memmove(&inventoryTable[currentInventory][inventoryIdx], &inventoryTable[currentInventory][inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
-
-		numObjInInventoryTable[currentInventory]--;
-	}
-
+	memmove(&inventoryTable[currentInventory][inventoryIdx], &inventoryTable[currentInventory][inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
+	numObjInInventoryTable[currentInventory]--;
 	g_engine->_engine->worldObjets[objIdx].flags2 &= 0x7FFF;
 }
 

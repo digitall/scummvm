@@ -192,11 +192,9 @@ int evalVar(const char *name) {
 				switch (var1 & 0x7FFF) {
 				case 0x1F: {
 					return g_engine->_engine->worldObjets[objectNumber].room;
-					break;
 				}
 				case 0x26: {
 					return g_engine->_engine->worldObjets[objectNumber].stage;
-					break;
 				}
 				default: {
 					error("Unsupported evalVar %X when actor not in room !\n", var1 & 0x7FFF);
@@ -204,6 +202,7 @@ int evalVar(const char *name) {
 				}
 				}
 			}
+			actorPtr = &objectTable[actorIdx];
 		}
 		{
 
@@ -541,7 +540,6 @@ int evalVar2(const char *name) {
 			} else {
 				return objectTable[temp].indexInWorld;
 			}
-
 		}
 		case 0x5: {
 			return actorPtr->ANIM;

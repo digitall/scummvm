@@ -867,11 +867,6 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 					PatchInterAngle(&bodyPtr, bp, bx);
 					break;
 				case 1: // translate
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
-					break;
-
 				case 2: // zoom
 					PatchInterStep(&bodyPtr, bp, bx);
 					PatchInterStep(&bodyPtr, bp, bx);
