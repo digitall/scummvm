@@ -57,7 +57,7 @@ uint pakGetNumFiles(const char* name)
     return fileOffset / 4 - 2;
 }
 
-char *pakLoad(const char *fileName, int index) {
+byte *pakLoad(const char *fileName, int index) {
 	Common::File f;
 	f.open(fileName);
 	f.readUint32LE();
@@ -80,29 +80,29 @@ char *pakLoad(const char *fileName, int index) {
 		debug("Loading %s", nameBuffer+2);
 	}
 
-	char *ptr = nullptr;
+	byte *ptr = nullptr;
 	switch (pakInfo.compressionFlag) {
 	case 0: {
-		ptr = (char *)malloc(pakInfo.discSize);
+		ptr = (byte *)malloc(pakInfo.discSize);
 		f.read(ptr, pakInfo.discSize);
 		break;
 	}
 	case 1: {
-		char *compressedDataPtr = (char *)malloc(pakInfo.discSize);
+		byte *compressedDataPtr = (byte *)malloc(pakInfo.discSize);
 		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (char *)malloc(pakInfo.uncompressedSize);
+		ptr = (byte *)malloc(pakInfo.uncompressedSize);
 
-		PAK_explode((byte *)compressedDataPtr, (byte *)ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
+		PAK_explode(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
 
 		free(compressedDataPtr);
 		break;
 	}
 	case 4: {
-		char *compressedDataPtr = (char *)malloc(pakInfo.discSize);
+		byte *compressedDataPtr = (byte *)malloc(pakInfo.discSize);
 		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (char *)malloc(pakInfo.uncompressedSize);
+		ptr = (byte *)malloc(pakInfo.uncompressedSize);
 
-		PAK_deflate((byte *)compressedDataPtr, (byte *)ptr, pakInfo.discSize, pakInfo.uncompressedSize);
+		PAK_deflate(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize);
 
 		free(compressedDataPtr);
 		break;
@@ -115,10 +115,10 @@ char *pakLoad(const char *fileName, int index) {
 	return ptr;
 }
 
-int pakLoad(const char* name, int index, char* ptr)
+int pakLoad(const char* name, int index, byte* ptr)
 {
 
-	char *lptr = pakLoad(name, index);
+	byte *lptr = pakLoad(name, index);
 
     memcpy(ptr,lptr,pakGetPakSize(name,index));
 

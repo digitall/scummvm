@@ -29,7 +29,7 @@ byte *currentFoundBody;
 int currentFoundBodyIdx;
 int statusVar1;
 
-HqrEntry *HQ_Memory;
+HqrEntry *hqMemory;
 
 int videoMode;
 int musicConfigured;
@@ -37,39 +37,39 @@ int musicEnabled;
 int soundToggle;
 int detailToggle;
 
-char *aux;
-char *aux2;
-int16 BufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
+byte *aux;
+byte *aux2;
+int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
 
-char *logicalScreen;
+byte *logicalScreen;
 
 int screenBufferSize;
 int unkScreenVar2;
 
-int16 CVars[70];
-uint8 CVarsSize = 0;
+int16 cVars[70];
+uint8 cVarsSize = 0;
 
-char *PtrPrioritySample;
+byte *ptrPrioritySample;
 
-char *PtrFont;
+byte *ptrFont;
 
-char *PtrCadre;
+byte *ptrCadre;
 
 uint timer;
 uint timeGlobal;
 
-int WindowX1;
-int WindowY1;
-int WindowX2;
-int WindowY2;
+int windowX1;
+int windowY1;
+int windowX2;
+int windowY2;
 
 char *systemTextes;
 
-char JoyD = 0;
-char Click = 0;
-uint16 Character = 0;
-bool Backspace = false;
-bool Debug = false;
+byte joyD = 0;
+byte click = 0;
+uint16 character = 0;
+bool backspace = false;
+bool debugFlag = false;
 char key = 0;
 char localKey;
 char localJoyD;
@@ -101,11 +101,11 @@ int turnPageFlag;
 
 int hqrKeyGen = 0;
 
-char *screenSm1;
-char *screenSm2;
-char *screenSm3;
-char *screenSm4;
-char *screenSm5;
+byte *screenSm1;
+byte *screenSm2;
+byte *screenSm3;
+byte *screenSm4;
+byte *screenSm5;
 
 Object objectTable[NUM_MAX_OBJECT];
 
@@ -143,29 +143,29 @@ int16 currentCameraTargetActor;
 int16 giveUp;
 int16 lightOff;
 int newFlagLight;
-int LastPriority;
-int LastSample;
+int lastPriority;
+int lastSample;
 int16 statusScreenAllowed;
 
-char *g_currentFloorRoomRawData = nullptr;
-char *g_currentFloorCameraRawData = nullptr;
+byte *currentFloorRoomRawData = nullptr;
+byte *currentFloorCameraRawData = nullptr;
 
 int changeFloor;
 int16 currentCamera;
-int16 g_currentFloor;
+int16 currentFloor;
 int needChangeRoom;
 
-char *cameraPtr;
+byte *cameraPtr;
 RoomDef *pCurrentRoomData;
 
 int16 currentRoom;
 int flagInitView;
 int numCameraInRoom;
 int numCameraZone;
-char *cameraZoneData;
+byte *cameraZoneData;
 int numRoomZone;
-char *roomZoneData;
-char *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+byte *roomZoneData;
+byte *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
 int startGameVar1;
 
 int transformX;
@@ -191,7 +191,7 @@ int cameraPerspective;
 int cameraFovX;
 int cameraFovY;
 
-char currentCameraVisibilityList[30];
+byte currentCameraVisibilityList[30];
 
 int actorTurnedToObj = 0;
 
@@ -237,14 +237,14 @@ int16 newFloor;
 
 int fadeState;
 
-char cameraBuffer[256];
-char cameraBuffer2[256];
-char cameraBuffer3[400];
-char cameraBuffer4[400];
+byte cameraBuffer[256];
+byte cameraBuffer2[256];
+byte cameraBuffer3[400];
+byte cameraBuffer4[400];
 
-char *cameraBufferPtr = cameraBuffer;
-char *cameraBuffer2Ptr = cameraBuffer2;
-char *cameraBuffer3Ptr = cameraBuffer3;
+byte *cameraBufferPtr = cameraBuffer;
+byte *cameraBuffer2Ptr = cameraBuffer2;
+byte *cameraBuffer3Ptr = cameraBuffer3;
 
 int overlaySize1;
 int overlaySize2;
@@ -280,7 +280,7 @@ const char *listAnimSelect[] = {
 
 SaveEntry saveTable[40];
 
-int HQ_Load = 0;
+int hqLoad = 0;
 int lightX = 4000;
 int lightY = -2000;
 int ancLumiereX =  20000;
@@ -291,7 +291,7 @@ int clipTop = 0;
 int clipRight = 319;
 int clipBottom = 119;
 
-byte *g_MaskPtr = nullptr;
+byte *maskPtr = nullptr;
 
 HqrEntry *listMus;
 HqrEntry *listSamp;

@@ -36,26 +36,26 @@ static void handleKeyDown(const Common::Event &event) {
 		key = 0x1B;
 		break;
 	case Common::KEYCODE_UP:
-		JoyD |= 1;
+		joyD |= 1;
 		break;
 	case Common::KEYCODE_DOWN:
-		JoyD |= 2;
+		joyD |= 2;
 		break;
 	case Common::KEYCODE_RIGHT:
-		JoyD |= 8;
+		joyD |= 8;
 		break;
 	case Common::KEYCODE_LEFT:
-		JoyD |= 4;
+		joyD |= 4;
 		break;
 	case Common::KEYCODE_SPACE:
-		Click = 1;
-		Character = 32;
+		click = 1;
+		character = 32;
 		break;
 	case Common::KEYCODE_BACKSPACE:
-		Backspace = true;
+		backspace = true;
 		break;
 	default:
-		Character = event.kbd.ascii;
+		character = event.kbd.ascii;
 		break;
 	}
 }
@@ -69,30 +69,30 @@ static void handleKeyUp(const Common::Event &event) {
 		key &= ~0x1B;
 		break;
 	case Common::KEYCODE_UP:
-		JoyD &= ~1;
+		joyD &= ~1;
 		break;
 	case Common::KEYCODE_DOWN:
-		JoyD &= ~2;
+		joyD &= ~2;
 		break;
 	case Common::KEYCODE_RIGHT:
-		JoyD &= ~8;
+		joyD &= ~8;
 		break;
 	case Common::KEYCODE_LEFT:
-		JoyD &= ~4;
+		joyD &= ~4;
 		break;
 	case Common::KEYCODE_SPACE:
-		Click &= ~1;
-		Character = 0;
+		click &= ~1;
+		character = 0;
 		break;
 	case Common::KEYCODE_d:
-		Debug = !Debug;
-		Character = 0;
+		debugFlag = !debugFlag;
+		character = 0;
 		break;
 	case Common::KEYCODE_BACKSPACE:
-		Backspace = false;
+		backspace = false;
 		break;
 	default:
-		Character = 0;
+		character = 0;
 		break;
 	}
 }

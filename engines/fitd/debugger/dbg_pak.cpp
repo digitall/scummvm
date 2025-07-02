@@ -94,11 +94,11 @@ static void selectRes(int resIndex) {
 	// it should be an image
 	if (_state->infos[resIndex].uncompressedSize == 64000) {
 		byte *pal = (byte *)pakLoad("ITD_RESS.PAK", 3);
-		char *selectedResData = pakLoad(_state->member.c_str(), resIndex);
+		byte *selectedResData = pakLoad(_state->member.c_str(), resIndex);
 		Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
 		Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
 		s->setPalette(pal, 0, 256);
-		char *dst = (char *)s->getBasePtr(0, 0);
+		byte *dst = (byte *)s->getBasePtr(0, 0);
 		memcpy(dst, selectedResData, 64000);
 		_state->selectedTexture = g_system->getImGuiTexture(*s, pal, 256);
 		free(pal);

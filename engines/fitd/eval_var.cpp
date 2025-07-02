@@ -399,7 +399,7 @@ int evalVar(const char *name) {
 				return currentMusic;
 			}
 			case 0x24: {
-				const int temp = CVars[*(int16 *)currentLifePtr];
+				const int temp = cVars[*(int16 *)currentLifePtr];
 				currentLifePtr += 2;
 				return temp;
 			}
@@ -700,7 +700,7 @@ int evalVar2(const char *name) {
 		}
 		case 0x22: // c_var
 		{
-			const int temp = CVars[*(int16 *)currentLifePtr];
+			const int temp = cVars[*(int16 *)currentLifePtr];
 			currentLifePtr += 2;
 			return temp;
 		}

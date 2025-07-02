@@ -35,7 +35,7 @@ typedef struct TextEntryStruct {
 extern int fontHeight;
 extern TextEntryStruct *tabTextes;
 
-void extSetFont(char *fontData, int color);
+void extSetFont(byte *fontData, int color);
 void setFontSpace(int interWordSpace, int interLetterSpace);
 int extGetSizeFont(const char *string);
 void renderText(int x, int y, const char *string);

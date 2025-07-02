@@ -31,7 +31,7 @@ struct Surface;
 namespace Fitd {
 bool showLoadMenu(int menuChoice);
 void processSystemMenu();
-void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src, char *out, int outWidth);
+void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const byte *src, byte *out, int outWidth);
 } // namespace Fitd
 
 #endif

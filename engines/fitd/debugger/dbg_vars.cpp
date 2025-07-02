@@ -48,12 +48,12 @@
 									   "ashtray smoke state",
 									   "player dead"};
 
-		 for (uint8 i = 0; i < CVarsSize; ++i) {
+		 for (uint8 i = 0; i < cVarsSize; ++i) {
 			 if (g_engine->getGameId() == GID_AITD1 && i < 16) {
-				 InputS16(names[i], &CVars[i]);
+				 InputS16(names[i], &cVars[i]);
 			 } else {
 				 Common::String s(Common::String::format("CVar%u", i));
-				 InputS16(s.c_str(), &CVars[i]);
+				 InputS16(s.c_str(), &cVars[i]);
 			 }
 		 }
 	 }

@@ -42,8 +42,8 @@ int mainLoopSwitch = 0;
 void updatePendingEvents() {
 	// TODO: miss pending events here
 
-	LastPriority = -1;
-	LastSample = -1;
+	lastPriority = -1;
+	lastSample = -1;
 	if (nextSample != -1) {
 		if (nextSample == 0x4000) {
 			playRepeatedSound(0x4000 & 0x0BFFF);
@@ -84,8 +84,8 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		process_events();
 
 		localKey = key;
-		localJoyD = JoyD;
-		localClick = Click;
+		localJoyD = joyD;
+		localClick = click;
 
 		if (localKey) {
 			if (localKey == 0x1B) {
@@ -126,7 +126,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 
 		if (changeFloor == 0) {
 			if (g_engine->getGameId() == GID_AITD1) {
-				if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
+				if (cVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
 					lightX = 2000;
 					lightY = 2000;
 				}

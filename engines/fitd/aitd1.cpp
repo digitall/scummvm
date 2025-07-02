@@ -150,7 +150,7 @@ LifeMacro aitd1LifeMacroTable[] =
 
 static void makeSlideshow() {
 	byte backupPalette[768];
-	char *image = nullptr;
+	byte *image = nullptr;
 	uint chrono = 0;
 	copyPalette(currentGamePalette, backupPalette);
 	flushScreen();
@@ -162,7 +162,7 @@ static void makeSlideshow() {
 		}
 		paletteFill(currentGamePalette, 0, 0, 0);
 		gfx_setPalette(currentGamePalette);
-		copyPalette((byte *)image + 2, currentGamePalette);
+		copyPalette(image + 2, currentGamePalette);
 		fastCopyScreen(image + 770, frontBuffer);
 		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 		fadeInPhys(8, 0);
@@ -181,7 +181,7 @@ static void makeSlideshow() {
 static int makeIntroScreens() {
 	uint chrono;
 
-	char *data = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
+	byte *data = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
 	fastCopyScreen(data + 770, frontBuffer);
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
@@ -202,15 +202,15 @@ static int makeIntroScreens() {
 		if (::Engine::shouldQuit() || time >= 0x30)
 			break;
 
-	} while (key == 0 && Click == 0);
+	} while (key == 0 && click == 0);
 
-	playSound(CVars[getCVarsIdx(SAMPLE_PAGE)]);
+	playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
 	/*  LastSample = -1;
 	LastPriority = -1;
 	LastSample = -1;
 	LastPriority = 0; */
 	turnPageFlag = 1;
-	lire(CVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, -1);
+	lire(cVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, -1);
 
 	return 0;
 }
@@ -259,17 +259,17 @@ int choosePerso() {
 
 			do {
 				process_events();
-			} while (Click || key);
+			} while (click || key);
 
 			firstTime = 0;
 		}
 
-		while ((localKey = key) != 28 && Click == 0) // process input
+		while ((localKey = key) != 28 && click == 0) // process input
 		{
 			process_events();
 			osystem_drawBackground();
 
-			if (JoyD & 4) // left
+			if (joyD & 4) // left
 			{
 				choice = 0;
 				fastCopyScreen(aux2, logicalScreen);
@@ -277,12 +277,12 @@ int choosePerso() {
 				copyBoxAuxLog(10, 10, 149, 190);
 				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
-				while (JoyD != 0) {
+				while (joyD != 0) {
 					process_events();
 				}
 			}
 
-			if (JoyD & 8) // right
+			if (joyD & 8) // right
 			{
 				choice = 1;
 				fastCopyScreen(aux2, logicalScreen);
@@ -290,7 +290,7 @@ int choosePerso() {
 				copyBoxAuxLog(170, 10, 309, 190);
 				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 
-				while (JoyD != 0) {
+				while (joyD != 0) {
 					process_events();
 				}
 			}
@@ -312,8 +312,8 @@ int choosePerso() {
 			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
 			copyBoxAuxLog(160, 0, 319, 199);
 			fastCopyScreen(logicalScreen, aux);
-			lire(CVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
-			CVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
+			lire(cVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
+			cVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
 			break;
 		}
 		case 1: {
@@ -322,15 +322,15 @@ int choosePerso() {
 			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
 			copyBoxAuxLog(0, 0, 159, 199);
 			fastCopyScreen(logicalScreen, aux);
-			lire(CVars[getCVarsIdx(INTRO_DETECTIVE)] + 1, 5, 5, 154, 194, 2, 15, 0);
-			CVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
+			lire(cVars[getCVarsIdx(INTRO_DETECTIVE)] + 1, 5, 5, 154, 194, 2, 15, 0);
+			cVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
 			break;
 		}
 		default:
 			assert(0);
 		}
 
-		if (localKey & 0x1C || Click) {
+		if (localKey & 0x1C || click) {
 			choiceMade = 1;
 		}
 	}
@@ -353,7 +353,7 @@ void aitd1Start(int saveSlot) {
 		switch (startupMenuResult) {
 		case -1: // timeout
 		{
-			CVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(1);
+			cVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(1);
 			startGame(7, 1, 0);
 
 			if (!make3dTatou()) {

@@ -35,7 +35,7 @@
 #include "fitd/vars.h"
 
 namespace Fitd {
-static char *pAITD2InventorySprite = nullptr;
+static byte *pAITD2InventorySprite = nullptr;
 static int TabXSprite[3] = {127, 118, 124};
 static int TabYSprite[3] = {136, 104, 131};
 
@@ -258,7 +258,7 @@ void aitd2Start(int saveSlot) {
 }
 
 void aitd2DrawInventory() {
-	switch (CVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
+	switch (cVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
 	case 0:
 		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_PIRATE, logicalScreen);
 		break;
@@ -281,7 +281,7 @@ void aitd2DrawInventory() {
 }
 
 void aitd2RedrawInventorySprite() {
-	const int inventoryType = CVars[getCVarsIdx(TYPE_INVENTAIRE)];
+	const int inventoryType = cVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
 	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, pAITD2InventorySprite);
 }

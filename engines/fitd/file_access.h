@@ -22,10 +22,12 @@
 #ifndef FITD_FILEACCESS_H
 #define FITD_FILEACCESS_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+byte *loadFromItd(const char *name);
+byte *checkLoadMallocPak(const char *name, int index);
 
 } // namespace Fitd
 #endif

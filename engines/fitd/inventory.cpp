@@ -56,15 +56,15 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 
 	if (g_engine->getGameId() <= GID_JACK) {
 		affBigCadre(160, 50, 320, 100);
-		y = WindowY1 + 1;
+		y = windowY1 + 1;
 	} else {
 		setClip(27, 25, 292, 98);
 		fillBox(27, 25, 292, 98, 0);
 
-		WindowX1 = 30;
-		WindowY1 = 27;
-		WindowX2 = 288;
-		WindowY2 = 95;
+		windowX1 = 30;
+		windowY1 = 27;
+		windowX2 = 288;
+		windowY2 = 95;
 
 		y = 28;
 	}
@@ -97,11 +97,11 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 	}
 
 	if (var_6 > 0) {
-		affSpfI(298, 10, 10, PtrCadre);
+		affSpfI(298, 10, 10, ptrCadre);
 	}
 
 	if (var_6 + 5 < numObjInInventoryTable[currentInventory]) {
-		affSpfI(298, 74, 9, PtrCadre);
+		affSpfI(298, 74, 9, ptrCadre);
 	}
 
 	return var_8;
@@ -118,7 +118,7 @@ void renderInventoryObject(int arg) {
 
 	if (arg != -1) {
 		Common::String buffer;
-		extSetFont(PtrFont, 4);
+		extSetFont(ptrFont, 4);
 		buffer = Common::String::format("%d", vars[arg]);
 		renderText(statusLeft + 4, statusTop + 4, buffer.c_str());
 	}
@@ -142,10 +142,10 @@ void drawInventoryActions(int arg) {
 		setClip(162, 100, 292, 174);
 		fillBox(162, 100, 292, 174, 0);
 
-		WindowX1 = 166;
-		WindowY1 = 104;
-		WindowX2 = 288;
-		WindowY2 = 170;
+		windowX1 = 166;
+		windowY1 = 104;
+		windowX2 = 288;
+		windowY2 = 170;
 
 		y = 139 - numInventoryActions * fontHeight / 2;
 	}
@@ -205,10 +205,10 @@ void processInventory() {
 	case GID_JACK:
 		affBigCadre(80, 150, 160, 100);
 
-		statusLeft = WindowX1;
-		statusTop = WindowY1;
-		statusRight = WindowX2;
-		statusBottom = WindowY2;
+		statusLeft = windowX1;
+		statusTop = windowY1;
+		statusRight = windowX2;
+		statusBottom = windowY2;
 
 		setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 
@@ -233,8 +233,8 @@ void processInventory() {
 		osystem_drawBackground();
 
 		localKey = key;
-		localJoyD = JoyD;
-		localClick = Click;
+		localJoyD = joyD;
+		localClick = click;
 
 		if (!localKey && !localJoyD && !localClick) {
 			antiBounce = 0;
@@ -374,7 +374,7 @@ void processInventory() {
 
 	flagInitView = 1;
 
-	while (Click || key || JoyD) {
+	while (click || key || joyD) {
 		process_events();
 	}
 

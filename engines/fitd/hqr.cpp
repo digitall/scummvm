@@ -390,7 +390,7 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	if (foundEntry) {
 		foundEntry->lastTimeUsed = timer;
-		HQ_Load = 0;
+		hqLoad = 0;
 
 		return foundEntry->ptr;
 	}
@@ -414,7 +414,7 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	assert(foundEntry);
 
-	HQ_Load = 1;
+	hqLoad = 1;
 
 	foundEntry->key = index;
 	foundEntry->lastTimeUsed = timer;
@@ -423,7 +423,7 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	byte *ptr = foundEntry->ptr;
 
-	pakLoad(hqrPtr->string.c_str(), index, (char*)foundEntry->ptr);
+	pakLoad(hqrPtr->string.c_str(), index, foundEntry->ptr);
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;

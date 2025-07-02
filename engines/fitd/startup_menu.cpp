@@ -123,7 +123,7 @@ int processStartupMenu() {
 		process_events();
 		osystem_drawBackground();
 
-		if (JoyD & 1) // up key
+		if (joyD & 1) // up key
 		{
 			currentSelectedEntry--;
 
@@ -137,12 +137,12 @@ int processStartupMenu() {
 
 			startChrono(&chrono);
 
-			while (JoyD) {
+			while (joyD) {
 				process_events();
 			}
 		}
 
-		if (JoyD & 2) // down key
+		if (joyD & 2) // down key
 		{
 			currentSelectedEntry++;
 
@@ -156,12 +156,12 @@ int processStartupMenu() {
 
 			startChrono(&chrono);
 
-			while (JoyD) {
+			while (joyD) {
 				process_events();
 			}
 		}
 
-		if (key == 28 || Click != 0) // select current entry
+		if (key == 28 || click != 0) // select current entry
 		{
 			selectedEntry = currentSelectedEntry;
 		}
@@ -174,7 +174,7 @@ int processStartupMenu() {
 		fadeOutPhys(16, 0);
 	}
 
-	while (JoyD) {
+	while (joyD) {
 		process_events();
 	}
 

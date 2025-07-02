@@ -117,7 +117,7 @@ void aitd3Start(int saveSlot) {
 }
 
 void aitd3DrawInventory() {
-	switch (CVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
+	switch (cVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
 	case 0:
 		pakLoad("ITD_RESS.PAK", AITD3_INVENTAIRE_CAVERNE, logicalScreen);
 		break;

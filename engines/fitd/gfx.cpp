@@ -1048,7 +1048,7 @@ void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
 	const int width = x2 - x1 + 1;
 	const int height = y2 - y1 + 1;
 
-	char *dest = logicalScreen + y1 * 320 + x1;
+	byte *dest = logicalScreen + y1 * 320 + x1;
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {

@@ -46,7 +46,7 @@ namespace Fitd {
 int input5;
 
 void AffOption(int n, int num, int selected) {
-	int y = WindowY1 + (WindowY2 - WindowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
+	int y = windowY1 + (windowY2 - windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
 
 	if (n == selected) {
 		selectedMessage(160, y, num, SELECT_COUL, MENU_COUL);
@@ -55,24 +55,24 @@ void AffOption(int n, int num, int selected) {
 	}
 }
 
-void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src, char *out, int outWidth) {
+void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const byte *src, byte *out, int outWidth) {
 	const int srcPitch = srcWidth;
 
 	const int dstWidth = 80;
 	const int dstHeight = 50;
 	const int dstPitch = dstWidth;
 	byte dstImg[dstWidth * dstHeight];
-	Graphics::scaleBlit(dstImg, (const byte *)src, dstPitch, srcPitch, dstWidth, dstHeight, srcWidth, srcHeight, Graphics::PixelFormat::createFormatCLUT8());
-	const char *in = (const char *)dstImg;
+	Graphics::scaleBlit(dstImg, src, dstPitch, srcPitch, dstWidth, dstHeight, srcWidth, srcHeight, Graphics::PixelFormat::createFormatCLUT8());
+	const byte *in = dstImg;
 	for (int i = y; i < y + dstHeight; i++) {
-		char *o = out + x + i * outWidth;
+		byte *o = out + x + i * outWidth;
 		for (int j = x; j < x + dstWidth; j++) {
 			*o++ = *in++;
 		}
 	}
 }
 
-static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src) {
+static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const byte *src) {
 	scaleDownImage(srcWidth, srcHeight, x, y, src, logicalScreen, 320);
 }
 
@@ -88,12 +88,12 @@ void aitd2AffOption(int n, int num, int selected) {
 void aitd2DisplayOptions(int selectedStringNumber) {
 	pakLoad("ITD_RESS.PAK", 17, logicalScreen);
 	byte lpalette[0x300];
-	copyPalette((byte *)logicalScreen + 64000, lpalette);
+	copyPalette(logicalScreen + 64000, lpalette);
 	convertPaletteIfRequired(lpalette);
 	copyPalette(lpalette, currentGamePalette);
 	gfx_setPalette(lpalette);
 
-	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+	setClip(windowX1, windowY1, windowX2, windowY2);
 
 	aitd2AffOption(0, 48, selectedStringNumber);
 	aitd2AffOption(1, 45, selectedStringNumber);
@@ -112,21 +112,21 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(160, 100, 320, 200);
 
-	int backupTop = WindowY1;
-	int backupBottom = WindowY2;
-	int backupLeft = WindowX1;
-	int backupRight = WindowX2;
+	int backupTop = windowY1;
+	int backupBottom = windowY2;
+	int backupLeft = windowX1;
+	int backupRight = windowX2;
 
 	affBigCadre(80, 55, 120, 70);
 
 	scaleDownImage(320, 200, 40, 35, aux2);
 
-	WindowY1 = backupTop;
-	WindowY2 = backupBottom;
-	WindowX1 = backupLeft;
-	WindowX2 = backupRight;
+	windowY1 = backupTop;
+	windowY2 = backupBottom;
+	windowX1 = backupLeft;
+	windowX2 = backupRight;
 
-	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+	setClip(windowX1, windowY1, windowX2, windowY2);
 
 	AffOption(0, 48, selectedStringNumber);
 	AffOption(1, 45, selectedStringNumber);
@@ -139,7 +139,7 @@ void AffOptionList(int selectedStringNumber) {
 
 static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, int selectedSlot) {
 	int y = 55;
-	extSetFont(PtrFont, 14);
+	extSetFont(ptrFont, 14);
 	selectedMessage(160, 0, menuChoice, SELECT_COUL, MENU_COUL);
 
 	if (saveStateList.empty()) {
@@ -165,7 +165,7 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 				d = new Graphics::Surface();
 				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
 			}
-			scaleDownImage(d->w, d->h, 30, y - 20, (const char *)d->getBasePtr(0, 0));
+			scaleDownImage(d->w, d->h, 30, y - 20, (const byte *)d->getBasePtr(0, 0));
 			renderText(140, y, desc.c_str());
 		} else {
 			renderText(140, y, desc.c_str());
@@ -208,13 +208,13 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				scaleDownImage(320, 200, 30, 35 + selectedSlot * 20, aux2);
 			}
 		}
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();
 		osystem_drawBackground();
 
-		if (JoyD & 1) {
+		if (joyD & 1) {
 			// up key
 			edit = false;
 			selectedSlot--;
@@ -230,12 +230,12 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				desc = saveStateList[selectedSlot].getDescription();
 			}
 
-			while (!::Engine::shouldQuit() && JoyD) {
+			while (!::Engine::shouldQuit() && joyD) {
 				process_events();
 			}
 		}
 
-		if (JoyD & 2) {
+		if (joyD & 2) {
 			// down key
 			edit = false;
 			selectedSlot++;
@@ -243,7 +243,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				selectedSlot = 0;
 			}
 
-			while (!::Engine::shouldQuit() && JoyD) {
+			while (!::Engine::shouldQuit() && joyD) {
 				process_events();
 			}
 
@@ -256,33 +256,33 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 			return -1;
 		}
 
-		if (key == 28 || (!save && Click != 0)) {
+		if (key == 28 || (!save && click != 0)) {
 			// select current entry
 			return selectedSlot;
 		}
 
 		if (save) {
-			if (Backspace) {
+			if (backspace) {
 				edit = true;
 				desc.deleteLastChar();
 
-				while (!::Engine::shouldQuit() && Backspace) {
+				while (!::Engine::shouldQuit() && backspace) {
 					process_events();
 				}
 			}
-			if (Character >= 32 && Character < 184) {
+			if (character >= 32 && character < 184) {
 				if (!edit) {
 					edit = true;
 					desc.clear();
 				}
 				if (desc.size() < 32) {
-					desc.insertChar(Character, desc.size());
+					desc.insertChar(character, desc.size());
 					if (extGetSizeFont(desc.c_str()) >= (300 - 140)) {
 						desc.deleteLastChar();
 					}
 				}
 
-				while (!::Engine::shouldQuit() && Character) {
+				while (!::Engine::shouldQuit() && character) {
 					process_events();
 				}
 			}
@@ -334,7 +334,7 @@ void processSystemMenu() {
 
 	while (!exitMenu && !::Engine::shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();
@@ -347,8 +347,8 @@ void processSystemMenu() {
 		//  while(!exitMenu)
 		{
 			localKey = key;
-			localClick = Click;
-			localJoyD = JoyD;
+			localClick = click;
+			localJoyD = joyD;
 
 			if (!input5) {
 				if (localKey == 0x1C || localClick) // enter
@@ -420,7 +420,7 @@ void processSystemMenu() {
 	}
 
 	// fadeOut(32,2);
-	while ((key || JoyD || Click) && !::Engine::shouldQuit()) {
+	while ((key || joyD || click) && !::Engine::shouldQuit()) {
 		process_events();
 	}
 	localKey = localClick = localJoyD = 0;

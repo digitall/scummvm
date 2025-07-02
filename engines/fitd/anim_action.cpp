@@ -47,7 +47,7 @@ namespace Fitd {
 
 static int getCVarsIdx(enumCVars searchedType) {
 	// TODO: optimize by reversing the table....
-	for (int i = 0; i < CVarsSize; i++) {
+	for (int i = 0; i < cVarsSize; i++) {
 		if (currentCVarTable[i] == -1) {
 			assert(0);
 		}
@@ -420,8 +420,8 @@ void gereFrappe() {
 						return;
 					}
 
-					if (objectTable[currentActorCol].indexInWorld == CVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)]) {
-						objPtr->alpha = CVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)];
+					if (objectTable[currentActorCol].indexInWorld == cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)]) {
+						objPtr->alpha = cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)];
 						currentProcessedActorPtr->beta += 0x200;
 						xtemp = x3;
 						ztemp = z3;
@@ -461,7 +461,7 @@ void gereFrappe() {
 				}
 
 				if (collision2) {
-					playSound(CVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
@@ -471,7 +471,7 @@ void gereFrappe() {
 
 			if (ptr) {
 				if (ptr->type == 0 || ptr->type == 10) {
-					playSound(CVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
@@ -482,7 +482,7 @@ void gereFrappe() {
 				currentProcessedActorPtr->hotPoint.y = 0;
 				currentProcessedActorPtr->hotPoint.z = 0;
 
-				playSound(CVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+				playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 				throwStoppedAt(x3, z3);
 				return;
 			}

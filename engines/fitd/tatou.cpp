@@ -88,14 +88,14 @@ void fadeOutPhys(int var1, int var2) {
 }
 
 void playRepeatedSound(int num) {
-	if (LastSample == num)
+	if (lastSample == num)
 		return;
 
-	int16 *priorities = (int16 *)PtrPrioritySample;
-	if (LastPriority < priorities[num]) {
-		LastSample = num;
-		LastPriority = priorities[num];
-		g_engine->_mixer->stopID(LastSample);
+	int16 *priorities = (int16 *)ptrPrioritySample;
+	if (lastPriority < priorities[num]) {
+		lastSample = num;
+		lastPriority = priorities[num];
+		g_engine->_mixer->stopID(lastSample);
 
 		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
 		Audio::SoundHandle handle;
@@ -110,11 +110,11 @@ void playSound(int num) {
 	if (num == -1)
 		return;
 
-	int16 *priorities = (int16 *)PtrPrioritySample;
-	if (LastPriority < priorities[num]) {
-		LastSample = num;
-		LastPriority = priorities[num];
-		g_engine->_mixer->stopID(LastSample);
+	int16 *priorities = (int16 *)ptrPrioritySample;
+	if (lastPriority < priorities[num]) {
+		lastSample = num;
+		lastPriority = priorities[num];
+		g_engine->_mixer->stopID(lastSample);
 		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);

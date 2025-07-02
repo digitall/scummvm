@@ -28,11 +28,11 @@ namespace Fitd {
 TextEntryStruct *tabTextes;
 int fontHeight = 16;
 
-char *fontVar1 = nullptr;
+byte *fontVar1 = nullptr;
 int16 fontSm1 = 0;
 int16 fontSm2 = 0x1234;
-char *fontVar4 = nullptr;
-char *fontVar5 = nullptr;
+byte *fontVar4 = nullptr;
+byte *fontVar5 = nullptr;
 int16 currentFontColor = 0;
 int16 g_fontInterWordSpace = 2;
 int16 g_fontInterLetterSpace = 1;
@@ -44,7 +44,7 @@ int16 fontSm9 = 0x80;
 
 byte flagTable[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
-void extSetFont(char *fontData, int color) {
+void extSetFont(byte *fontData, int color) {
 
 	fontVar1 = fontData; // fontPtr
 
@@ -52,7 +52,7 @@ void extSetFont(char *fontData, int color) {
 	fontData += 2;
 
 	fontSm1 = *fontData++;         // character height
-	fontSm2 = *(byte *)fontData++; // character size
+	fontSm2 = *fontData++; // character size
 
 	if (!fontSm2) {
 		fontSm2 = READ_LE_S16(fontData);
@@ -81,11 +81,11 @@ void setFontSpace(int interWordSpace, int interLetterSpace) {
 
 int extGetSizeFont(const char *string) {
 	int width = 0;
-	byte character;
+	byte ch;
 
-	while ((character = *string++)) {
+	while ((ch = *string++)) {
 
-		const char *dataPtr = fontVar5 + character * 2;
+		const byte *dataPtr = fontVar5 + ch * 2;
 		uint16 data = READ_LE_S16(dataPtr);
 
 		data >>= 4;
@@ -104,14 +104,14 @@ int extGetSizeFont(const char *string) {
 }
 
 void renderText(int x, int y, const char *string) {
-	byte character;
+	byte ch;
 
 	fontVar6 = x;
 	fontSm7 = y;
 
-	while ((character = *string++)) {
+	while ((ch = *string++)) {
 
-		const char *dataPtr = fontVar5 + character * 2;
+		const byte *dataPtr = fontVar5 + ch * 2;
 		uint16 data = READ_LE_U16(dataPtr);
 
 		data = (data & 0xFF) << 8 | (data & 0xFF00) >> 8;
@@ -125,7 +125,7 @@ void renderText(int x, int y, const char *string) {
 
 			dx &= 0xFFF;
 
-			const char *characterPtr = (dx >> 3) + fontVar4;
+			const byte *characterPtr = (dx >> 3) + fontVar4;
 
 			fontSm9 = flagTable[dx & 7];
 
@@ -133,10 +133,10 @@ void renderText(int x, int y, const char *string) {
 
 			fontSm8 = fontVar6;
 
-			for (int ch = fontSm1; ch > 0; ch--) {
+			for (int c = fontSm1; c > 0; c--) {
 				if (bp >= 200)
 					return;
-				char *outPtr = logicalScreen + bp * 320 + fontSm8;
+				byte *outPtr = logicalScreen + bp * 320 + fontSm8;
 
 				int dh = fontSm9;
 				int cl = data & 0xF;
@@ -195,10 +195,10 @@ void selectedMessage(int x, int y, int index, int color1, int color2) {
 
 	const char *textPtr = entryPtr->textPtr;
 
-	extSetFont(PtrFont, color2);
+	extSetFont(ptrFont, color2);
 	renderText(x, y + 1, textPtr);
 
-	extSetFont(PtrFont, color1);
+	extSetFont(ptrFont, color1);
 	renderText(x, y, textPtr);
 }
 
@@ -212,7 +212,7 @@ void simpleMessage(int x, int y, int index, int color) {
 
 	const char *textPtr = entryPtr->textPtr;
 
-	extSetFont(PtrFont, color);
+	extSetFont(ptrFont, color);
 
 	renderText(x, y + 1, textPtr);
 }

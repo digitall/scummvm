@@ -27,12 +27,12 @@
 
 namespace Fitd {
 
-char *loadFromItd(const char *name) {
+byte *loadFromItd(const char *name) {
 
 	Common::File f;
 	f.open(name);
 	fileSize = f.size();
-	char *ptr = (char *)malloc(fileSize);
+	byte *ptr = (byte *)malloc(fileSize);
 
 	if (!ptr) {
 		error("Failed to load %s", name);
@@ -43,8 +43,8 @@ char *loadFromItd(const char *name) {
 	return ptr;
 }
 
-char *checkLoadMallocPak(const char *name, int index) {
-	char *ptr = pakLoad(name, index);
+byte *checkLoadMallocPak(const char *name, int index) {
+	byte *ptr = pakLoad(name, index);
 	if (!ptr) {
 		error("%s", name);
 	}

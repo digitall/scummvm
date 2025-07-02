@@ -226,9 +226,9 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		actorZvPtr->ZVZ1 -= Z;
 		actorZvPtr->ZVZ2 -= Z;
 
-		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 304);
+		currentActorPtr->FRAME = HQ_Malloc(hqMemory, 304);
 
-		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(hqMemory, currentActorPtr->FRAME);
 
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
@@ -277,9 +277,9 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		actorZvPtr->ZVZ1 = Z;
 		actorZvPtr->ZVZ2 = Z;
 
-		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 304);
+		currentActorPtr->FRAME = HQ_Malloc(hqMemory, 304);
 
-		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(hqMemory, currentActorPtr->FRAME);
 
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
@@ -324,7 +324,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	}
 	case 4: {
 		// cigar smoke
-		CVars[getCVarsIdx(FOG_FLAG)] = 1;
+		cVars[getCVarsIdx(FOG_FLAG)] = 1;
 		actorZvPtr->ZVX1 = X;
 		actorZvPtr->ZVX2 = X;
 		actorZvPtr->ZVY1 = Y;
@@ -332,9 +332,9 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		actorZvPtr->ZVZ1 = Z;
 		actorZvPtr->ZVZ2 = Z;
 
-		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 246);
+		currentActorPtr->FRAME = HQ_Malloc(hqMemory, 246);
 
-		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(hqMemory, currentActorPtr->FRAME);
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
 			return -1;
@@ -486,7 +486,7 @@ static void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
 	currentProcessedActorPtr->stepZ = 0;
 
 	if (currentCameraTargetActor == currentProcessedActorIdx) {
-		if (newStage != g_currentFloor) {
+		if (newStage != currentFloor) {
 			changeFloor = 1;
 			newFloor = newStage;
 			newRoom = newRoomLocal;
@@ -2232,7 +2232,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar1 = 2 - (*(int16 *)currentLifePtr << 1);
 				currentLifePtr += 2;
 
-				if (g_engine->getGameId() >= GID_JACK || !CVars[getCVarsIdx(KILLED_SORCERER)]) {
+				if (g_engine->getGameId() >= GID_JACK || !cVars[getCVarsIdx(KILLED_SORCERER)]) {
 					if (lightOff != lifeTempVar1) {
 						lightOff = lifeTempVar1;
 						newFlagLight = 1;
@@ -2303,7 +2303,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 						} else {
 							// security case, the target actor may be still be in list while already changed of stage
 							// TODO: check if AITD1 could use the same code (quite probable as it's only security)
-							if (objectTable[lifeTempVar2].stage != g_currentFloor) {
+							if (objectTable[lifeTempVar2].stage != currentFloor) {
 								currentWorldTarget = lifeTempVar1;
 								changeFloor = 1;
 								newFloor = objectTable[lifeTempVar2].stage;
@@ -2323,7 +2323,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 					} else // different stage
 					{
 						currentWorldTarget = lifeTempVar1;
-						if (g_engine->_engine->worldObjets[lifeTempVar1].stage != g_currentFloor) {
+						if (g_engine->_engine->worldObjets[lifeTempVar1].stage != currentFloor) {
 							changeFloor = 1;
 							newFloor = g_engine->_engine->worldObjets[lifeTempVar1].stage;
 							newRoom = g_engine->_engine->worldObjets[lifeTempVar1].room;
@@ -2385,7 +2385,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 					if (time > (uint)delay)
 						break;
-				} while (!key && !Click);
+				} while (!key && !click);
 
 				unfreezeTime();
 
@@ -2564,7 +2564,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar1 = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
 
-				CVars[lifeTempVar1] = evalVar();
+				cVars[lifeTempVar1] = evalVar();
 				break;
 			}
 			////////////////////////////////////////////////////////////////////////
@@ -2736,10 +2736,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_WAIT_GAME_OVER: {
 				// appendFormated("LM_WAIT_GAME_OVER ");
-				while (key || JoyD || Click) {
+				while (key || joyD || click) {
 					process_events();
 				}
-				while (!key && !JoyD && Click) {
+				while (!key && !joyD && click) {
 					process_events();
 				}
 				giveUp = 1;

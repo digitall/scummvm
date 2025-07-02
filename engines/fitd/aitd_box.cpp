@@ -27,12 +27,12 @@
 
 namespace Fitd {
 
-void afficheSprite(int left, int top, int index, char *gfxData) {
+void afficheSprite(int left, int top, int index, byte *gfxData) {
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	char *outPtr = logicalScreen + top * 320 + left;
-	const char *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
+	byte *outPtr = logicalScreen + top * 320 + left;
+	const byte *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
 
@@ -52,12 +52,12 @@ void afficheSprite(int left, int top, int index, char *gfxData) {
 	}
 }
 
-void affSpfI(int left, int top, int index, char *gfxData) {
+void affSpfI(int left, int top, int index, byte *gfxData) {
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	char *outPtr = logicalScreen + top * 320 + left;
-	const char *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
+	byte *outPtr = logicalScreen + top * 320 + left;
+	const byte *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
 
@@ -96,7 +96,7 @@ void affBigCadre(int x, int y, int width, int height) {
 	const int right = x + halfWidth;
 	const int bottom = y + halfHeight;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 0, ptrCadre); // draw top left corner
 
 	while (true) // draw top bar
 	{
@@ -105,10 +105,10 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (right - 20 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 4, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 4, ptrCadre);
 	}
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 1, PtrCadre); // draw top right corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 1, ptrCadre); // draw top right corner
 
 	currentLeftPosition = left;
 
@@ -119,21 +119,21 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (bottom - 20 <= currentTopPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 6, ptrCadre);
 	}
 
 	currentLeftPosition = right - 8;
 	currentTopPosition = top + 20;
 
 	while (bottom - 20 > currentTopPosition) {
-		afficheSprite(currentLeftPosition, currentTopPosition, 7, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 7, ptrCadre);
 
 		currentTopPosition += 20;
 	}
 
 	currentLeftPosition = left;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 2, ptrCadre); // draw bottom left corner
 
 	while (true) // draw bottom bar
 	{
@@ -142,20 +142,20 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (right - 20 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition + 12, 5, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition + 12, 5, ptrCadre);
 	}
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 3, PtrCadre); // draw bottom right corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 3, ptrCadre); // draw bottom right corner
 
-	afficheSprite(x - 20, currentTopPosition + 12, 8, PtrCadre); // draw "in the dark"
+	afficheSprite(x - 20, currentTopPosition + 12, 8, ptrCadre); // draw "in the dark"
 
-	WindowX1 = left + 8;
-	WindowY1 = top + 8;
-	WindowX2 = right - 9;
-	WindowY2 = bottom - 9;
+	windowX1 = left + 8;
+	windowY1 = top + 8;
+	windowX2 = right - 9;
+	windowY2 = bottom - 9;
 
-	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
-	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+	fillBox(windowX1, windowY1, windowX2, windowY2, 0);
+	setClip(windowX1, windowY1, windowX2, windowY2);
 }
 
 void affBigCadre2(int x, int y, int width, int height) {
@@ -173,7 +173,7 @@ void affBigCadre2(int x, int y, int width, int height) {
 	const int right = x + halfWidth;
 	const int bottom = y + halfHeight;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 0, ptrCadre); // draw top left corner
 
 	// draw top bar
 	while (true) {
@@ -182,18 +182,18 @@ void affBigCadre2(int x, int y, int width, int height) {
 		if (right - 30 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 4, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 4, ptrCadre);
 	}
 
-	afficheSprite(right - 30, currentTopPosition, 1, PtrCadre); // draw top right corner
+	afficheSprite(right - 30, currentTopPosition, 1, ptrCadre); // draw top right corner
 
 	currentLeftPosition = left;
 	currentTopPosition += 30;
 
 	// draw left/right bars
 	while (true) {
-		afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
-		afficheSprite(right - 17, currentTopPosition, 7, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 6, ptrCadre);
+		afficheSprite(right - 17, currentTopPosition, 7, ptrCadre);
 		currentTopPosition += 11;
 
 		if (bottom - 30 <= currentTopPosition)
@@ -202,7 +202,7 @@ void affBigCadre2(int x, int y, int width, int height) {
 	currentLeftPosition = left;
 
 	currentTopPosition = bottom - 30;
-	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 2, ptrCadre); // draw bottom left corner
 
 	while (true) // draw bottom bar
 	{
@@ -211,21 +211,21 @@ void affBigCadre2(int x, int y, int width, int height) {
 		if (right - 30 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, PtrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, ptrCadre);
 	}
 
-	afficheSprite(right - 30, currentTopPosition, 3, PtrCadre); // draw bottom right corner
+	afficheSprite(right - 30, currentTopPosition, 3, ptrCadre); // draw bottom right corner
 
-	WindowX1 = left + 17;
-	WindowY1 = top + 16;
-	WindowX2 = right - 14;
-	WindowY2 = bottom - 18;
+	windowX1 = left + 17;
+	windowY1 = top + 16;
+	windowX2 = right - 14;
+	windowY2 = bottom - 18;
 
-	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
-	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+	fillBox(windowX1, windowY1, windowX2, windowY2, 0);
+	setClip(windowX1, windowY1, windowX2, windowY2);
 }
 
-void initCopyBox(char *var0, char *var1) {
+void initCopyBox(byte *var0, byte *var1) {
 	screenSm1 = var0;
 	screenSm2 = var0;
 

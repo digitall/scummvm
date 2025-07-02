@@ -46,18 +46,18 @@ CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
 
 RoomDef *getRoomData(int roomNumber) {
-	return (RoomDef *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + roomNumber * 4));
+	return (RoomDef *)(currentFloorRoomRawData + READ_LE_U32(currentFloorRoomRawData + roomNumber * 4));
 }
 
 int getNumberOfRoom() {
 	int i;
 	int j = 0;
 
-	if (g_currentFloorRoomRawData) {
-		int numMax = READ_LE_U32(g_currentFloorRoomRawData) / 4;
+	if (currentFloorRoomRawData) {
+		int numMax = READ_LE_U32(currentFloorRoomRawData) / 4;
 
 		for (i = 0; i < numMax; i++) {
-			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_currentFloorRoomRawData + i * 4)) {
+			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(currentFloorRoomRawData + i * 4)) {
 				j++;
 			} else {
 				return j;
@@ -65,11 +65,11 @@ int getNumberOfRoom() {
 		}
 		return j;
 	}
-	if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", g_currentFloor).c_str())) {
-		return pakGetNumFiles(Common::String::format("ETAGE%02d", g_currentFloor).c_str());
+	if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", currentFloor).c_str())) {
+		return pakGetNumFiles(Common::String::format("ETAGE%02d", currentFloor).c_str());
 	}
-	if (Common::File::exists(Common::String::format("SAL%02d.PAK", g_currentFloor).c_str())) {
-		return pakGetNumFiles(Common::String::format("SAL%02d", g_currentFloor).c_str());
+	if (Common::File::exists(Common::String::format("SAL%02d.PAK", currentFloor).c_str())) {
+		return pakGetNumFiles(Common::String::format("SAL%02d", currentFloor).c_str());
 	}
 	assert(0);
 
@@ -98,7 +98,7 @@ void loadRoom(int roomNumber) {
 	}
 
 	if (g_engine->getGameId() < GID_AITD3) {
-		cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
+		cameraPtr = (byte *)getRoomData(roomNumber); // TODO: obsolete
 		pCurrentRoomData = getRoomData(roomNumber);
 	}
 
@@ -135,7 +135,7 @@ void loadRoom(int roomNumber) {
 		}
 
 		if (g_engine->getGameId() < GID_AITD3) {
-			roomPtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
+			roomPtrCamera[i] = currentFloorCameraRawData + READ_LE_U32(currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 
 		cameraDataTable[i] = &g_engine->_engine->currentFloorCameraData[currentCameraIdx];

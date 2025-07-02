@@ -66,9 +66,9 @@ int make3dTatou() {
 	byte paletteBackup[768];
 	uint localChrono;
 
-	char *tatou2d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG);
-	char *tatou3d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO);
-	byte *tatouPal = (byte *)checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_PAL);
+	byte *tatou2d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG);
+	byte *tatou3d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO);
+	byte *tatouPal = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_PAL);
 
 	int time = 8920;
 	int rotation = 256;
@@ -99,7 +99,7 @@ int make3dTatou() {
 
 		if (evalChrono(&localChrono) <= 180) // avant eclair
 		{
-			if (key || Click) {
+			if (key || click) {
 				break;
 			}
 		} else // eclair
@@ -108,7 +108,7 @@ int make3dTatou() {
 			/*  LastSample = -1;
 			LastPriority = -1; */
 
-			playSound(CVars[getCVarsIdx(SAMPLE_TONNERRE)]);
+			playSound(cVars[getCVarsIdx(SAMPLE_TONNERRE)]);
 
 			/*     LastSample = -1;
 			LastPriority = -1;*/
@@ -133,7 +133,7 @@ int make3dTatou() {
 
 			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
 
-			while (!::Engine::shouldQuit() && key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
+			while (!::Engine::shouldQuit() && key == 0 && click == 0 && joyD == 0) // boucle de rotation du tatou
 			{
 				const int deltaTime = 50;
 				process_events();
@@ -164,7 +164,7 @@ int make3dTatou() {
 	free(tatou3d);
 	free(tatou2d);
 
-	if (key || Click || JoyD) {
+	if (key || click || joyD) {
 		while (key) {
 			process_events();
 		}

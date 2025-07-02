@@ -275,7 +275,7 @@ extern int statusVar1;
 
 struct HqrEntry;
 
-extern HqrEntry *HQ_Memory;
+extern HqrEntry *hqMemory;
 extern HqrEntry *listMus;
 extern HqrEntry *listSamp;
 
@@ -285,39 +285,39 @@ extern int musicEnabled;
 extern int soundToggle;
 extern int detailToggle;
 
-extern char *aux;
-extern char *aux2;
+extern byte *aux;
+extern byte *aux2;
 
-extern int16 BufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
+extern int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
 
-extern char *logicalScreen;
+extern byte *logicalScreen;
 
 extern int unkScreenVar2;
 
-extern int16 CVars[70];
-extern uint8 CVarsSize;
+extern int16 cVars[70];
+extern uint8 cVarsSize;
 
-extern char *PtrPrioritySample;
+extern byte *ptrPrioritySample;
 
-extern char *PtrFont;
+extern byte *ptrFont;
 
-extern char *PtrCadre;
+extern byte *ptrCadre;
 
 extern uint timer;
 extern uint timeGlobal;
 
-extern int WindowX1;
-extern int WindowY1;
-extern int WindowX2;
-extern int WindowY2;
+extern int windowX1;
+extern int windowY1;
+extern int windowX2;
+extern int windowY2;
 
 extern char *systemTextes;
 
-extern char JoyD;
-extern char Click;
-extern bool Backspace;
-extern uint16 Character;
-extern bool Debug;
+extern byte joyD;
+extern byte click;
+extern bool backspace;
+extern uint16 character;
+extern bool debugFlag;
 extern char key;
 extern char localKey;
 extern char localJoyD;
@@ -333,11 +333,11 @@ extern int turnPageFlag;
 
 extern int hqrKeyGen;
 
-extern char *screenSm1;
-extern char *screenSm2;
-extern char *screenSm3;
-extern char *screenSm4;
-extern char *screenSm5;
+extern byte *screenSm1;
+extern byte *screenSm2;
+extern byte *screenSm3;
+extern byte *screenSm4;
+extern byte *screenSm5;
 
 extern Object objectTable[NUM_MAX_OBJECT];
 
@@ -375,28 +375,28 @@ extern int16 currentCameraTargetActor;
 extern int16 giveUp;
 extern int16 lightOff;
 extern int newFlagLight;
-extern int LastPriority;
-extern int LastSample;
+extern int lastPriority;
+extern int lastSample;
 extern int16 statusScreenAllowed;
 
-extern char *g_currentFloorRoomRawData;
-extern char *g_currentFloorCameraRawData;
+extern byte *currentFloorRoomRawData;
+extern byte *currentFloorCameraRawData;
 
 extern int changeFloor;
 extern int16 currentCamera;
-extern int16 g_currentFloor;
+extern int16 currentFloor;
 extern int needChangeRoom;
 
-extern char *cameraPtr;
+extern byte *cameraPtr;
 extern RoomDef *pCurrentRoomData;
 extern int16 currentRoom;
 extern int flagInitView;
 extern int numCameraInRoom;
 extern int numCameraZone;
-extern char *cameraZoneData;
+extern byte *cameraZoneData;
 extern int numRoomZone;
-extern char *roomZoneData;
-extern char *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+extern byte *roomZoneData;
+extern byte *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
 extern int startGameVar1;
 
 extern int transformX;
@@ -422,7 +422,7 @@ extern int cameraPerspective;
 extern int cameraFovX;
 extern int cameraFovY;
 
-extern char currentCameraVisibilityList[30];
+extern byte currentCameraVisibilityList[30];
 
 extern int actorTurnedToObj;
 
@@ -465,14 +465,14 @@ extern int16 newFloor;
 
 extern int fadeState;
 
-extern char cameraBuffer[256];
-extern char cameraBuffer2[256];
-extern char cameraBuffer3[400];
-extern char cameraBuffer4[400];
+extern byte cameraBuffer[256];
+extern byte cameraBuffer2[256];
+extern byte cameraBuffer3[400];
+extern byte cameraBuffer4[400];
 
-extern char *cameraBufferPtr;
-extern char *cameraBuffer2Ptr;
-extern char *cameraBuffer3Ptr;
+extern byte *cameraBufferPtr;
+extern byte *cameraBuffer2Ptr;
+extern byte *cameraBuffer3Ptr;
 
 extern int overlaySize1;
 extern int overlaySize2;
@@ -503,7 +503,7 @@ extern ZVStruct hardClip;
 
 extern SaveEntry saveTable[];
 
-extern int HQ_Load;
+extern int hqLoad;
 extern int lightX;
 extern int lightY;
 extern int ancLumiereX;
@@ -514,7 +514,7 @@ extern int clipTop;
 extern int clipRight;
 extern int clipBottom;
 
-extern byte *g_MaskPtr;
+extern byte *maskPtr;
 
 } // namespace Fitd
 

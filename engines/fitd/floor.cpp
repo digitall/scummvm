@@ -38,9 +38,9 @@ void loadFloor(int floorNumber) {
 	int expectedNumberOfRoom;
 	int expectedNumberOfCamera;
 
-	if (g_currentFloorCameraRawData) {
-		free(g_currentFloorCameraRawData);
-		free(g_currentFloorRoomRawData);
+	if (currentFloorCameraRawData) {
+		free(currentFloorCameraRawData);
+		free(currentFloorRoomRawData);
 	}
 
 	// stopSounds();
@@ -48,7 +48,7 @@ void loadFloor(int floorNumber) {
 	HQR_Reset(listBody);
 	HQR_Reset(listAnim);
 
-	g_currentFloor = floorNumber;
+	currentFloor = floorNumber;
 
 	if (g_engine->getGameId() <= GID_AITD3) {
 		Common::String floorFileName(Common::String::format("ETAGE%02d.pak", floorNumber));
@@ -56,8 +56,8 @@ void loadFloor(int floorNumber) {
 		g_currentFloorRoomRawDataSize = pakGetPakSize(floorFileName.c_str(), 0);
 		g_currentFloorCameraRawDataSize = pakGetPakSize(floorFileName.c_str(), 1);
 
-		g_currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
-		g_currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
+		currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
+		currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
 	}
 
 	currentCamera = -1;
@@ -79,14 +79,14 @@ void loadFloor(int floorNumber) {
 		uint8 *sceZoneData;
 		if (g_currentFloorRoomRawDataSize == 0) {
 			if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", floorNumber).c_str())) {
-				roomData = (uint8 *)checkLoadMallocPak(Common::String::format("ETAGE%02d", floorNumber).c_str(), i);
+				roomData = checkLoadMallocPak(Common::String::format("ETAGE%02d", floorNumber).c_str(), i);
 			} else if (Common::File::exists(Common::String::format("SAL%02d.PAK", floorNumber).c_str())) {
-				roomData = (uint8 *)checkLoadMallocPak(Common::String::format("SAL%02d", floorNumber).c_str(), i);
+				roomData = checkLoadMallocPak(Common::String::format("SAL%02d", floorNumber).c_str(), i);
 			} else {
 				assert(0);
 			}
 		} else {
-			roomData = (uint8 *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + i * 4));
+			roomData = currentFloorRoomRawData + READ_LE_U32(currentFloorRoomRawData + i * 4);
 		}
 
 		assert(roomData);
@@ -165,7 +165,7 @@ void loadFloor(int floorNumber) {
 	/////////////////////////////////////////////////
 	// camera stuff
 
-	if (g_currentFloorCameraRawData == nullptr) {
+	if (currentFloorCameraRawData == nullptr) {
 		Common::String buffer;
 
 		if (g_engine->getGameId() == GID_AITD3) {
@@ -176,14 +176,14 @@ void loadFloor(int floorNumber) {
 
 		expectedNumberOfCamera = pakGetNumFiles(buffer.c_str());
 	} else {
-		int maxExpectedNumberOfCamera = READ_LE_U32(g_currentFloorCameraRawData) / 4;
+		int maxExpectedNumberOfCamera = READ_LE_U32(currentFloorCameraRawData) / 4;
 
 		expectedNumberOfCamera = 0;
 
 		int minOffset = 0;
 
 		for (int i = 0; i < maxExpectedNumberOfCamera; i++) {
-			int offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
+			int offset = READ_LE_U32(currentFloorCameraRawData + i * 4);
 			if (offset > minOffset) {
 				minOffset = offset;
 				expectedNumberOfCamera++;
@@ -203,13 +203,13 @@ void loadFloor(int floorNumber) {
 		uint offset;
 		byte *currentCameraData = nullptr;
 
-		if (g_currentFloorCameraRawData == nullptr) {
+		if (currentFloorCameraRawData == nullptr) {
 			Common::String buffer;
 
-			if (Common::File::exists(Common::String::format("CAM%02d.PAK", g_currentFloor).c_str())) {
-				currentCameraData = (byte *)checkLoadMallocPak(Common::String::format("CAM%02d", g_currentFloor).c_str(), i);
-			} else if (Common::File::exists(Common::String::format("CAMSAL%02d.PAK", g_currentFloor).c_str())) {
-				currentCameraData = (byte *)checkLoadMallocPak(Common::String::format("CAMSAL%02d", g_currentFloor).c_str(), i);
+			if (Common::File::exists(Common::String::format("CAM%02d.PAK", currentFloor).c_str())) {
+				currentCameraData = checkLoadMallocPak(Common::String::format("CAM%02d", currentFloor).c_str(), i);
+			} else if (Common::File::exists(Common::String::format("CAMSAL%02d.PAK", currentFloor).c_str())) {
+				currentCameraData = checkLoadMallocPak(Common::String::format("CAMSAL%02d", currentFloor).c_str(), i);
 			} else {
 				assert(0);
 			}
@@ -217,7 +217,7 @@ void loadFloor(int floorNumber) {
 			offset = 0;
 			g_currentFloorCameraRawDataSize = 1;
 		} else {
-			offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
+			offset = READ_LE_U32(currentFloorCameraRawData + i * 4);
 		}
 
 		// load cameras
@@ -225,8 +225,8 @@ void loadFloor(int floorNumber) {
 			int k;
 			byte *backupDataPtr;
 
-			if (g_currentFloorCameraRawData) {
-				currentCameraData = (byte *)(g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + i * 4));
+			if (currentFloorCameraRawData) {
+				currentCameraData = currentFloorCameraRawData + READ_LE_U32(currentFloorCameraRawData + i * 4);
 			}
 
 			backupDataPtr = currentCameraData;

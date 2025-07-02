@@ -44,7 +44,7 @@ void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
 void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
 void setClip(int left, int top, int right, int bottom);
-void affSpfI(int x, int y, int param, char *gfx);
+void affSpfI(int x, int y, int param, byte *gfx);
 void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
 void flushScreen();
 void setupCamera();

@@ -238,7 +238,7 @@ void executeFoundLife(int objIdx) {
 void freeAll() {
 	HQR_Free(listSamp);
 	HQR_Free(listMus);
-	HQR_Free(HQ_Memory);
+	HQR_Free(hqMemory);
 	HQR_Free(listLife);
 	HQR_Free(listTrack);
 	HQR_Free(listBody);
@@ -248,7 +248,7 @@ void freeAll() {
 	}
 
 	free(tabTextes);
-	free(PtrPrioritySample);
+	free(ptrPrioritySample);
 	free(aux);
 	free(aux2);
 }
@@ -275,8 +275,8 @@ static void drawGradient(int x1, int x2) {
 static void turnPageForward() {
 	setClip(0, 0, 319, 199);
 	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
-	char *saveLogicalScreen = logicalScreen;
-	logicalScreen = (char *)&frontBuffer[0];
+	byte *saveLogicalScreen = logicalScreen;
+	logicalScreen = (byte *)&frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int i = 20;
 	int left = 260;
@@ -300,8 +300,8 @@ static void turnPageForward() {
 static void turnPageBackward() {
 	setClip(0, 0, 319, 199);
 
-	char *saveLogicalScreen = logicalScreen;
-	logicalScreen = (char *)&frontBuffer[0];
+	byte *saveLogicalScreen = logicalScreen;
+	logicalScreen = (byte *)&frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int si = -540;
 	int di = 820;
@@ -336,15 +336,15 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	int currentTextIdx;
 	Audio::SoundHandle handle;
 
-	extSetFont(PtrFont, color);
+	extSetFont(ptrFont, color);
 
 	const int maxStringWidth = endx - startx + 4;
 
-	const int textIndexMalloc = HQ_Malloc(HQ_Memory, pakGetPakSize(languageNameString, index) + 300);
-	byte *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
+	const int textIndexMalloc = HQ_Malloc(hqMemory, pakGetPakSize(languageNameString, index) + 300);
+	byte *textPtr = HQ_PtrMalloc(hqMemory, textIndexMalloc);
 	if (!textPtr) error("No memory left");
 
-	if (!pakLoad(languageNameString, index, (char *)textPtr)) {
+	if (!pakLoad(languageNameString, index, textPtr)) {
 		error("Failed to load pak %s", languageNameString);
 	}
 
@@ -525,21 +525,21 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 		if (demoMode == 0) {
 			if (page > 0) {
-				affSpfI(startx - 19, 185, 12, PtrCadre);
+				affSpfI(startx - 19, 185, 12, ptrCadre);
 			}
 
 			if (!lastPageReached) {
-				affSpfI(endx + 4, 185, 11, PtrCadre);
+				affSpfI(endx + 4, 185, 11, ptrCadre);
 			}
 		}
 
 		if (demoMode == 2) {
 			if (page > 0) {
-				affSpfI(startx - 3, 191, 13, PtrCadre);
+				affSpfI(startx - 3, 191, 13, ptrCadre);
 			}
 
 			if (!lastPageReached) {
-				affSpfI(endx - 10, 191, 14, PtrCadre);
+				affSpfI(endx - 10, 191, 14, ptrCadre);
 			}
 		}
 
@@ -593,13 +593,13 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 		{
 			do {
 				process_events();
-			} while (key || JoyD || Click);
+			} while (key || joyD || click);
 
 			while (!::Engine::shouldQuit()) {
 				process_events();
 				localKey = key;
-				localJoyD = JoyD;
-				localClick = Click;
+				localJoyD = joyD;
+				localClick = click;
 
 				if (localKey == 1 || localClick) {
 					quit = 1;
@@ -612,15 +612,15 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				}
 
 				// flip to next page
-				if (JoyD & 0xA || localKey == 0x1C) {
+				if (joyD & 0xA || localKey == 0x1C) {
 					if (!lastPageReached) {
 						previousPage = page;
 						page++;
 
 						if (demoMode == 2) {
-							playSound(CVars[getCVarsIdx(SAMPLE_PAGE)]);
-							LastSample = -1;
-							LastPriority = -1;
+							playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
+							lastSample = -1;
+							lastPriority = -1;
 						}
 						break;
 					}
@@ -631,14 +631,14 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				}
 
 				// flip to previous page
-				if (JoyD & 5) {
+				if (joyD & 5) {
 					if (page > 0) {
 						previousPage = page;
 						page--;
 						if (demoMode == 2) {
-							playSound(CVars[getCVarsIdx(SAMPLE_PAGE)]);
-							LastSample = -1;
-							LastPriority = -1;
+							playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
+							lastSample = -1;
+							lastPriority = -1;
 						}
 						break;
 					}
@@ -654,16 +654,16 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				if (evalChrono(&var_6) > 300) {
 					break;
 				}
-			} while (!key && !Click);
+			} while (!key && !click);
 
-			if (key || Click) {
+			if (key || click) {
 				quit = 1;
 			}
 
 			if (!lastPageReached) {
 				page++;
-				playSound(CVars[getCVarsIdx(SAMPLE_PAGE)]);
-				LastSample = -1;
+				playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
+				lastSample = -1;
 			} else {
 				quit = 1;
 				demoMode = 0;
@@ -792,24 +792,24 @@ void initEngine() {
 	varSize = fileSize;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		choosePersoBackup = CVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
+		choosePersoBackup = cVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
 	}
 
 	f.open("DEFINES.ITD");
 
 	///////////////////////////////////////////////
 	{
-		f.read(&CVars[0], CVarsSize * 2);
+		f.read(&cVars[0], cVarsSize * 2);
 		f.close();
 
-		for (int i = 0; i < CVarsSize; i++) {
-			CVars[i] = (CVars[i] & 0xFF) << 8 | (CVars[i] & 0xFF00) >> 8;
+		for (int i = 0; i < cVarsSize; i++) {
+			cVars[i] = (cVars[i] & 0xFF) << 8 | (cVars[i] & 0xFF00) >> 8;
 		}
 	}
 	//////////////////////////////////////////////
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		CVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
+		cVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 	}
 
 	listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
@@ -818,8 +818,8 @@ void initEngine() {
 	// TODO: missing dos memory check here
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		listBody = HQR_InitRessource(listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
-		listAnim = HQR_InitRessource(listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
+		listBody = HQR_InitRessource(listBodySelect[cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
+		listAnim = HQR_InitRessource(listAnimSelect[cVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
 	} else {
 		listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
 		listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
@@ -831,7 +831,7 @@ void initEngine() {
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		currentWorldTarget = CVars[getCVarsIdx(WORLD_NUM_PERSO)];
+		currentWorldTarget = cVars[getCVarsIdx(WORLD_NUM_PERSO)];
 	}
 }
 
@@ -859,9 +859,9 @@ void initVars() {
 	nbPhysBoxs = 0;
 	nbLogBoxs = 0;
 
-	LastSample = -1;
+	lastSample = -1;
 	nextSample = -1;
-	LastPriority = -1;
+	lastPriority = -1;
 	currentMusic = -1;
 	nextMusic = -1;
 
@@ -880,12 +880,12 @@ void initVars() {
 
 static void loadCamera(int cameraIdx) {
 
-	Common::String name = Common::String::format("CAMERA%02d.PAK", g_currentFloor);
+	Common::String name = Common::String::format("CAMERA%02d.PAK", currentFloor);
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		int useSpecial = -1;
-		if (CVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
-			switch (g_currentFloor) {
+		if (cVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
+			switch (currentFloor) {
 			case 6: {
 				if (cameraIdx == 0) {
 					useSpecial = AITD1_CAM06000;
@@ -959,17 +959,17 @@ static void loadMask(int cameraIdx) {
 	if (g_engine->getGameId() == GID_TIMEGATE)
 		return;
 
-	const Common::String name = Common::String::format("MASK%02d.PAK", g_currentFloor);
+	const Common::String name = Common::String::format("MASK%02d.PAK", currentFloor);
 
-	if (g_MaskPtr) {
-		free(g_MaskPtr);
+	if (maskPtr) {
+		free(maskPtr);
 	}
 
-	g_MaskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
+	maskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
 
 	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
 		const CameraViewedRoom *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
-		byte *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
+		byte *pViewedRoomMask = maskPtr + READ_LE_U32(maskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
 			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
@@ -1027,8 +1027,8 @@ static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
 		const CameraViewedRoom *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
 
-		char *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
-		char *data = data2;
+		byte *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		byte *data = data2;
 		data += 2;
 
 		const int numMask = *(int16 *)data2;
@@ -1038,7 +1038,7 @@ static void createAITD1Mask() {
 			memset(pDestMask->mask, 0, 320 * 200);
 			polyBackBuffer = &pDestMask->mask[0];
 
-			char *src = data2 + *(uint16 *)(data + 2);
+			byte *src = data2 + *(uint16 *)(data + 2);
 
 			// int numMaskZone = *(int16 *)(data);
 
@@ -1148,7 +1148,7 @@ static void createAITD1Mask() {
 }
 
 static int isInViewList(int value) {
-	const char *ptr = currentCameraVisibilityList;
+	const byte *ptr = currentCameraVisibilityList;
 	int var;
 
 	while ((var = *ptr++) != -1) {
@@ -1163,7 +1163,7 @@ static int isInViewList(int value) {
 // setup visibility list
 static void setupCameraSub1() {
 
-	char *dataTabPos = currentCameraVisibilityList;
+	byte *dataTabPos = currentCameraVisibilityList;
 
 	*dataTabPos = -1;
 
@@ -1196,7 +1196,7 @@ static void deleteObjet(int index) // remove actor
 		actorPtr->indexInWorld = -1;
 
 		if (actorPtr->ANIM == 4) {
-			CVars[getCVarsIdx(FOG_FLAG)] = 0;
+			cVars[getCVarsIdx(FOG_FLAG)] = 0;
 		}
 
 		// HQ_Free_Malloc(HQ_Memory,actorPtr->FRAME);
@@ -1319,7 +1319,7 @@ void updateAllActorAndObjectsAITD2() {
 
 		pObject->lifeMode &= ~4;
 
-		if (pObject->stage == g_currentFloor) {
+		if (pObject->stage == currentFloor) {
 			switch (pObject->lifeMode) {
 			case 0: // OFF
 				break;
@@ -1356,7 +1356,7 @@ void updateAllActorAndObjectsAITD2() {
 				currentCameraTargetActor = currentObject->objIndex;
 			}
 		} else {
-			if (currentObject->stage == g_currentFloor) {
+			if (currentObject->stage == currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
 						int di;
@@ -1470,7 +1470,7 @@ void updateAllActorAndObjects() {
 	}
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (currentActor->indexInWorld != -1) {
-			if (currentActor->stage == g_currentFloor) {
+			if (currentActor->stage == currentFloor) {
 				if (currentActor->life != -1) {
 					switch (currentActor->lifeMode) {
 					case 0: {
@@ -1514,7 +1514,7 @@ void updateAllActorAndObjects() {
 				currentCameraTargetActor = currentObject->objIndex;
 			}
 		} else {
-			if (currentObject->stage == g_currentFloor) {
+			if (currentObject->stage == currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
 
@@ -1758,7 +1758,7 @@ void deleteInventoryObjet(int objIdx) {
 	g_engine->_engine->worldObjets[objIdx].flags2 &= 0x7FFF;
 }
 
-static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int param) {
+static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, byte *data, int param) {
 	for (int i = 0; i < param; i++) {
 		////////////////////////////////////// DEBUG
 		//  drawOverlayZone(data, 80);
@@ -1807,8 +1807,8 @@ static void drawBgOverlay(Object *actorPtr) {
 		return;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		char *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
-		char *data = data2;
+		byte *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		byte *data = data2;
 		data += 2;
 
 		const int numOverlayZone = *(int16 *)data2;
@@ -1903,7 +1903,7 @@ static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
 static void drawSpecialObject(int actorIdx) {
 	Object *actorPtr = &objectTable[actorIdx];
 
-	byte *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
+	byte *flowPtr = HQ_PtrMalloc(hqMemory, actorPtr->FRAME);
 	if (!flowPtr)
 		return;
 
@@ -1989,7 +1989,7 @@ static void drawSpecialObject(int actorIdx) {
 	}
 	case 3: {
 		// muzzle flash
-		flowPtr = HQR_Get(listBody, CVars[getCVarsIdx(BODY_FLAMME)]);
+		flowPtr = HQR_Get(listBody, cVars[getCVarsIdx(BODY_FLAMME)]);
 		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
 		actorPtr->indexInWorld = -1;
 		break;
@@ -2020,14 +2020,14 @@ static void drawSpecialObject(int actorIdx) {
 		actorPtr->beta += 4;
 		calcXYZNuage(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, flowPtr);
 
-		if (CVars[getCVarsIdx(FOG_FLAG)] == 2) {
-			CVars[getCVarsIdx(FOG_FLAG)] = 3;
+		if (cVars[getCVarsIdx(FOG_FLAG)] == 2) {
+			cVars[getCVarsIdx(FOG_FLAG)] = 3;
 		}
 
 		if (chrono1 >= 0) {
 			if (chrono1 != 0 || chrono2 >= 480) {
-				if (CVars[getCVarsIdx(FOG_FLAG)] == 1) {
-					CVars[getCVarsIdx(FOG_FLAG)] = 2;
+				if (cVars[getCVarsIdx(FOG_FLAG)] == 1) {
+					cVars[getCVarsIdx(FOG_FLAG)] = 2;
 				}
 			}
 		}
@@ -2052,7 +2052,7 @@ static void drawSpecialObject(int actorIdx) {
 
 		if (chrono1 >= 0) {
 			if (chrono1 != 0 || chrono2 >= 660) {
-				CVars[getCVarsIdx(FOG_FLAG)] = 0;
+				cVars[getCVarsIdx(FOG_FLAG)] = 0;
 				// TODO: HQR_Free
 				actorPtr->indexInWorld = -1;
 				actorTurnedToObj = 1;
@@ -2159,7 +2159,7 @@ void mainDraw(int flagFlip) {
 			} else {
 				byte *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
 
-				if (HQ_Load) {
+				if (hqLoad) {
 					// setAnimObjet(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
 				}
 
@@ -2184,7 +2184,7 @@ void mainDraw(int flagFlip) {
 			if (BBox3D1 <= 319 && BBox3D2 <= 199 && BBox3D3 >= 0 && BBox3D4 >= 0) // is the character on screen ?
 			{
 				if (g_engine->getGameId() == GID_AITD1) {
-					if (actorPtr->indexInWorld == CVars[getCVarsIdx(LIGHT_OBJECT)]) {
+					if (actorPtr->indexInWorld == cVars[getCVarsIdx(LIGHT_OBJECT)]) {
 						lightX = (BBox3D3 + BBox3D1) / 2;
 						lightY = (BBox3D4 + BBox3D2) / 2;
 					}
@@ -2263,23 +2263,23 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 
 	affObjet(0, 0, 0, 0, 0, 0, HQR_Get(listBody, currentFoundBodyIdx));
 
-	simpleMessage(160, WindowY1, 20, 1);
-	simpleMessage(160, WindowY1 + 16, objectName, 1);
-	simpleMessage(160, WindowY1 + 16, objectName, 1);
+	simpleMessage(160, windowY1, 20, 1);
+	simpleMessage(160, windowY1 + 16, objectName, 1);
+	simpleMessage(160, windowY1 + 16, objectName, 1);
 
 	switch (menuState) {
 	case 0: {
-		selectedMessage(130, WindowY2 - 16, 21, 1, 4);
-		simpleMessage(190, WindowY2 - 16, 22, 4);
+		selectedMessage(130, windowY2 - 16, 21, 1, 4);
+		simpleMessage(190, windowY2 - 16, 22, 4);
 		break;
 	}
 	case 1: {
-		simpleMessage(130, WindowY2 - 16, 21, 4);
-		selectedMessage(190, WindowY2 - 16, 22, 1, 4);
+		simpleMessage(130, windowY2 - 16, 21, 4);
+		selectedMessage(190, windowY2 - 16, 22, 1, 4);
 		break;
 	}
 	case 2: {
-		selectedMessage(160, WindowY2 - 16, 10, 1, 4);
+		selectedMessage(160, windowY2 - 16, 10, 1, 4);
 		break;
 	}
 	}
@@ -2350,7 +2350,7 @@ void foundObject(int objIdx, int param) {
 		weight += g_engine->_engine->worldObjets[inventoryTable[currentInventory][i]].positionInTrack;
 	}
 
-	if (objPtr->positionInTrack + weight > CVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
+	if (objPtr->positionInTrack + weight > cVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
 		var_6 = 3;
 	}
 
@@ -2382,8 +2382,8 @@ void foundObject(int objIdx, int param) {
 		osystem_drawBackground();
 
 		localKey = key;
-		localJoyD = JoyD;
-		localClick = Click;
+		localJoyD = joyD;
+		localClick = click;
 
 		if (!input5) {
 			if (localKey == 1) {
@@ -2438,7 +2438,7 @@ void foundObject(int objIdx, int param) {
 		objPtr->trackNumber = timer;
 	}
 
-	while (key && Click) {
+	while (key && click) {
 		process_events();
 	}
 
@@ -2971,9 +2971,9 @@ static int drawTextOverlay() {
 					currentMessage->string = nullptr;
 				} else {
 					if (currentMessage->time < 26) {
-						extSetFont(PtrFont, 16);
+						extSetFont(ptrFont, 16);
 					} else {
-						extSetFont(PtrFont, 16 + (currentMessage->time - 26) / 2);
+						extSetFont(ptrFont, 16 + (currentMessage->time - 26) / 2);
 					}
 
 					renderText(X, y + 1, currentMessage->string->textPtr);
@@ -2992,7 +2992,7 @@ static int drawTextOverlay() {
 }
 
 static void setupScreen() {
-	logicalScreen = (char *)malloc(64800);
+	logicalScreen = (byte *)malloc(64800);
 
 	// screenBufferSize = 64800;
 
@@ -3042,7 +3042,7 @@ static void allocTextes() {
 		assert(0);
 	}
 
-	systemTextes = checkLoadMallocPak(languageNameString, 0); // todo: use real language name
+	systemTextes = (char*)checkLoadMallocPak(languageNameString, 0);
 	const int textLength = pakGetPakSize(languageNameString, 0);
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
@@ -3107,16 +3107,16 @@ void runGame() {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		CVarsSize = 45;
+		cVarsSize = 45;
 		currentCVarTable = aitd1KnownCVars;
 		break;
 	case GID_JACK:
-		CVarsSize = 15;
+		cVarsSize = 15;
 		currentCVarTable = aitd2KnownCVars;
 		break;
 	case GID_AITD2:
 	case GID_AITD3:
-		CVarsSize = 70;
+		cVarsSize = 70;
 		currentCVarTable = aitd2KnownCVars;
 		break;
 	default:
@@ -3134,12 +3134,12 @@ void runGame() {
 	soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
 	detailToggle = 1;
 
-	aux = (char *)malloc(65068);
+	aux = (byte *)malloc(65068);
 	if (!aux) {
 		error("Failed to alloc Aux");
 	}
 
-	aux2 = (char *)malloc(65068);
+	aux2 = (byte *)malloc(65068);
 	if (!aux2) {
 		error("Failed to alloc Aux2");
 	}
@@ -3148,26 +3148,26 @@ void runGame() {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD3: {
-		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
 		break;
 	}
 	case GID_JACK:
 	case GID_AITD2: {
-		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
 		break;
 	}
 	case GID_AITD1: {
-		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", AITD1_ITDFONT);
+		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", AITD1_ITDFONT);
 		break;
 	}
 	case GID_TIMEGATE:
-		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
+		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
 		break;
 	default:
 		assert(0);
 	}
 
-	extSetFont(PtrFont, 14);
+	extSetFont(ptrFont, 14);
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		setFontSpace(2, 0);
@@ -3179,25 +3179,25 @@ void runGame() {
 	case GID_JACK:
 	case GID_AITD2:
 	case GID_AITD3: {
-		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
+		ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
 		break;
 	}
 	case GID_AITD1: {
-		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", AITD1_CADRE_SPF);
+		ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", AITD1_CADRE_SPF);
 		break;
 	}
 	default:
 		break;
 	}
 
-	PtrPrioritySample = loadFromItd("PRIORITY.ITD");
+	ptrPrioritySample = loadFromItd("PRIORITY.ITD");
 
 	// read cvars definitions
 	{
 		Common::File f;
 		f.open("DEFINES.ITD");
-		for (int i = 0; i < CVarsSize; i++) {
-			CVars[i] = f.readSint16BE();
+		for (int i = 0; i < cVarsSize; i++) {
+			cVars[i] = f.readSint16BE();
 		}
 		f.close();
 	}
@@ -3205,7 +3205,7 @@ void runGame() {
 	allocTextes();
 	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
 	listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
-	HQ_Memory = HQR_Init(10000, 50);
+	hqMemory = HQR_Init(10000, 50);
 
 	paletteFill(currentGamePalette, 0, 0, 0);
 	loadPalette();

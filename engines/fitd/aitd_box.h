@@ -22,11 +22,13 @@
 #ifndef FITD_AITD_BOX_H
 #define FITD_AITD_BOX_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
 void affBigCadre(int x, int y, int width, int height);
 void affBigCadre2(int x, int y, int width, int height);
-void initCopyBox(char *var0, char *var1);
+void initCopyBox(byte *var0, byte *var1);
 
 }
 

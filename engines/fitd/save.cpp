@@ -80,7 +80,7 @@ static int loadJack(Common::SeekableReadStream *in) {
 
 	in->seek(roomOffset, SEEK_SET);
 	currentRoom = in->readSint16LE();
-	g_currentFloor = in->readSint16LE();
+	currentFloor = in->readSint16LE();
 	currentCamera = in->readSint16LE();
 	currentWorldTarget = in->readSint16LE();
 	currentCameraTargetActor = in->readSint16LE();
@@ -115,9 +115,9 @@ static int loadJack(Common::SeekableReadStream *in) {
 		g_engine->_engine->worldObjets[i].mark = in->readSint16LE();
 	}
 
-	assert(CVarsSize == 15);
-	for (int i = 0; i < CVarsSize; i++) {
-		CVars[i] = in->readSint16LE();
+	assert(cVarsSize == 15);
+	for (int i = 0; i < cVarsSize; i++) {
+		cVars[i] = in->readSint16LE();
 	}
 
 	inHandTable[0] = in->readSint16LE();
@@ -139,7 +139,7 @@ static int loadJack(Common::SeekableReadStream *in) {
 
 	const int var_E = currentCamera;
 
-	loadFloor(g_currentFloor);
+	loadFloor(currentFloor);
 	currentCamera = -1;
 	loadRoom(currentRoom);
 	const int var_16 = currentMusic;
@@ -265,8 +265,8 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	assert(sizeof(currentRoom) == 2);
 	currentRoom = in->readSint16LE();
 
-	assert(sizeof(g_currentFloor) == 2);
-	g_currentFloor = in->readSint16LE();
+	assert(sizeof(currentFloor) == 2);
+	currentFloor = in->readSint16LE();
 
 	assert(sizeof(currentCamera) == 2);
 	currentCamera = in->readSint16LE();
@@ -370,12 +370,12 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		assert(CVarsSize == 45);
+		assert(cVarsSize == 45);
 	}
 
-	for (i = 0; i < CVarsSize; i++) {
-		assert(sizeof(CVars[i]) == 2);
-		CVars[i] = in->readSint16LE();
+	for (i = 0; i < cVarsSize; i++) {
+		assert(sizeof(cVars[i]) == 2);
+		cVars[i] = in->readSint16LE();
 	}
 
 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
@@ -419,7 +419,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	const int var_E = currentCamera;
 
-	loadFloor(g_currentFloor);
+	loadFloor(currentFloor);
 	currentCamera = -1;
 	loadRoom(currentRoom);
 	const int var_16 = currentMusic;
@@ -696,8 +696,8 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	assert(sizeof(currentRoom) == 2);
 	currentRoom = in->readSint16LE();
 
-	assert(sizeof(g_currentFloor) == 2);
-	g_currentFloor = in->readSint16LE();
+	assert(sizeof(currentFloor) == 2);
+	currentFloor = in->readSint16LE();
 
 	assert(sizeof(currentCamera) == 2);
 	currentCamera = in->readSint16LE();
@@ -801,12 +801,12 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		assert(CVarsSize == 45);
+		assert(cVarsSize == 45);
 	}
 
-	for (int i = 0; i < CVarsSize; i++) {
-		assert(sizeof(CVars[i]) == 2);
-		CVars[i] = in->readSint16LE();
+	for (int i = 0; i < cVarsSize; i++) {
+		assert(sizeof(cVars[i]) == 2);
+		cVars[i] = in->readSint16LE();
 	}
 
 	inHandTable[0] = in->readSint16LE();
@@ -844,7 +844,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 	const int var_E = currentCamera;
 
-	loadFloor(g_currentFloor);
+	loadFloor(currentFloor);
 	currentCamera = -1;
 	loadRoom(currentRoom);
 	const int var_16 = currentMusic;
@@ -861,8 +861,8 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	in->read(vars, varSize);
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		HQ_Name(listBody, listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
-		HQ_Name(listAnim, listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
+		HQ_Name(listBody, listBodySelect[cVars[getCVarsIdx(CHOOSE_PERSO)]]);
+		HQ_Name(listAnim, listAnimSelect[cVars[getCVarsIdx(CHOOSE_PERSO)]]);
 	} else {
 		/*
 		HQ_Name(listBody,0);
@@ -1122,7 +1122,7 @@ static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 		if (objectTable[i].indexInWorld == -2) {
 			objectTable[i].indexInWorld = -1;
 			if (objectTable[i].ANIM == 4) {
-				CVars[getCVarsIdx(FOG_FLAG)] = 0;
+				cVars[getCVarsIdx(FOG_FLAG)] = 0;
 				// HQ_Free_Malloc(HQ_Memory, objectTable[i].FRAME);
 			}
 		}
@@ -1136,7 +1136,7 @@ static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 	out->writeUint32BE(20254); // 16: offset to objects
 
 	// 20: image data
-	char img[4000];
+	byte img[4000];
 	scaleDownImage(320, 200, 0, 0, aux2, img, 80);
 	out->write(img, 4000);
 
@@ -1150,8 +1150,8 @@ static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 	assert(sizeof(currentRoom) == 2);
 	out->writeSint16LE(currentRoom);
 
-	assert(sizeof(g_currentFloor) == 2);
-	out->writeSint16LE(g_currentFloor);
+	assert(sizeof(currentFloor) == 2);
+	out->writeSint16LE(currentFloor);
 
 	assert(sizeof(currentCamera) == 2);
 	out->writeSint16LE(currentCamera);
@@ -1250,11 +1250,11 @@ static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 
 	maxObjects = oldNumMaxObj;
 
-	assert(CVarsSize == 45);
+	assert(cVarsSize == 45);
 
-	for (uint i = 0; i < CVarsSize; i++) {
-		assert(sizeof(CVars[i]) == 2);
-		out->writeSint16LE(CVars[i]);
+	for (uint i = 0; i < cVarsSize; i++) {
+		assert(sizeof(cVars[i]) == 2);
+		out->writeSint16LE(cVars[i]);
 	}
 
 	const int maxInventory = 1;
@@ -1520,7 +1520,7 @@ static int saveJack(Common::WriteStream *out, const Common::String& desc) {
 	out->writeUint32BE(4820);  // room offset
 	out->writeUint32BE(21190); // vars offset
 
-	char img[4000];
+	byte img[4000];
 	scaleDownImage(320, 200, 0, 0, aux2, img, 80);
 	out->write(img, 4000);
 
@@ -1531,7 +1531,7 @@ static int saveJack(Common::WriteStream *out, const Common::String& desc) {
 	out->write(img, 32);
 
 	out->writeSint16LE(currentRoom);
-	out->writeSint16LE(g_currentFloor);
+	out->writeSint16LE(currentFloor);
 	out->writeSint16LE(currentCamera);
 	out->writeSint16LE(currentWorldTarget);
 	out->writeSint16LE(currentCameraTargetActor);
@@ -1568,7 +1568,7 @@ static int saveJack(Common::WriteStream *out, const Common::String& desc) {
 	}
 
 	for (uint i = 0; i < 15; i++) {
-		out->writeSint16LE(CVars[i]);
+		out->writeSint16LE(cVars[i]);
 	}
 
 	out->writeSint16LE(inHandTable[0]);
@@ -1711,8 +1711,8 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String& desc) {
 	assert(sizeof(currentRoom) == 2);
 	out->writeSint16LE(currentRoom);
 
-	assert(sizeof(g_currentFloor) == 2);
-	out->writeSint16LE(g_currentFloor);
+	assert(sizeof(currentFloor) == 2);
+	out->writeSint16LE(currentFloor);
 
 	assert(sizeof(currentCamera) == 2);
 	out->writeSint16LE(currentCamera);
@@ -1816,12 +1816,12 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String& desc) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		assert(CVarsSize == 45);
+		assert(cVarsSize == 45);
 	}
 
-	for (uint i = 0; i < CVarsSize; i++) {
-		assert(sizeof(CVars[i]) == 2);
-		out->writeSint16LE(CVars[i]);
+	for (uint i = 0; i < cVarsSize; i++) {
+		assert(sizeof(cVars[i]) == 2);
+		out->writeSint16LE(cVars[i]);
 	}
 
 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
