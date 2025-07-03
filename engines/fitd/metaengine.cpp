@@ -30,8 +30,10 @@
 
 #include "fitd/actions.h"
 #include "fitd/detection.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
+#include "fitd/system_menu.h"
 
 class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
@@ -40,7 +42,8 @@ public:
 	bool hasFeature(MetaEngineFeature f) const final;
 	Common::Array<Common::Keymap *> initKeymaps(const char *target) const final;
 	void registerDefaultSettings(const Common::String &) const final;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const final;
+	void getSavegameThumbnail(Graphics::Surface &thumb) final;
 };
 
 const char *FitdMetaEngine::getName() const {
@@ -154,6 +157,17 @@ SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int s
 	}
 
 	return SaveStateDescriptor();
+}
+
+void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
+	Graphics::ManagedSurface screen;
+	screen.create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
+	screen.setPalette(Fitd::currentGamePalette, 0, 256);
+	Fitd::scaleDownImage(320, 200, 0, 0, Fitd::g_engine->_engine->aux2, (byte *)screen.getBasePtr(0, 0), 320);
+	Common::ScopedPtr<Graphics::ManagedSurface> scaledScreen(screen.scale(kThumbnailWidth, kThumbnailHeight2));
+	thumb.copyFrom(*scaledScreen);
+	screen.free();
+	scaledScreen->free();
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(FITD)
