@@ -38,14 +38,263 @@ struct Hash<void *> {
 } // namespace Common
 
 namespace Fitd {
+
+struct HardCol;
+struct HqrEntry;
+
 class Engine {
 public:
+	Engine()
+		: bufferAnim{}, cVars{}, textTable{}, objectTable{}, messageTable{},
+		  listBox1{}, listBox2{}, roomPtrCamera{}, currentCameraVisibilityList{},
+		  renderPointList{}, sortedActorTable{}, cameraBuffer4{}, hardColTable{}, hardClip() {
+		cameraBufferPtr = cameraBuffer;
+		cameraBuffer2Ptr = cameraBuffer2;
+		cameraBuffer3Ptr = cameraBuffer3;
+	}
+
 	Common::HashMap<void *, byte *> bodyBufferMap;
 	Common::Array<CameraData> currentFloorCameraData;
 	Common::Array<Body *> bodies;
 	Common::Array<Animation *> animations;
 	Common::Array<RoomData> roomDataTable;
 	Common::Array<WorldObject> worldObjets;
+	byte *currentFoundBody = nullptr;
+	int currentFoundBodyIdx = 0;
+	int statusVar1 = 0;
+
+	HqrEntry *hqMemory = nullptr;
+	HqrEntry *listMus = nullptr;
+	HqrEntry *listSamp = nullptr;
+
+	int videoMode = 0;
+	int musicConfigured = 0;
+	int musicEnabled = 0;
+	int soundToggle = 0;
+	int detailToggle = 0;
+
+	byte *aux = nullptr;
+	byte *aux2 = nullptr;
+
+	int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
+
+	byte *logicalScreen = nullptr;
+
+	int unkScreenVar2 = 0;
+
+	int16 cVars[70];
+	uint8 cVarsSize = 0;
+
+	byte *ptrPrioritySample = nullptr;
+
+	byte *ptrFont = nullptr;
+
+	byte *ptrCadre = nullptr;
+
+	uint timer = 0;
+	uint timeGlobal = 0;
+
+	int windowX1 = 0;
+	int windowY1 = 0;
+	int windowX2 = 0;
+	int windowY2 = 0;
+
+	char *systemTextes = nullptr;
+
+	byte joyD = 0;
+	byte click = 0;
+	bool backspace = false;
+	uint16 character = 0;
+	bool debugFlag = false;
+	char key = 0;
+	char localKey = 0;
+	char localJoyD = 0;
+	char localClick = 0;
+
+	const char *languageNameString = nullptr;
+
+	RegularTextEntry textTable[40];
+
+	int turnPageFlag = 0;
+
+	int hqrKeyGen = 0;
+
+	byte *screenSm1 = nullptr;
+	byte *screenSm2 = nullptr;
+	byte *screenSm3 = nullptr;
+	byte *screenSm4 = nullptr;
+	byte *screenSm5 = nullptr;
+
+	Object objectTable[NUM_MAX_OBJECT];
+
+	int16 currentWorldTarget = 0;
+
+	int fileSize = 0;
+
+	HqrEntry *listBody = nullptr;
+	HqrEntry *listAnim = nullptr;
+	HqrEntry *listLife = nullptr;
+	HqrEntry *listTrack = nullptr;
+	HqrEntry *listMatrix = nullptr;
+
+	int16 maxObjects = 0;
+
+	int16 *vars = nullptr;
+
+	int varSize = 0;
+
+	Message messageTable[5];
+
+	int16 currentMusic = 0;
+	int action = 0;
+
+	Box listBox1[50]; // recheckSize
+	Box listBox2[50];
+	Box *listPhysBox = nullptr;
+	Box *listLogBox = nullptr;
+
+	int nbPhysBoxs = 0;
+	int nbLogBoxs = 0;
+	int nextSample = 0;
+	int nextMusic = 0;
+	int16 currentCameraTargetActor = 0;
+	int16 giveUp = 0;
+	int16 lightOff = 0;
+	int newFlagLight = 0;
+	int lastPriority = 0;
+	int lastSample = 0;
+	int16 statusScreenAllowed = 0;
+
+	byte *currentFloorRoomRawData = nullptr;
+	byte *currentFloorCameraRawData = nullptr;
+
+	int changeFloor = 0;
+	int16 currentCamera = 0;
+	int16 currentFloor = 0;
+	int needChangeRoom = 0;
+
+	byte *cameraPtr = nullptr;
+	RoomDef *pCurrentRoomData = nullptr;
+	int16 currentRoom = 0;
+	int flagInitView = 0;
+	int numCameraInRoom = 0;
+	int numCameraZone = 0;
+	byte *cameraZoneData = nullptr;
+	int numRoomZone = 0;
+	byte *roomZoneData = nullptr;
+	byte *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+	int startGameVar1 = 0;
+
+	int transformX = 0;
+	int transformY = 0;
+	int transformZ = 0;
+	int transformXCos = 0;
+	int transformXSin = 0;
+	int transformYCos = 0;
+	int transformYSin = 0;
+	int transformZCos = 0;
+	int transformZSin = 0;
+	bool transformUseX = false;
+	bool transformUseY = false;
+	bool transformUseZ = false;
+
+	int translateX = 0;
+	int translateY = 0;
+	int translateZ = 0;
+
+	int cameraCenterX = 0;
+	int cameraCenterY = 0;
+	int cameraPerspective = 0;
+	int cameraFovX = 0;
+	int cameraFovY = 0;
+
+	byte currentCameraVisibilityList[30];
+
+	int actorTurnedToObj = 0;
+
+	int currentProcessedActorIdx = 0;
+	Object *currentProcessedActorPtr = nullptr;
+
+	int currentLifeActorIdx = 0;
+	Object *currentLifeActorPtr = nullptr;
+	int currentLifeNum = 0;
+
+	byte *currentLifePtr = nullptr;
+
+	bool cameraBackgroundChanged = false;
+	int flagRedraw = 0;
+
+	int16 renderPointList[6400];
+
+	int numActorInList = 0;
+	int sortedActorTable[NUM_MAX_OBJECT];
+
+	int angleCompX = 0;
+	int angleCompZ = 0;
+	int angleCompBeta = 0;
+
+	int bufferAnimCounter = 0;
+
+	int animCurrentTime = 0;
+	int animKeyframeLength = 0;
+	int animMoveX = 0;
+	int animMoveY = 0;
+	int animMoveZ = 0;
+	int animStepZ = 0;
+	int animStepX = 0;
+	int animStepY = 0;
+	byte *animVar1 = nullptr;
+	byte *animVar3 = nullptr;
+	byte *animVar4 = nullptr;
+
+	int16 newFloor = 0;
+
+	int fadeState = 0;
+
+	byte cameraBuffer[256];
+	byte cameraBuffer2[256];
+	byte cameraBuffer3[400];
+	byte cameraBuffer4[400];
+
+	byte *cameraBufferPtr = nullptr;
+	byte *cameraBuffer2Ptr = nullptr;
+	byte *cameraBuffer3Ptr = nullptr;
+
+	int overlaySize1 = 0;
+	int overlaySize2 = 0;
+
+	int bgOverlayVar1 = 0;
+
+	int16 newRoom = 0;
+
+	int16 shakeVar1 = 0;
+	int16 saveShakeVar1 = 0;
+	uint timerFreeze1 = 0;
+	int timerSaved = 0;
+
+	int16 flagRotPal = 0;
+	int16 saveFlagRotPal = 0;
+	int16 waterHeight = 10000;
+
+	HardCol *hardColTable[10];
+
+	int16 hardColStepX = 0;
+	int16 hardColStepZ = 0;
+
+	ZVStruct hardClip;
+
+	int hqLoad = 0;
+	int lightX = 4000;
+	int lightY = -2000;
+	int ancLumiereX = 20000;
+	int ancLumiereY = 20000;
+
+	int clipLeft = 0;
+	int clipTop = 0;
+	int clipRight = 319;
+	int clipBottom = 199;
+
+	byte *maskPtr = nullptr;
 };
 } // namespace Fitd
 

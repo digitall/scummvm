@@ -20,8 +20,9 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/font.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -136,7 +137,7 @@ void renderText(int x, int y, const char *string) {
 			for (int c = fontSm1; c > 0; c--) {
 				if (bp >= 200)
 					return;
-				byte *outPtr = logicalScreen + bp * 320 + fontSm8;
+				byte *outPtr = g_engine->_engine->logicalScreen + bp * 320 + fontSm8;
 
 				int dh = fontSm9;
 				int cl = data & 0xF;
@@ -195,10 +196,10 @@ void selectedMessage(int x, int y, int index, int color1, int color2) {
 
 	const char *textPtr = entryPtr->textPtr;
 
-	extSetFont(ptrFont, color2);
+	extSetFont(g_engine->_engine->ptrFont, color2);
 	renderText(x, y + 1, textPtr);
 
-	extSetFont(ptrFont, color1);
+	extSetFont(g_engine->_engine->ptrFont, color1);
 	renderText(x, y, textPtr);
 }
 
@@ -212,7 +213,7 @@ void simpleMessage(int x, int y, int index, int color) {
 
 	const char *textPtr = entryPtr->textPtr;
 
-	extSetFont(ptrFont, color);
+	extSetFont(g_engine->_engine->ptrFont, color);
 
 	renderText(x, y + 1, textPtr);
 }

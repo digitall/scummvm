@@ -19,11 +19,12 @@
  *
  */
 
-#include "fitd/file_access.h"
-#include "fitd/pak.h"
-#include "fitd/vars.h"
 #include "common/file.h"
 #include "common/textconsole.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
+#include "fitd/file_access.h"
+#include "fitd/pak.h"
 
 namespace Fitd {
 
@@ -31,14 +32,14 @@ byte *loadFromItd(const char *name) {
 
 	Common::File f;
 	f.open(name);
-	fileSize = f.size();
-	byte *ptr = (byte *)malloc(fileSize);
+	g_engine->_engine->fileSize = f.size();
+	byte *ptr = (byte *)malloc(g_engine->_engine->fileSize);
 
 	if (!ptr) {
 		error("Failed to load %s", name);
 		return nullptr;
 	}
-	f.read(ptr, fileSize);
+	f.read(ptr, g_engine->_engine->fileSize);
 	f.close();
 	return ptr;
 }

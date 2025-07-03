@@ -19,13 +19,13 @@
  *
  */
 
- #include "backends/imgui/imgui.h"
- #include "fitd/fitd.h"
- #include "fitd/vars.h"
- #include "fitd/debugger/dbg_utils.h"
- #include "fitd/debugger/dbg_vars.h"
+#include "backends/imgui/imgui.h"
+#include "fitd/debugger/dbg_vars.h"
+#include "fitd/debugger/dbg_utils.h"
+#include "fitd/fitd.h"
+#include "fitd/engine.h"
 
- namespace Fitd {
+namespace Fitd {
 
  void drawVars() {
 	 ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -48,12 +48,12 @@
 									   "ashtray smoke state",
 									   "player dead"};
 
-		 for (uint8 i = 0; i < cVarsSize; ++i) {
+		 for (uint8 i = 0; i < g_engine->_engine->cVarsSize; ++i) {
 			 if (g_engine->getGameId() == GID_AITD1 && i < 16) {
-				 InputS16(names[i], &cVars[i]);
+				 InputS16(names[i], &g_engine->_engine->cVars[i]);
 			 } else {
 				 Common::String s(Common::String::format("CVar%u", i));
-				 InputS16(s.c_str(), &cVars[i]);
+				 InputS16(s.c_str(), &g_engine->_engine->cVars[i]);
 			 }
 		 }
 	 }
@@ -272,12 +272,12 @@
 			 "fall height",
 		 };
 
-		 for (int i = 0; i < varSize; ++i) {
+		 for (int i = 0; i < g_engine->_engine->varSize; ++i) {
 			 if (g_engine->getGameId() == GID_AITD1 && i < 207) {
-				 InputS16(varNames[i], &vars[i]);
+				 InputS16(varNames[i], &g_engine->_engine->vars[i]);
 			 } else {
 				 Common::String s(Common::String::format("Var%u", i));
-				 InputS16(s.c_str(), &vars[i]);
+				 InputS16(s.c_str(), &g_engine->_engine->vars[i]);
 			 }
 		 }
 	 }

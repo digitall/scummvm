@@ -20,6 +20,8 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/jack.h"
@@ -45,13 +47,13 @@ void jackReadBook(int index, int type) {
 	case 1: // READ_BOOK
 	{
 		byte *pImage = (byte *)pakLoad("ITD_RESS.PAK", JACK_LIVRE);
-		memcpy(aux, pImage, 320 * 200);
+		memcpy(g_engine->_engine->aux, pImage, 320 * 200);
 		byte *lpalette = pImage + 320 * 200;
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
 		free(pImage);
-		turnPageFlag = 1;
+		g_engine->_engine->turnPageFlag = 1;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
 	}

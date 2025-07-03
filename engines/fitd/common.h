@@ -133,6 +133,9 @@ inline int8 READ_LE_S8(const void *ptr) {
 	return (int8)READ_LE_U8(ptr);
 }
 
+extern const char *listBodySelect[];
+extern const char *listAnimSelect[];
+
 void initEngine();
 void initVars();
 void startGame(int startupEtage, int startupRoom, int allowSystemMenu);

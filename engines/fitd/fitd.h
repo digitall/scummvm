@@ -36,7 +36,7 @@ namespace Fitd {
 struct FitdGameDescription;
 class Engine;
 
-class FitdEngine : public ::Engine {
+class FitdEngine final : public ::Engine {
 private:
 	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;

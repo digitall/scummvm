@@ -55,8 +55,8 @@ int setAnimObjet(int frame, byte *anim, byte *body) {
 
 	anim += ax;
 
-	animCurrentTime = *(int16 *)anim;
-	animKeyframeLength = animCurrentTime;
+	g_engine->_engine->animCurrentTime = *(int16 *)anim;
+	g_engine->_engine->animKeyframeLength = g_engine->_engine->animCurrentTime;
 
 	if (!(flag & 2)) {
 		return 0;
@@ -65,7 +65,7 @@ int setAnimObjet(int frame, byte *anim, byte *body) {
 	body += 14;
 
 	g_engine->_engine->bodyBufferMap[body + 2] = anim;
-	*(uint16 *)(body + 6) = timer;
+	*(uint16 *)(body + 6) = g_engine->_engine->timer;
 
 	body += *(int16 *)body;
 	body += 2;
@@ -124,88 +124,88 @@ int setAnimObjet(int frame, byte *anim, byte *body) {
 
 	anim += 2;
 
-	animStepX = *(int16 *)anim;
+	g_engine->_engine->animStepX = *(int16 *)anim;
 	anim += 2;
-	animStepY = *(int16 *)anim;
+	g_engine->_engine->animStepY = *(int16 *)anim;
 	anim += 2;
-	animStepZ = *(int16 *)anim;
+	g_engine->_engine->animStepZ = *(int16 *)anim;
 	anim += 2;
 
 	return 1;
 }
 
 int initAnim(int animNum, int animType, int animInfo) {
-	if (animNum == currentProcessedActorPtr->ANIM) {
-		if (!(currentProcessedActorPtr->_flags & AF_ANIMATED)) {
-			if (currentProcessedActorPtr->_flags & AF_BOXIFY) {
-				removeFromBGIncrust(currentProcessedActorIdx);
+	if (animNum == g_engine->_engine->currentProcessedActorPtr->ANIM) {
+		if (!(g_engine->_engine->currentProcessedActorPtr->_flags & AF_ANIMATED)) {
+			if (g_engine->_engine->currentProcessedActorPtr->_flags & AF_BOXIFY) {
+				removeFromBGIncrust(g_engine->_engine->currentProcessedActorIdx);
 			}
 
-			currentProcessedActorPtr->_flags |= AF_ANIMATED;
+			g_engine->_engine->currentProcessedActorPtr->_flags |= AF_ANIMATED;
 
-			setAnimObjet(currentProcessedActorPtr->FRAME, HQR_Get(listAnim, animNum), HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+			setAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, animNum), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
-			currentProcessedActorPtr->animType = animType;
-			currentProcessedActorPtr->animInfo = animInfo;
+			g_engine->_engine->currentProcessedActorPtr->animType = animType;
+			g_engine->_engine->currentProcessedActorPtr->animInfo = animInfo;
 
 			if (g_engine->getGameId() > GID_AITD1) {
-				currentProcessedActorPtr->FRAME = 0;
+				g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 			}
 
 			return 1;
 		} else {
-			currentProcessedActorPtr->animType = animType;
-			currentProcessedActorPtr->animInfo = animInfo;
+			g_engine->_engine->currentProcessedActorPtr->animType = animType;
+			g_engine->_engine->currentProcessedActorPtr->animInfo = animInfo;
 			return 0;
 		}
 	}
 
 	if (animNum == -1) {
-		currentProcessedActorPtr->newAnim = -2;
+		g_engine->_engine->currentProcessedActorPtr->newAnim = -2;
 		return 1;
 	}
 
-	if (!(currentProcessedActorPtr->_flags & AF_ANIMATED)) {
-		currentProcessedActorPtr->_flags |= AF_ANIMATED;
+	if (!(g_engine->_engine->currentProcessedActorPtr->_flags & AF_ANIMATED)) {
+		g_engine->_engine->currentProcessedActorPtr->_flags |= AF_ANIMATED;
 
-		if (currentProcessedActorPtr->_flags & AF_BOXIFY) {
-			removeFromBGIncrust(currentProcessedActorIdx);
+		if (g_engine->_engine->currentProcessedActorPtr->_flags & AF_BOXIFY) {
+			removeFromBGIncrust(g_engine->_engine->currentProcessedActorIdx);
 		}
 
-		setAnimObjet(0, HQR_Get(listAnim, animNum), HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+		setAnimObjet(0, HQR_Get(g_engine->_engine->listAnim, animNum), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
-		currentProcessedActorPtr->newAnim = animNum;
-		currentProcessedActorPtr->newAnimType = animType;
-		currentProcessedActorPtr->newAnimInfo = animInfo;
+		g_engine->_engine->currentProcessedActorPtr->newAnim = animNum;
+		g_engine->_engine->currentProcessedActorPtr->newAnimType = animType;
+		g_engine->_engine->currentProcessedActorPtr->newAnimInfo = animInfo;
 		if (g_engine->getGameId() > GID_AITD1) {
-			currentProcessedActorPtr->FRAME = 0;
+			g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 		}
 		return 1;
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
+		if (g_engine->_engine->currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
 			return 0;
 
-		if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
+		if (g_engine->_engine->currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
 			return 0;
 	} else {
-		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE) {
-			if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE) {
+		if (g_engine->_engine->currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE) {
+			if (g_engine->_engine->currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE) {
 				return 0;
 			} else {
-				currentProcessedActorPtr->animInfo = animNum;
+				g_engine->_engine->currentProcessedActorPtr->animInfo = animNum;
 				return 1;
 			}
 		}
 	}
 
-	currentProcessedActorPtr->newAnim = animNum;
-	currentProcessedActorPtr->newAnimType = animType;
-	currentProcessedActorPtr->newAnimInfo = animInfo;
+	g_engine->_engine->currentProcessedActorPtr->newAnim = animNum;
+	g_engine->_engine->currentProcessedActorPtr->newAnimType = animType;
+	g_engine->_engine->currentProcessedActorPtr->newAnimInfo = animInfo;
 
 	if (g_engine->getGameId() != GID_AITD1) {
-		currentProcessedActorPtr->FRAME = 0;
+		g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 	}
 
 	return 1;
@@ -215,20 +215,20 @@ int evaluateReal(InterpolatedValue *data) {
 	if (!data->param)
 		return data->newValue;
 
-	if (timer - data->timeOfRotate > (uint)data->param) {
+	if (g_engine->_engine->timer - data->timeOfRotate > (uint)data->param) {
 		data->param = 0;
 		return data->newValue;
 	}
 
-	return (data->newValue - data->oldValue) * (timer - data->timeOfRotate) / data->param + data->oldValue;
+	return (data->newValue - data->oldValue) * (g_engine->_engine->timer - data->timeOfRotate) / data->param + data->oldValue;
 }
 
 int manageFall(int actorIdx, ZVStruct *zvPtr) {
 	int fallResult = 0;
-	const int room = objectTable[actorIdx].room;
+	const int room = g_engine->_engine->objectTable[actorIdx].room;
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		Object *currentTestedActorPtr = &objectTable[i];
+		Object *currentTestedActorPtr = &g_engine->_engine->objectTable[i];
 
 		if (currentTestedActorPtr->indexInWorld != -1 && i != actorIdx) {
 			const ZVStruct *testedZv = &currentTestedActorPtr->zv;
@@ -239,12 +239,12 @@ int manageFall(int actorIdx, ZVStruct *zvPtr) {
 				getZvRelativePosition(&localZv, room, currentTestedActorPtr->room);
 
 				if (checkZvCollision(&localZv, testedZv)) {
-					objectTable[i].COL_BY = actorIdx;
+					g_engine->_engine->objectTable[i].COL_BY = actorIdx;
 					fallResult++;
 				}
 			} else {
 				if (checkZvCollision(zvPtr, testedZv)) {
-					objectTable[i].COL_BY = actorIdx;
+					g_engine->_engine->objectTable[i].COL_BY = actorIdx;
 					fallResult++;
 				}
 			}
@@ -265,62 +265,62 @@ void updateAnimation() {
 	ZVStruct zvLocal;
 	ZVStruct *zvPtr;
 
-	int newAnim = currentProcessedActorPtr->newAnim;
+	int newAnim = g_engine->_engine->currentProcessedActorPtr->newAnim;
 
 	if (newAnim != -1) // next anim ?
 	{
 		if (newAnim == -2) // completely stop anim and add actor to background
 		{
-			addActorToBgInscrust(currentProcessedActorIdx);
-			currentProcessedActorPtr->newAnim = -1;
-			currentProcessedActorPtr->newAnimType = 0;
-			currentProcessedActorPtr->newAnimInfo = -1;
-			currentProcessedActorPtr->END_ANIM = 1;
+			addActorToBgInscrust(g_engine->_engine->currentProcessedActorIdx);
+			g_engine->_engine->currentProcessedActorPtr->newAnim = -1;
+			g_engine->_engine->currentProcessedActorPtr->newAnimType = 0;
+			g_engine->_engine->currentProcessedActorPtr->newAnimInfo = -1;
+			g_engine->_engine->currentProcessedActorPtr->END_ANIM = 1;
 
 			return;
 		}
 
-		if (currentProcessedActorPtr->END_FRAME == 0) {
-			currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+		if (g_engine->_engine->currentProcessedActorPtr->END_FRAME == 0) {
+			g_engine->_engine->currentProcessedActorPtr->worldX += g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->roomX += g_engine->_engine->currentProcessedActorPtr->stepX;
 
-			currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->worldZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->roomZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->stepX = 0;
-			currentProcessedActorPtr->stepZ = 0;
+			g_engine->_engine->currentProcessedActorPtr->stepX = 0;
+			g_engine->_engine->currentProcessedActorPtr->stepZ = 0;
 
-			currentProcessedActorPtr->animNegX = 0;
-			currentProcessedActorPtr->animNegY = 0;
-			currentProcessedActorPtr->animNegZ = 0;
+			g_engine->_engine->currentProcessedActorPtr->animNegX = 0;
+			g_engine->_engine->currentProcessedActorPtr->animNegY = 0;
+			g_engine->_engine->currentProcessedActorPtr->animNegZ = 0;
 		}
 
-		initBufferAnim(bufferAnim[bufferAnimCounter], HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+		initBufferAnim(g_engine->_engine->bufferAnim[g_engine->_engine->bufferAnimCounter], HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
-		bufferAnimCounter++;
-		if (bufferAnimCounter == NB_BUFFER_ANIM)
-			bufferAnimCounter = 0;
+		g_engine->_engine->bufferAnimCounter++;
+		if (g_engine->_engine->bufferAnimCounter == NB_BUFFER_ANIM)
+			g_engine->_engine->bufferAnimCounter = 0;
 
-		currentProcessedActorPtr->ANIM = newAnim;
-		currentProcessedActorPtr->animType = currentProcessedActorPtr->newAnimType;
-		currentProcessedActorPtr->animInfo = currentProcessedActorPtr->newAnimInfo;
-		currentProcessedActorPtr->newAnim = -1;
-		currentProcessedActorPtr->newAnimType = 0;
-		currentProcessedActorPtr->newAnimInfo = -1;
-		currentProcessedActorPtr->END_ANIM = 0;
-		currentProcessedActorPtr->FRAME = 0;
+		g_engine->_engine->currentProcessedActorPtr->ANIM = newAnim;
+		g_engine->_engine->currentProcessedActorPtr->animType = g_engine->_engine->currentProcessedActorPtr->newAnimType;
+		g_engine->_engine->currentProcessedActorPtr->animInfo = g_engine->_engine->currentProcessedActorPtr->newAnimInfo;
+		g_engine->_engine->currentProcessedActorPtr->newAnim = -1;
+		g_engine->_engine->currentProcessedActorPtr->newAnimType = 0;
+		g_engine->_engine->currentProcessedActorPtr->newAnimInfo = -1;
+		g_engine->_engine->currentProcessedActorPtr->END_ANIM = 0;
+		g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 
-		currentProcessedActorPtr->numOfFrames = getNbFramesAnim(HQR_Get(listAnim, newAnim));
+		g_engine->_engine->currentProcessedActorPtr->numOfFrames = getNbFramesAnim(HQR_Get(g_engine->_engine->listAnim, newAnim));
 	}
 
-	if (currentProcessedActorPtr->ANIM == -1) // no animation
+	if (g_engine->_engine->currentProcessedActorPtr->ANIM == -1) // no animation
 	{
-		currentProcessedActorPtr->END_FRAME = 0;
-		if (currentProcessedActorPtr->speed == 0) {
-			int numObjectCollisions = checkObjectCollisions(currentProcessedActorIdx, &currentProcessedActorPtr->zv);
+		g_engine->_engine->currentProcessedActorPtr->END_FRAME = 0;
+		if (g_engine->_engine->currentProcessedActorPtr->speed == 0) {
+			int numObjectCollisions = checkObjectCollisions(g_engine->_engine->currentProcessedActorIdx, &g_engine->_engine->currentProcessedActorPtr->zv);
 
 			for (int i = 0; i < numObjectCollisions; i++) {
-				objectTable[currentProcessedActorPtr->COL[i]].COL_BY = currentProcessedActorIdx; // collision with current actor
+				g_engine->_engine->objectTable[g_engine->_engine->currentProcessedActorPtr->COL[i]].COL_BY = g_engine->_engine->currentProcessedActorIdx; // collision with current actor
 			}
 
 			oldStepY = 0;
@@ -329,57 +329,57 @@ void updateAnimation() {
 			stepZ = 0;
 			stepY = 0;
 		} else {
-			oldStepX = currentProcessedActorPtr->stepX;
-			oldStepY = currentProcessedActorPtr->stepY;
-			oldStepZ = currentProcessedActorPtr->stepZ;
+			oldStepX = g_engine->_engine->currentProcessedActorPtr->stepX;
+			oldStepY = g_engine->_engine->currentProcessedActorPtr->stepY;
+			oldStepZ = g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			animStepY = 0;
-			animStepX = 0;
+			g_engine->_engine->animStepY = 0;
+			g_engine->_engine->animStepX = 0;
 
-			animStepZ = evaluateReal(&currentProcessedActorPtr->speedChange);
+			g_engine->_engine->animStepZ = evaluateReal(&g_engine->_engine->currentProcessedActorPtr->speedChange);
 
-			walkStep(0, animStepZ, currentProcessedActorPtr->beta);
+			walkStep(0, g_engine->_engine->animStepZ, g_engine->_engine->currentProcessedActorPtr->beta);
 
-			stepX = animMoveX - oldStepX;
-			stepZ = animMoveZ - oldStepZ;
+			stepX = g_engine->_engine->animMoveX - oldStepX;
+			stepZ = g_engine->_engine->animMoveZ - oldStepZ;
 			stepY = 0;
 		}
 	} else // animation
 	{
-		oldStepX = currentProcessedActorPtr->stepX;
-		oldStepY = currentProcessedActorPtr->stepY;
-		oldStepZ = currentProcessedActorPtr->stepZ;
+		oldStepX = g_engine->_engine->currentProcessedActorPtr->stepX;
+		oldStepY = g_engine->_engine->currentProcessedActorPtr->stepY;
+		oldStepZ = g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		currentProcessedActorPtr->END_FRAME = setInterAnimObjet(currentProcessedActorPtr->FRAME, HQR_Get(listAnim, currentProcessedActorPtr->ANIM), HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+		g_engine->_engine->currentProcessedActorPtr->END_FRAME = setInterAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
-		walkStep(animStepX, animStepZ, currentProcessedActorPtr->beta);
+		walkStep(g_engine->_engine->animStepX, g_engine->_engine->animStepZ, g_engine->_engine->currentProcessedActorPtr->beta);
 
-		stepX = animMoveX + currentProcessedActorPtr->animNegX - oldStepX;
-		stepZ = animMoveZ + currentProcessedActorPtr->animNegZ - oldStepZ;
+		stepX = g_engine->_engine->animMoveX + g_engine->_engine->currentProcessedActorPtr->animNegX - oldStepX;
+		stepZ = g_engine->_engine->animMoveZ + g_engine->_engine->currentProcessedActorPtr->animNegZ - oldStepZ;
 	}
 
-	if (currentProcessedActorPtr->YHandler.param) // currently falling ?
+	if (g_engine->_engine->currentProcessedActorPtr->YHandler.param) // currently falling ?
 	{
-		if (currentProcessedActorPtr->YHandler.param != -1) {
-			stepY = evaluateReal(&currentProcessedActorPtr->YHandler) - oldStepY;
+		if (g_engine->_engine->currentProcessedActorPtr->YHandler.param != -1) {
+			stepY = evaluateReal(&g_engine->_engine->currentProcessedActorPtr->YHandler) - oldStepY;
 		} else // stop falling
 		{
-			stepY = currentProcessedActorPtr->YHandler.newValue - oldStepY;
+			stepY = g_engine->_engine->currentProcessedActorPtr->YHandler.newValue - oldStepY;
 
-			currentProcessedActorPtr->YHandler.param = 0;
-			currentProcessedActorPtr->YHandler.newValue = 0;
-			currentProcessedActorPtr->YHandler.oldValue = 0;
+			g_engine->_engine->currentProcessedActorPtr->YHandler.param = 0;
+			g_engine->_engine->currentProcessedActorPtr->YHandler.newValue = 0;
+			g_engine->_engine->currentProcessedActorPtr->YHandler.oldValue = 0;
 		}
 	} else {
 		stepY = 0;
 	}
 
-	memcpy(localTable, currentProcessedActorPtr->COL, 6);
+	memcpy(localTable, g_engine->_engine->currentProcessedActorPtr->COL, 6);
 
 	if (stepX || stepY || stepZ) // start of movement management
 	{
-		zvPtr = &currentProcessedActorPtr->zv;
-		copyZv(&currentProcessedActorPtr->zv, &zvLocal);
+		zvPtr = &g_engine->_engine->currentProcessedActorPtr->zv;
+		copyZv(&g_engine->_engine->currentProcessedActorPtr->zv, &zvLocal);
 
 		zvLocal.ZVX1 += stepX;
 		zvLocal.ZVX2 += stepX;
@@ -390,43 +390,43 @@ void updateAnimation() {
 		zvLocal.ZVZ1 += stepZ;
 		zvLocal.ZVZ2 += stepZ;
 
-		if (currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
+		if (g_engine->_engine->currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
 		{
-			int numCol = asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]);
+			int numCol = asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room]);
 
 			for (int i = 0; i < numCol; i++) {
-				HardCol *pHardCol = hardColTable[i];
+				HardCol *pHardCol = g_engine->_engine->hardColTable[i];
 
 				if (pHardCol->type == 9) {
-					currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
+					g_engine->_engine->currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
 				}
 
 				if (pHardCol->type == 3) {
-					currentProcessedActorPtr->HARD_COL = 255;
+					g_engine->_engine->currentProcessedActorPtr->HARD_COL = 255;
 				}
 
-				if (g_engine->getGameId() == GID_AITD1 || (g_engine->getGameId() >= GID_JACK && (pHardCol->type != 10 || currentProcessedActorIdx != currentCameraTargetActor))) {
+				if (g_engine->getGameId() == GID_AITD1 || (g_engine->getGameId() >= GID_JACK && (pHardCol->type != 10 || g_engine->_engine->currentProcessedActorIdx != g_engine->_engine->currentCameraTargetActor))) {
 					if (stepX || stepZ) // move on the X or Z axis ? update to avoid entering the hard col
 					{
 						// ZVStruct tempZv;
 
-						hardColStepX = stepX;
-						hardColStepZ = stepZ;
+						g_engine->_engine->hardColStepX = stepX;
+						g_engine->_engine->hardColStepZ = stepZ;
 
 						handleCollision(zvPtr, &zvLocal, &pHardCol->zv);
 
 						if (g_engine->getGameId() != GID_AITD1) {
-							currentProcessedActorPtr->animNegX += hardColStepX - stepX;
-							currentProcessedActorPtr->animNegZ += hardColStepZ - stepZ;
+							g_engine->_engine->currentProcessedActorPtr->animNegX += g_engine->_engine->hardColStepX - stepX;
+							g_engine->_engine->currentProcessedActorPtr->animNegZ += g_engine->_engine->hardColStepZ - stepZ;
 						}
 
-						zvLocal.ZVX1 += hardColStepX - stepX;
-						zvLocal.ZVX2 += hardColStepX - stepX;
-						zvLocal.ZVZ1 += hardColStepZ - stepZ;
-						zvLocal.ZVZ2 += hardColStepZ - stepZ;
+						zvLocal.ZVX1 += g_engine->_engine->hardColStepX - stepX;
+						zvLocal.ZVX2 += g_engine->_engine->hardColStepX - stepX;
+						zvLocal.ZVZ1 += g_engine->_engine->hardColStepZ - stepZ;
+						zvLocal.ZVZ2 += g_engine->_engine->hardColStepZ - stepZ;
 
-						stepX = hardColStepX;
-						stepZ = hardColStepZ;
+						stepX = g_engine->_engine->hardColStepX;
+						stepZ = g_engine->_engine->hardColStepZ;
 					}
 
 					if (stepY) {
@@ -436,28 +436,28 @@ void updateAnimation() {
 			}
 		} else // no hard collision -> just update the flag without performing the position update
 		{
-			if (asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
-				currentProcessedActorPtr->HARD_COL = 1;
+			if (asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
+				g_engine->_engine->currentProcessedActorPtr->HARD_COL = 1;
 			} else {
-				currentProcessedActorPtr->HARD_COL = 0;
+				g_engine->_engine->currentProcessedActorPtr->HARD_COL = 0;
 			}
 		}
 
-		int numCol = checkObjectCollisions(currentProcessedActorIdx, &zvLocal); // get the number of actor/actor collision
+		int numCol = checkObjectCollisions(g_engine->_engine->currentProcessedActorIdx, &zvLocal); // get the number of actor/actor collision
 
 		for (int j = 0; j < numCol; j++) // process the actor/actor collision
 		{
-			int collisionIndex = currentProcessedActorPtr->COL[j];
+			int collisionIndex = g_engine->_engine->currentProcessedActorPtr->COL[j];
 
-			Object *actorTouchedPtr = &objectTable[collisionIndex];
+			Object *actorTouchedPtr = &g_engine->_engine->objectTable[collisionIndex];
 
-			actorTouchedPtr->COL_BY = currentProcessedActorIdx;
+			actorTouchedPtr->COL_BY = g_engine->_engine->currentProcessedActorIdx;
 
 			ZVStruct *touchedZv = &actorTouchedPtr->zv;
 
 			if (actorTouchedPtr->_flags & AF_FOUNDABLE) // takable
 			{
-				if (currentProcessedActorPtr->trackMode == 1 /*&& ((gameId == AITD1 && defines.field_1E == 0) || (gameId >= JACK && defines.field_6 == 0))*/) // TODO: check if character isn't dead...
+				if (g_engine->_engine->currentProcessedActorPtr->trackMode == 1 /*&& ((gameId == AITD1 && defines.field_1E == 0) || (gameId >= JACK && defines.field_6 == 0))*/) // TODO: check if character isn't dead...
 				{
 					foundObject(actorTouchedPtr->indexInWorld, 0);
 				}
@@ -476,7 +476,7 @@ void updateAnimation() {
 					localZv2.ZVZ1 += stepZ;
 					localZv2.ZVZ2 += stepZ;
 
-					if (!asmCheckListCol(&localZv2, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
+					if (!asmCheckListCol(&localZv2, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
 						if (checkObjectCollisions(collisionIndex, &localZv2)) {
 							isPushPossible = false;
 						}
@@ -487,28 +487,28 @@ void updateAnimation() {
 					if (!isPushPossible) {
 						if (stepX || stepZ) // if we're trying to move
 						{
-							if (actorTouchedPtr->room != currentProcessedActorPtr->room) {
+							if (actorTouchedPtr->room != g_engine->_engine->currentProcessedActorPtr->room) {
 								ZVStruct localZv3;
 
 								copyZv(touchedZv, &localZv3);
 
-								getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
+								getZvRelativePosition(&localZv3, actorTouchedPtr->room, g_engine->_engine->currentProcessedActorPtr->room);
 
-								hardColStepX = stepX;
-								hardColStepZ = stepZ;
+								g_engine->_engine->hardColStepX = stepX;
+								g_engine->_engine->hardColStepZ = stepZ;
 
 								handleCollision(zvPtr, &zvLocal, &localZv3);
 
-								stepX = hardColStepX;
-								stepZ = hardColStepZ;
+								stepX = g_engine->_engine->hardColStepX;
+								stepZ = g_engine->_engine->hardColStepZ;
 							} else {
-								hardColStepX = stepX;
-								hardColStepZ = stepZ;
+								g_engine->_engine->hardColStepX = stepX;
+								g_engine->_engine->hardColStepZ = stepZ;
 
 								handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
 
-								stepX = hardColStepX;
-								stepZ = hardColStepZ;
+								stepX = g_engine->_engine->hardColStepX;
+								stepZ = g_engine->_engine->hardColStepZ;
 							}
 						}
 					} else // push succeed
@@ -529,33 +529,33 @@ void updateAnimation() {
 					}
 				} else {
 					// can't be pushed
-					if (currentProcessedActorPtr->dynFlags & 1) {
+					if (g_engine->_engine->currentProcessedActorPtr->dynFlags & 1) {
 						if (stepX || stepZ) // if moving
 						{
-							if (actorTouchedPtr->room == currentProcessedActorPtr->room) // same room -> easy case
+							if (actorTouchedPtr->room == g_engine->_engine->currentProcessedActorPtr->room) // same room -> easy case
 							{
-								hardColStepX = stepX;
-								hardColStepZ = stepZ;
+								g_engine->_engine->hardColStepX = stepX;
+								g_engine->_engine->hardColStepZ = stepZ;
 
 								handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
 
-								stepX = hardColStepX;
-								stepZ = hardColStepZ;
+								stepX = g_engine->_engine->hardColStepX;
+								stepZ = g_engine->_engine->hardColStepZ;
 							} else // different room
 							{
 								ZVStruct localZv3;
 
 								copyZv(touchedZv, &localZv3);
 
-								getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
+								getZvRelativePosition(&localZv3, actorTouchedPtr->room, g_engine->_engine->currentProcessedActorPtr->room);
 
-								hardColStepX = stepX;
-								hardColStepZ = stepZ;
+								g_engine->_engine->hardColStepX = stepX;
+								g_engine->_engine->hardColStepZ = stepZ;
 
 								handleCollision(zvPtr, &zvLocal, &localZv3); // manage as hard collision
 
-								stepX = hardColStepX;
-								stepZ = hardColStepZ;
+								stepX = g_engine->_engine->hardColStepX;
+								stepZ = g_engine->_engine->hardColStepZ;
 							}
 						}
 					}
@@ -563,43 +563,43 @@ void updateAnimation() {
 			}
 		} // end of actor/actor collision
 
-		currentProcessedActorPtr->stepX = stepX + oldStepX;
-		currentProcessedActorPtr->stepY = stepY + oldStepY;
-		currentProcessedActorPtr->stepZ = stepZ + oldStepZ;
+		g_engine->_engine->currentProcessedActorPtr->stepX = stepX + oldStepX;
+		g_engine->_engine->currentProcessedActorPtr->stepY = stepY + oldStepY;
+		g_engine->_engine->currentProcessedActorPtr->stepZ = stepZ + oldStepZ;
 
-		currentProcessedActorPtr->zv.ZVX1 += stepX;
-		currentProcessedActorPtr->zv.ZVX2 += stepX;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += stepX;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += stepX;
 
-		currentProcessedActorPtr->zv.ZVY1 += stepY;
-		currentProcessedActorPtr->zv.ZVY2 += stepY;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += stepY;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += stepY;
 
-		currentProcessedActorPtr->zv.ZVZ1 += stepZ;
-		currentProcessedActorPtr->zv.ZVZ2 += stepZ;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 += stepZ;
+		g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 += stepZ;
 	} // end of movement management
 
-	if (!currentProcessedActorPtr->YHandler.param) {
+	if (!g_engine->_engine->currentProcessedActorPtr->YHandler.param) {
 		// fall management ?
-		currentProcessedActorPtr->worldY += currentProcessedActorPtr->stepY;
-		currentProcessedActorPtr->roomY += currentProcessedActorPtr->stepY;
+		g_engine->_engine->currentProcessedActorPtr->worldY += g_engine->_engine->currentProcessedActorPtr->stepY;
+		g_engine->_engine->currentProcessedActorPtr->roomY += g_engine->_engine->currentProcessedActorPtr->stepY;
 
-		currentProcessedActorPtr->stepY = 0;
+		g_engine->_engine->currentProcessedActorPtr->stepY = 0;
 
-		if (currentProcessedActorPtr->_flags & AF_FALLABLE) {
-			zvPtr = &currentProcessedActorPtr->zv;
+		if (g_engine->_engine->currentProcessedActorPtr->_flags & AF_FALLABLE) {
+			zvPtr = &g_engine->_engine->currentProcessedActorPtr->zv;
 
 			copyZv(zvPtr, &zvLocal);
 
 			zvLocal.ZVY2 += 100;
 
-			if (currentProcessedActorPtr->roomY < -10 && !asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
-				initRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
+			if (g_engine->_engine->currentProcessedActorPtr->roomY < -10 && !asmCheckListCol(&zvLocal, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room]) && !manageFall(g_engine->_engine->currentProcessedActorIdx, &zvLocal)) {
+				initRealValue(0, 2000, 40, &g_engine->_engine->currentProcessedActorPtr->YHandler);
 			} else {
-				currentProcessedActorPtr->falling = 0;
+				g_engine->_engine->currentProcessedActorPtr->falling = 0;
 			}
 		}
 	} else {
-		if (currentProcessedActorPtr->YHandler.param != -1 && currentProcessedActorPtr->_flags & AF_FALLABLE) {
-			currentProcessedActorPtr->falling = 1;
+		if (g_engine->_engine->currentProcessedActorPtr->YHandler.param != -1 && g_engine->_engine->currentProcessedActorPtr->_flags & AF_FALLABLE) {
+			g_engine->_engine->currentProcessedActorPtr->falling = 1;
 		}
 	}
 
@@ -607,12 +607,12 @@ void updateAnimation() {
 		int collisionIndex = localTable[i];
 
 		if (collisionIndex != -1) {
-			Object *actorTouchedPtr = &objectTable[collisionIndex];
+			Object *actorTouchedPtr = &g_engine->_engine->objectTable[collisionIndex];
 
 			if (actorTouchedPtr->_flags & AF_MOVABLE) {
 				int j;
 				for (j = 0; j < 3; j++) {
-					if (currentProcessedActorPtr->COL[j] == collisionIndex)
+					if (g_engine->_engine->currentProcessedActorPtr->COL[j] == collisionIndex)
 						break;
 				}
 
@@ -624,50 +624,50 @@ void updateAnimation() {
 		}
 	}
 
-	if (currentProcessedActorPtr->END_FRAME) // key frame change
+	if (g_engine->_engine->currentProcessedActorPtr->END_FRAME) // key frame change
 	{
-		currentProcessedActorPtr->FRAME++;
+		g_engine->_engine->currentProcessedActorPtr->FRAME++;
 
-		if (currentProcessedActorPtr->FRAME >= currentProcessedActorPtr->numOfFrames) // end of anim ?
+		if (g_engine->_engine->currentProcessedActorPtr->FRAME >= g_engine->_engine->currentProcessedActorPtr->numOfFrames) // end of anim ?
 		{
-			currentProcessedActorPtr->END_ANIM = 1; // end of anim
-			currentProcessedActorPtr->FRAME = 0;    // restart anim
+			g_engine->_engine->currentProcessedActorPtr->END_ANIM = 1; // end of anim
+			g_engine->_engine->currentProcessedActorPtr->FRAME = 0;    // restart anim
 
-			if (!(currentProcessedActorPtr->animType & 1) && currentProcessedActorPtr->newAnim == -1) // is another anim waiting ?
+			if (!(g_engine->_engine->currentProcessedActorPtr->animType & 1) && g_engine->_engine->currentProcessedActorPtr->newAnim == -1) // is another anim waiting ?
 			{
-				currentProcessedActorPtr->animType &= 0xFFFD;
+				g_engine->_engine->currentProcessedActorPtr->animType &= 0xFFFD;
 
-				initAnim(currentProcessedActorPtr->animInfo, 1, -1);
+				initAnim(g_engine->_engine->currentProcessedActorPtr->animInfo, 1, -1);
 			}
 		}
-		currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-		currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+		g_engine->_engine->currentProcessedActorPtr->worldX += g_engine->_engine->currentProcessedActorPtr->stepX;
+		g_engine->_engine->currentProcessedActorPtr->roomX += g_engine->_engine->currentProcessedActorPtr->stepX;
 
-		currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-		currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+		g_engine->_engine->currentProcessedActorPtr->worldZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
+		g_engine->_engine->currentProcessedActorPtr->roomZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		currentProcessedActorPtr->stepX = 0;
-		currentProcessedActorPtr->stepZ = 0;
+		g_engine->_engine->currentProcessedActorPtr->stepX = 0;
+		g_engine->_engine->currentProcessedActorPtr->stepZ = 0;
 
-		currentProcessedActorPtr->animNegX = 0;
-		currentProcessedActorPtr->animNegY = 0;
-		currentProcessedActorPtr->animNegZ = 0;
+		g_engine->_engine->currentProcessedActorPtr->animNegX = 0;
+		g_engine->_engine->currentProcessedActorPtr->animNegY = 0;
+		g_engine->_engine->currentProcessedActorPtr->animNegZ = 0;
 	} else // not the end of anim
 	{
-		if (currentProcessedActorPtr->ANIM == -1 && currentProcessedActorPtr->speed != 0 && currentProcessedActorPtr->speedChange.param == 0) {
-			currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+		if (g_engine->_engine->currentProcessedActorPtr->ANIM == -1 && g_engine->_engine->currentProcessedActorPtr->speed != 0 && g_engine->_engine->currentProcessedActorPtr->speedChange.param == 0) {
+			g_engine->_engine->currentProcessedActorPtr->worldX += g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->roomX += g_engine->_engine->currentProcessedActorPtr->stepX;
 
-			currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->worldZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->roomZ += g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->stepX = 0;
-			currentProcessedActorPtr->stepZ = 0;
+			g_engine->_engine->currentProcessedActorPtr->stepX = 0;
+			g_engine->_engine->currentProcessedActorPtr->stepZ = 0;
 
-			initRealValue(0, currentProcessedActorPtr->speed, 60, &currentProcessedActorPtr->speedChange);
+			initRealValue(0, g_engine->_engine->currentProcessedActorPtr->speed, 60, &g_engine->_engine->currentProcessedActorPtr->speedChange);
 		}
 
-		currentProcessedActorPtr->END_ANIM = 0;
+		g_engine->_engine->currentProcessedActorPtr->END_ANIM = 0;
 	}
 }
 
@@ -678,7 +678,7 @@ static void initBufferAnim(int16 *buffer, byte *bodyPtr) {
 	if (flag & 2) {
 		byte *source = bodyPtr + 0x10;
 
-		*(uint16 *)(source + 4) = (uint16)timer;
+		*(uint16 *)(source + 4) = (uint16)g_engine->_engine->timer;
 
 		g_engine->_engine->bodyBufferMap[source] = (byte *)&buffer[0];
 
@@ -727,11 +727,11 @@ int16 getNbFramesAnim(byte *animPtr) {
 
 int16 PatchType(byte **bodyPtr) // local
 {
-	const int16 temp = *(int16 *)animVar1;
+	const int16 temp = *(int16 *)g_engine->_engine->animVar1;
 
-	animVar1 += 2;
+	g_engine->_engine->animVar1 += 2;
 
-	animVar4 += 2;
+	g_engine->_engine->animVar4 += 2;
 
 	*(int16 *)*bodyPtr = temp;
 	*bodyPtr += 2;
@@ -741,12 +741,12 @@ int16 PatchType(byte **bodyPtr) // local
 
 void PatchInterAngle(byte **bodyPtr, int bp, int bx) // local
 {
-	int16 oldRotation = *(int16 *)animVar4;
+	int16 oldRotation = *(int16 *)g_engine->_engine->animVar4;
 
-	animVar4 += 2;
+	g_engine->_engine->animVar4 += 2;
 
-	int16 newRotation = *(int16 *)animVar1;
-	animVar1 += 2;
+	int16 newRotation = *(int16 *)g_engine->_engine->animVar1;
+	g_engine->_engine->animVar1 += 2;
 
 	const int16 diff = newRotation - oldRotation;
 
@@ -775,11 +775,11 @@ void PatchInterAngle(byte **bodyPtr, int bp, int bx) // local
 
 void PatchInterStep(byte **bodyPtr, int bp, int bx) // local
 {
-	const int16 cx = *(int16 *)animVar4;
-	animVar4 += 2;
+	const int16 cx = *(int16 *)g_engine->_engine->animVar4;
+	g_engine->_engine->animVar4 += 2;
 
-	const int16 ax = *(int16 *)animVar1;
-	animVar1 += 2;
+	const int16 ax = *(int16 *)g_engine->_engine->animVar1;
+	g_engine->_engine->animVar1 += 2;
 
 	if (ax == cx) {
 		*(int16 *)*bodyPtr = ax;
@@ -805,8 +805,8 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 		animPtr += (numOfBonesInAnim + 1) * 8 * frame; // seek to keyframe
 	}
 
-	// animVar1 = ptr to the current keyFrame
-	animVar1 = animPtr;
+	// g_engine->_engine->animVar1 = ptr to the current keyFrame
+	g_engine->_engine->animVar1 = animPtr;
 
 	const uint16 keyframeLength = *(uint16 *)animPtr; // keyframe length
 
@@ -817,18 +817,18 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 	bodyPtr += 16; // skip the flags, ZV, scratch buffer size
 
-	animVar3 = bodyPtr; // this is the scratch buffer
+	g_engine->_engine->animVar3 = bodyPtr; // this is the scratch buffer
 
 	const uint16 timeOfKeyframeStart = *(uint16 *)(bodyPtr + 4); // time of start of keyframe
 
 	byte *animBufferPtr = g_engine->_engine->bodyBufferMap[bodyPtr];
 
 	if (!animBufferPtr) {
-		animBufferPtr = animVar1;
+		animBufferPtr = g_engine->_engine->animVar1;
 	}
 
-	// animVar4 = ptr to previous key frame
-	animVar4 = animBufferPtr;
+	// g_engine->_engine->animVar4 = ptr to previous key frame
+	g_engine->_engine->animVar4 = animBufferPtr;
 
 	bodyPtr += *(int16 *)(bodyPtr - 2); // skip over scratch buffer
 
@@ -846,17 +846,17 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 	bodyPtr += 10; // skip bone 0
 
-	const uint16 time = (uint16)timer - timeOfKeyframeStart;
+	const uint16 time = (uint16)g_engine->_engine->timer - timeOfKeyframeStart;
 
 	bx = keyframeLength;
 	const int bp = time;
 
 	if (time < keyframeLength) // interpolate keyframe
 	{
-		byte *animVar1Backup = animVar1;
+		byte *animVar1Backup = g_engine->_engine->animVar1;
 		// skip bone 0 anim
-		animVar4 += 8; // anim buffer
-		animVar1 += 8; // current keyframe ptr
+		g_engine->_engine->animVar4 += 8; // anim buffer
+		g_engine->_engine->animVar1 += 8; // current keyframe ptr
 
 		if (!(flag & INFO_OPTIMISE)) {
 			do {
@@ -880,8 +880,8 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 			do {
 				switch (PatchType(&bodyPtr)) {
 				case 0: {
-					animVar4 += 6;
-					animVar1 += 6;
+					g_engine->_engine->animVar4 += 6;
+					g_engine->_engine->animVar1 += 6;
 					bodyPtr += 6;
 					break;
 				}
@@ -898,30 +898,30 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 				PatchInterAngle(&bodyPtr, bp, bx);
 				PatchInterAngle(&bodyPtr, bp, bx);
 
-				animVar4 += 2;
-				animVar1 += 2;
+				g_engine->_engine->animVar4 += 2;
+				g_engine->_engine->animVar1 += 2;
 				bodyPtr += 10;
 
 			} while (--numOfBonesInAnim);
 		}
 
-		animVar1 = animVar1Backup;
+		g_engine->_engine->animVar1 = animVar1Backup;
 
-		animVar1 += 2;
+		g_engine->_engine->animVar1 += 2;
 
-		animStepX = *(int16 *)animVar1 * bp / bx;       // X
-		animStepY = *(int16 *)(animVar1 + 2) * bp / bx; // Y
-		animStepZ = *(int16 *)(animVar1 + 4) * bp / bx; // Z
+		g_engine->_engine->animStepX = *(int16 *)g_engine->_engine->animVar1 * bp / bx;       // X
+		g_engine->_engine->animStepY = *(int16 *)(g_engine->_engine->animVar1 + 2) * bp / bx; // Y
+		g_engine->_engine->animStepZ = *(int16 *)(g_engine->_engine->animVar1 + 4) * bp / bx; // Z
 
-		animVar1 += 6;
+		g_engine->_engine->animVar1 += 6;
 
-		animCurrentTime = bx;
-		animKeyframeLength = bp;
+		g_engine->_engine->animCurrentTime = bx;
+		g_engine->_engine->animKeyframeLength = bp;
 		return 0;
 	} else // change keyframe
 	{
-		byte *tempBx = animVar1;
-		byte *si = animVar1;
+		byte *tempBx = g_engine->_engine->animVar1;
+		byte *si = g_engine->_engine->animVar1;
 
 		si += 8;
 
@@ -947,19 +947,19 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 		} while (--numOfBonesInAnim);
 
-		g_engine->_engine->bodyBufferMap[animVar3] = animVar1;
-		//*(char**)animVar3 = animVar1;
+		g_engine->_engine->bodyBufferMap[g_engine->_engine->animVar3] = g_engine->_engine->animVar1;
+		//*(char**)g_engine->_engine->animVar3 = g_engine->_engine->animVar1;
 
-		*(uint16 *)(animVar3 + 4) = (uint16)timer;
+		*(uint16 *)(g_engine->_engine->animVar3 + 4) = (uint16)g_engine->_engine->timer;
 
 		tempBx += 2;
 
-		animCurrentTime = bx;
-		animKeyframeLength = bx;
+		g_engine->_engine->animCurrentTime = bx;
+		g_engine->_engine->animKeyframeLength = bx;
 
-		animStepX = *(int16 *)tempBx;
-		animStepY = *(int16 *)(tempBx + 2);
-		animStepZ = *(int16 *)(tempBx + 4);
+		g_engine->_engine->animStepX = *(int16 *)tempBx;
+		g_engine->_engine->animStepY = *(int16 *)(tempBx + 2);
+		g_engine->_engine->animStepZ = *(int16 *)(tempBx + 4);
 
 		tempBx += 6;
 		return 1;

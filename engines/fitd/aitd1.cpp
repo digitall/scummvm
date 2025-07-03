@@ -20,10 +20,9 @@
  */
 
 #include "fitd/aitd1.h"
-
 #include "fitd/aitd_box.h"
-#include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
@@ -33,8 +32,7 @@
 #include "fitd/startup_menu.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
-#include "game_time.h"
+#include "fitd/game_time.h"
 
 namespace Fitd {
 
@@ -185,10 +183,10 @@ static int makeIntroScreens() {
 	fastCopyScreen(data + 770, frontBuffer);
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
-	memcpy(logicalScreen, frontBuffer, 320 * 200);
+	memcpy(g_engine->_engine->logicalScreen, frontBuffer, 320 * 200);
 	osystem_flip(nullptr);
 	free(data);
-	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, aux);
+	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, g_engine->_engine->aux);
 	startChrono(&chrono);
 
 	osystem_drawBackground();
@@ -202,26 +200,24 @@ static int makeIntroScreens() {
 		if (::Engine::shouldQuit() || time >= 0x30)
 			break;
 
-	} while (key == 0 && click == 0);
+	} while (g_engine->_engine->key == 0 && g_engine->_engine->click == 0);
 
-	playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
+	playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_PAGE)]);
 	/*  LastSample = -1;
 	LastPriority = -1;
 	LastSample = -1;
 	LastPriority = 0; */
-	turnPageFlag = 1;
-	lire(cVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, -1);
+	g_engine->_engine->turnPageFlag = 1;
+	lire(g_engine->_engine->cVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, -1);
 
 	return 0;
 }
 
 static void copyBoxAuxLog(int x1, int y1, int x2, int y2) {
-	int i;
-	int j;
 
-	for (i = y1; i < y2; i++) {
-		for (j = x1; j < x2; j++) {
-			*(screenSm3 + i * 320 + j) = *(screenSm1 + i * 320 + j);
+	for (int i = y1; i < y2; i++) {
+		for (int j = x1; j < x2; j++) {
+			*(g_engine->_engine->screenSm3 + i * 320 + j) = *(g_engine->_engine->screenSm1 + i * 320 + j);
 		}
 	}
 }
@@ -231,7 +227,7 @@ int choosePerso() {
 	int firstTime = 1;
 	int choiceMade = 0;
 
-	initCopyBox(aux, logicalScreen);
+	initCopyBox(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
 
 	while (!::Engine::shouldQuit() && choiceMade == 0) {
 		process_events();
@@ -239,9 +235,9 @@ int choosePerso() {
 
 		// TODO: missing code for music stop
 
-		pakLoad("ITD_RESS.PAK", 10, aux);
-		fastCopyScreen(aux, logicalScreen);
-		fastCopyScreen(logicalScreen, aux2);
+		pakLoad("ITD_RESS.PAK", 10, g_engine->_engine->aux);
+		fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
+		fastCopyScreen(g_engine->_engine->logicalScreen, g_engine->_engine->aux2);
 
 		if (choice == 0) {
 			affBigCadre(80, 100, 160, 200);
@@ -251,7 +247,7 @@ int choosePerso() {
 			copyBoxAuxLog(170, 10, 309, 190);
 		}
 
-		fastCopyScreen(logicalScreen, frontBuffer);
+		fastCopyScreen(g_engine->_engine->logicalScreen, frontBuffer);
 		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
 		if (firstTime != 0) {
@@ -259,84 +255,84 @@ int choosePerso() {
 
 			do {
 				process_events();
-			} while (click || key);
+			} while (g_engine->_engine->click || g_engine->_engine->key);
 
 			firstTime = 0;
 		}
 
-		while ((localKey = key) != 28 && click == 0) // process input
+		while ((g_engine->_engine->localKey = g_engine->_engine->key) != 28 && g_engine->_engine->click == 0) // process input
 		{
 			process_events();
 			osystem_drawBackground();
 
-			if (joyD & 4) // left
+			if (g_engine->_engine->joyD & 4) // left
 			{
 				choice = 0;
-				fastCopyScreen(aux2, logicalScreen);
+				fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 				affBigCadre(80, 100, 160, 200);
 				copyBoxAuxLog(10, 10, 149, 190);
-				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
-				while (joyD != 0) {
+				while (g_engine->_engine->joyD != 0) {
 					process_events();
 				}
 			}
 
-			if (joyD & 8) // right
+			if (g_engine->_engine->joyD & 8) // right
 			{
 				choice = 1;
-				fastCopyScreen(aux2, logicalScreen);
+				fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 				affBigCadre(240, 100, 160, 200);
 				copyBoxAuxLog(170, 10, 309, 190);
-				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
-				while (joyD != 0) {
+				while (g_engine->_engine->joyD != 0) {
 					process_events();
 				}
 			}
 
-			if (localKey == 1) {
-				initCopyBox(aux2, logicalScreen);
+			if (g_engine->_engine->localKey == 1) {
+				initCopyBox(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 				fadeOutPhys(0x40, 0);
 				return -1;
 			}
 		}
 
 		fadeOutPhys(0x40, 0);
-		turnPageFlag = 0;
+		g_engine->_engine->turnPageFlag = 0;
 
 		switch (choice) {
 		case 0: {
-			fastCopyScreen(frontBuffer, logicalScreen);
+			fastCopyScreen(frontBuffer, g_engine->_engine->logicalScreen);
 			setClip(0, 0, 319, 199);
-			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
+			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, g_engine->_engine->aux);
 			copyBoxAuxLog(160, 0, 319, 199);
-			fastCopyScreen(logicalScreen, aux);
-			lire(cVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
-			cVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
+			fastCopyScreen(g_engine->_engine->logicalScreen, g_engine->_engine->aux);
+			lire(g_engine->_engine->cVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
+			g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
 			break;
 		}
 		case 1: {
-			fastCopyScreen(frontBuffer, logicalScreen);
+			fastCopyScreen(frontBuffer, g_engine->_engine->logicalScreen);
 			setClip(0, 0, 319, 199);
-			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
+			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, g_engine->_engine->aux);
 			copyBoxAuxLog(0, 0, 159, 199);
-			fastCopyScreen(logicalScreen, aux);
-			lire(cVars[getCVarsIdx(INTRO_DETECTIVE)] + 1, 5, 5, 154, 194, 2, 15, 0);
-			cVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
+			fastCopyScreen(g_engine->_engine->logicalScreen, g_engine->_engine->aux);
+			lire(g_engine->_engine->cVars[getCVarsIdx(INTRO_DETECTIVE)] + 1, 5, 5, 154, 194, 2, 15, 0);
+			g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
 			break;
 		}
 		default:
 			assert(0);
 		}
 
-		if (localKey & 0x1C || click) {
+		if (g_engine->_engine->localKey & 0x1C || g_engine->_engine->click) {
 			choiceMade = 1;
 		}
 	}
 
 	fadeOutPhys(64, 0);
-	initCopyBox(aux2, logicalScreen);
+	initCopyBox(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 	return choice;
 }
 
@@ -353,7 +349,7 @@ void aitd1Start(int saveSlot) {
 		switch (startupMenuResult) {
 		case -1: // timeout
 		{
-			cVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(1);
+			g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(1);
 			startGame(7, 1, 0);
 
 			if (!make3dTatou()) {
@@ -370,7 +366,7 @@ void aitd1Start(int saveSlot) {
 
 			if (choosePerso() != -1) {
 				process_events();
-				while (key) {
+				while (g_engine->_engine->key) {
 					process_events();
 				}
 
@@ -399,7 +395,7 @@ void aitd1Start(int saveSlot) {
 
 				restoreAmbiance();
 
-				flagInitView = 2;
+				g_engine->_engine->flagInitView = 2;
 
 				setupCamera();
 
@@ -428,22 +424,22 @@ void aitd1ReadBook(int index, int type, int shadow) {
 	switch (type) {
 	case 0: // READ_MESSAGE
 	{
-		pakLoad("ITD_RESS.PAK", AITD1_LETTRE, aux);
-		turnPageFlag = 0;
+		pakLoad("ITD_RESS.PAK", AITD1_LETTRE, g_engine->_engine->aux);
+		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 26, shadow);
 		break;
 	}
 	case 1: // READ_BOOK
 	{
-		pakLoad("ITD_RESS.PAK", AITD1_LIVRE, aux);
-		turnPageFlag = 1;
+		pakLoad("ITD_RESS.PAK", AITD1_LIVRE, g_engine->_engine->aux);
+		g_engine->_engine->turnPageFlag = 1;
 		lire(index, 48, 2, 260, 197, 0, 26, shadow);
 		break;
 	}
 	case 2: // READ_CARNET
 	{
-		pakLoad("ITD_RESS.PAK", AITD1_CARNET, aux);
-		turnPageFlag = 0;
+		pakLoad("ITD_RESS.PAK", AITD1_CARNET, g_engine->_engine->aux);
+		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 50, 20, 250, 199, 0, 26, shadow);
 		break;
 	}

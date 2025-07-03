@@ -21,9 +21,9 @@
 
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -31,7 +31,7 @@ void afficheSprite(int left, int top, int index, byte *gfxData) {
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	byte *outPtr = logicalScreen + top * 320 + left;
+	byte *outPtr = g_engine->_engine->logicalScreen + top * 320 + left;
 	const byte *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
@@ -56,7 +56,7 @@ void affSpfI(int left, int top, int index, byte *gfxData) {
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	byte *outPtr = logicalScreen + top * 320 + left;
+	byte *outPtr = g_engine->_engine->logicalScreen + top * 320 + left;
 	const byte *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
@@ -96,7 +96,7 @@ void affBigCadre(int x, int y, int width, int height) {
 	const int right = x + halfWidth;
 	const int bottom = y + halfHeight;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 0, ptrCadre); // draw top left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 0, g_engine->_engine->ptrCadre); // draw top left corner
 
 	while (true) // draw top bar
 	{
@@ -105,10 +105,10 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (right - 20 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 4, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 4, g_engine->_engine->ptrCadre);
 	}
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 1, ptrCadre); // draw top right corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 1, g_engine->_engine->ptrCadre); // draw top right corner
 
 	currentLeftPosition = left;
 
@@ -119,21 +119,21 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (bottom - 20 <= currentTopPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 6, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 6, g_engine->_engine->ptrCadre);
 	}
 
 	currentLeftPosition = right - 8;
 	currentTopPosition = top + 20;
 
 	while (bottom - 20 > currentTopPosition) {
-		afficheSprite(currentLeftPosition, currentTopPosition, 7, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 7, g_engine->_engine->ptrCadre);
 
 		currentTopPosition += 20;
 	}
 
 	currentLeftPosition = left;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 2, ptrCadre); // draw bottom left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 2, g_engine->_engine->ptrCadre); // draw bottom left corner
 
 	while (true) // draw bottom bar
 	{
@@ -142,20 +142,20 @@ void affBigCadre(int x, int y, int width, int height) {
 		if (right - 20 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition + 12, 5, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition + 12, 5, g_engine->_engine->ptrCadre);
 	}
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 3, ptrCadre); // draw bottom right corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 3, g_engine->_engine->ptrCadre); // draw bottom right corner
 
-	afficheSprite(x - 20, currentTopPosition + 12, 8, ptrCadre); // draw "in the dark"
+	afficheSprite(x - 20, currentTopPosition + 12, 8, g_engine->_engine->ptrCadre); // draw "in the dark"
 
-	windowX1 = left + 8;
-	windowY1 = top + 8;
-	windowX2 = right - 9;
-	windowY2 = bottom - 9;
+	g_engine->_engine->windowX1 = left + 8;
+	g_engine->_engine->windowY1 = top + 8;
+	g_engine->_engine->windowX2 = right - 9;
+	g_engine->_engine->windowY2 = bottom - 9;
 
-	fillBox(windowX1, windowY1, windowX2, windowY2, 0);
-	setClip(windowX1, windowY1, windowX2, windowY2);
+	fillBox(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2, 0);
+	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
 }
 
 void affBigCadre2(int x, int y, int width, int height) {
@@ -173,7 +173,7 @@ void affBigCadre2(int x, int y, int width, int height) {
 	const int right = x + halfWidth;
 	const int bottom = y + halfHeight;
 
-	afficheSprite(currentLeftPosition, currentTopPosition, 0, ptrCadre); // draw top left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 0, g_engine->_engine->ptrCadre); // draw top left corner
 
 	// draw top bar
 	while (true) {
@@ -182,18 +182,18 @@ void affBigCadre2(int x, int y, int width, int height) {
 		if (right - 30 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition, 4, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 4, g_engine->_engine->ptrCadre);
 	}
 
-	afficheSprite(right - 30, currentTopPosition, 1, ptrCadre); // draw top right corner
+	afficheSprite(right - 30, currentTopPosition, 1, g_engine->_engine->ptrCadre); // draw top right corner
 
 	currentLeftPosition = left;
 	currentTopPosition += 30;
 
 	// draw left/right bars
 	while (true) {
-		afficheSprite(currentLeftPosition, currentTopPosition, 6, ptrCadre);
-		afficheSprite(right - 17, currentTopPosition, 7, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition, 6, g_engine->_engine->ptrCadre);
+		afficheSprite(right - 17, currentTopPosition, 7, g_engine->_engine->ptrCadre);
 		currentTopPosition += 11;
 
 		if (bottom - 30 <= currentTopPosition)
@@ -202,7 +202,7 @@ void affBigCadre2(int x, int y, int width, int height) {
 	currentLeftPosition = left;
 
 	currentTopPosition = bottom - 30;
-	afficheSprite(currentLeftPosition, currentTopPosition, 2, ptrCadre); // draw bottom left corner
+	afficheSprite(currentLeftPosition, currentTopPosition, 2, g_engine->_engine->ptrCadre); // draw bottom left corner
 
 	while (true) // draw bottom bar
 	{
@@ -211,27 +211,27 @@ void affBigCadre2(int x, int y, int width, int height) {
 		if (right - 30 <= currentLeftPosition)
 			break;
 
-		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, ptrCadre);
+		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, g_engine->_engine->ptrCadre);
 	}
 
-	afficheSprite(right - 30, currentTopPosition, 3, ptrCadre); // draw bottom right corner
+	afficheSprite(right - 30, currentTopPosition, 3, g_engine->_engine->ptrCadre); // draw bottom right corner
 
-	windowX1 = left + 17;
-	windowY1 = top + 16;
-	windowX2 = right - 14;
-	windowY2 = bottom - 18;
+	g_engine->_engine->windowX1 = left + 17;
+	g_engine->_engine->windowY1 = top + 16;
+	g_engine->_engine->windowX2 = right - 14;
+	g_engine->_engine->windowY2 = bottom - 18;
 
-	fillBox(windowX1, windowY1, windowX2, windowY2, 0);
-	setClip(windowX1, windowY1, windowX2, windowY2);
+	fillBox(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2, 0);
+	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
 }
 
 void initCopyBox(byte *var0, byte *var1) {
-	screenSm1 = var0;
-	screenSm2 = var0;
+	g_engine->_engine->screenSm1 = var0;
+	g_engine->_engine->screenSm2 = var0;
 
-	screenSm3 = var1;
-	screenSm4 = var1;
-	screenSm5 = var1;
+	g_engine->_engine->screenSm3 = var1;
+	g_engine->_engine->screenSm4 = var1;
+	g_engine->_engine->screenSm5 = var1;
 }
 
 } // namespace Fitd

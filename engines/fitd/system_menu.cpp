@@ -25,6 +25,7 @@
 
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/game_time.h"
@@ -46,7 +47,7 @@ namespace Fitd {
 int input5;
 
 void AffOption(int n, int num, int selected) {
-	int y = windowY1 + (windowY2 - windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
+	int y = g_engine->_engine->windowY1 + (g_engine->_engine->windowY2 - g_engine->_engine->windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
 
 	if (n == selected) {
 		selectedMessage(160, y, num, SELECT_COUL, MENU_COUL);
@@ -73,7 +74,7 @@ void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const byt
 }
 
 static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const byte *src) {
-	scaleDownImage(srcWidth, srcHeight, x, y, src, logicalScreen, 320);
+	scaleDownImage(srcWidth, srcHeight, x, y, src, g_engine->_engine->logicalScreen, 320);
 }
 
 void aitd2AffOption(int n, int num, int selected) {
@@ -86,21 +87,21 @@ void aitd2AffOption(int n, int num, int selected) {
 }
 
 void aitd2DisplayOptions(int selectedStringNumber) {
-	pakLoad("ITD_RESS.PAK", 17, logicalScreen);
+	pakLoad("ITD_RESS.PAK", 17, g_engine->_engine->logicalScreen);
 	byte lpalette[0x300];
-	copyPalette(logicalScreen + 64000, lpalette);
+	copyPalette(g_engine->_engine->logicalScreen + 64000, lpalette);
 	convertPaletteIfRequired(lpalette);
 	copyPalette(lpalette, currentGamePalette);
 	gfx_setPalette(lpalette);
 
-	setClip(windowX1, windowY1, windowX2, windowY2);
+	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
 
 	aitd2AffOption(0, 48, selectedStringNumber);
 	aitd2AffOption(1, 45, selectedStringNumber);
 	aitd2AffOption(2, 46, selectedStringNumber);
-	aitd2AffOption(3, 41 + musicEnabled, selectedStringNumber);
-	aitd2AffOption(4, 43 + soundToggle, selectedStringNumber);
-	aitd2AffOption(5, 49 + detailToggle, selectedStringNumber);
+	aitd2AffOption(3, 41 + g_engine->_engine->musicEnabled, selectedStringNumber);
+	aitd2AffOption(4, 43 + g_engine->_engine->soundToggle, selectedStringNumber);
+	aitd2AffOption(5, 49 + g_engine->_engine->detailToggle, selectedStringNumber);
 	aitd2AffOption(6, 47, selectedStringNumber);
 }
 
@@ -112,34 +113,34 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(160, 100, 320, 200);
 
-	int backupTop = windowY1;
-	int backupBottom = windowY2;
-	int backupLeft = windowX1;
-	int backupRight = windowX2;
+	int backupTop = g_engine->_engine->windowY1;
+	int backupBottom = g_engine->_engine->windowY2;
+	int backupLeft = g_engine->_engine->windowX1;
+	int backupRight = g_engine->_engine->windowX2;
 
 	affBigCadre(80, 55, 120, 70);
 
-	scaleDownImage(320, 200, 40, 35, aux2);
+	scaleDownImage(320, 200, 40, 35, g_engine->_engine->aux2);
 
-	windowY1 = backupTop;
-	windowY2 = backupBottom;
-	windowX1 = backupLeft;
-	windowX2 = backupRight;
+	g_engine->_engine->windowY1 = backupTop;
+	g_engine->_engine->windowY2 = backupBottom;
+	g_engine->_engine->windowX1 = backupLeft;
+	g_engine->_engine->windowX2 = backupRight;
 
-	setClip(windowX1, windowY1, windowX2, windowY2);
+	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
 
 	AffOption(0, 48, selectedStringNumber);
 	AffOption(1, 45, selectedStringNumber);
 	AffOption(2, 46, selectedStringNumber);
-	AffOption(3, 41 + musicEnabled, selectedStringNumber);
-	AffOption(4, 43 + soundToggle, selectedStringNumber);
-	AffOption(5, 49 + detailToggle, selectedStringNumber);
+	AffOption(3, 41 + g_engine->_engine->musicEnabled, selectedStringNumber);
+	AffOption(4, 43 + g_engine->_engine->soundToggle, selectedStringNumber);
+	AffOption(5, 49 + g_engine->_engine->detailToggle, selectedStringNumber);
 	AffOption(6, 47, selectedStringNumber);
 }
 
 static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, int selectedSlot) {
 	int y = 55;
-	extSetFont(ptrFont, 14);
+	extSetFont(g_engine->_engine->ptrFont, 14);
 	selectedMessage(160, 0, menuChoice, SELECT_COUL, MENU_COUL);
 
 	if (saveStateList.empty()) {
@@ -205,17 +206,17 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 		if (save) {
 			drawEditString(desc.c_str(), selectedSlot + (edit ? 0x4000 : 0));
 			if (edit) {
-				scaleDownImage(320, 200, 30, 35 + selectedSlot * 20, aux2);
+				scaleDownImage(320, 200, 30, 35 + selectedSlot * 20, g_engine->_engine->aux2);
 			}
 		}
-		gfx_copyBlockPhys(logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();
 		osystem_drawBackground();
 
-		if (joyD & 1) {
-			// up key
+		if (g_engine->_engine->joyD & 1) {
+			// up g_engine->_engine->key
 			edit = false;
 			selectedSlot--;
 			if (selectedSlot < 0) {
@@ -230,20 +231,20 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				desc = saveStateList[selectedSlot].getDescription();
 			}
 
-			while (!::Engine::shouldQuit() && joyD) {
+			while (!::Engine::shouldQuit() && g_engine->_engine->joyD) {
 				process_events();
 			}
 		}
 
-		if (joyD & 2) {
-			// down key
+		if (g_engine->_engine->joyD & 2) {
+			// down g_engine->_engine->key
 			edit = false;
 			selectedSlot++;
 			if (selectedSlot >= maxSavegameCount) {
 				selectedSlot = 0;
 			}
 
-			while (!::Engine::shouldQuit() && joyD) {
+			while (!::Engine::shouldQuit() && g_engine->_engine->joyD) {
 				process_events();
 			}
 
@@ -252,37 +253,37 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 			}
 		}
 
-		if (key == 27) {
+		if (g_engine->_engine->key == 27) {
 			return -1;
 		}
 
-		if (key == 28 || (!save && click != 0)) {
+		if (g_engine->_engine->key == 28 || (!save && g_engine->_engine->click != 0)) {
 			// select current entry
 			return selectedSlot;
 		}
 
 		if (save) {
-			if (backspace) {
+			if (g_engine->_engine->backspace) {
 				edit = true;
 				desc.deleteLastChar();
 
-				while (!::Engine::shouldQuit() && backspace) {
+				while (!::Engine::shouldQuit() && g_engine->_engine->backspace) {
 					process_events();
 				}
 			}
-			if (character >= 32 && character < 184) {
+			if (g_engine->_engine->character >= 32 && g_engine->_engine->character < 184) {
 				if (!edit) {
 					edit = true;
 					desc.clear();
 				}
 				if (desc.size() < 32) {
-					desc.insertChar(character, desc.size());
+					desc.insertChar(g_engine->_engine->character, desc.size());
 					if (extGetSizeFont(desc.c_str()) >= (300 - 140)) {
 						desc.deleteLastChar();
 					}
 				}
 
-				while (!::Engine::shouldQuit() && character) {
+				while (!::Engine::shouldQuit() && g_engine->_engine->character) {
 					process_events();
 				}
 			}
@@ -324,36 +325,36 @@ void processSystemMenu() {
 	freezeTime();
 	saveAmbiance();
 
-	if (lightOff) {
+	if (g_engine->_engine->lightOff) {
 		makeBlackPalette();
 	}
 
-	// clearScreenSystemMenu(unkScreenVar,aux2);
+	// clearScreenSystemMenu(unkScreenVar,g_engine->_engine->aux2);
 
 	int currentSelectedEntry = 0;
 
 	while (!exitMenu && !::Engine::shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
-		gfx_copyBlockPhys(logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();
 		osystem_drawBackground();
 
-		if (lightOff) {
+		if (g_engine->_engine->lightOff) {
 			fadeInPhys(0x40, 0);
 		}
 
 		//  while(!exitMenu)
 		{
-			localKey = key;
-			localClick = click;
-			localJoyD = joyD;
+			g_engine->_engine->localKey = g_engine->_engine->key;
+			g_engine->_engine->localClick = g_engine->_engine->click;
+			g_engine->_engine->localJoyD = g_engine->_engine->joyD;
 
 			if (!input5) {
-				if (localKey == 0x1C || localClick) // enter
+				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) // enter
 				{
-					key &= ~0x1C;
+					g_engine->_engine->key &= ~0x1C;
 					switch (currentSelectedEntry) {
 					case 0: // exit menu
 						exitMenu = 1;
@@ -365,32 +366,32 @@ void processSystemMenu() {
 						break;
 					case 2: // load
 						if (showLoadMenu(46)) {
-							flagInitView = 2;
+							g_engine->_engine->flagInitView = 2;
 							unfreezeTime();
 							restoreAmbiance();
 							return;
 						}
 						break;
 					case 3: // music
-						musicEnabled = musicEnabled ? 0 : 1;
-						g_engine->_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, musicEnabled ? false : true);
+						g_engine->_engine->musicEnabled = g_engine->_engine->musicEnabled ? 0 : 1;
+						g_engine->_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, g_engine->_engine->musicEnabled ? false : true);
 						break;
 					case 4: // sound
-						soundToggle = soundToggle ? 0 : 1;
-						g_engine->_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, soundToggle ? false : true);
+						g_engine->_engine->soundToggle = g_engine->_engine->soundToggle ? 0 : 1;
+						g_engine->_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, g_engine->_engine->soundToggle ? false : true);
 						break;
 					case 5: // details
-						detailToggle = detailToggle ? 0 : 1;
+						g_engine->_engine->detailToggle = g_engine->_engine->detailToggle ? 0 : 1;
 						break;
 					case 6: // quit
 						::Engine::quitGame();
 						break;
 					}
 				} else {
-					if (localKey == 0x1B) {
+					if (g_engine->_engine->localKey == 0x1B) {
 						exitMenu = 1;
 					}
-					if (localJoyD == 1) // up
+					if (g_engine->_engine->localJoyD == 1) // up
 					{
 						currentSelectedEntry--;
 
@@ -399,7 +400,7 @@ void processSystemMenu() {
 
 						input5 = 1;
 					}
-					if (localJoyD == 2) // bottom
+					if (g_engine->_engine->localJoyD == 2) // bottom
 					{
 						currentSelectedEntry++;
 
@@ -410,7 +411,7 @@ void processSystemMenu() {
 					}
 				}
 			} else {
-				if (!localKey && !localJoyD) {
+				if (!g_engine->_engine->localKey && !g_engine->_engine->localJoyD) {
 					input5 = 0;
 				}
 			}
@@ -420,11 +421,11 @@ void processSystemMenu() {
 	}
 
 	// fadeOut(32,2);
-	while ((key || joyD || click) && !::Engine::shouldQuit()) {
+	while ((g_engine->_engine->key || g_engine->_engine->joyD || g_engine->_engine->click) && !::Engine::shouldQuit()) {
 		process_events();
 	}
-	localKey = localClick = localJoyD = 0;
-	flagInitView = 2;
+	g_engine->_engine->localKey = g_engine->_engine->localClick = g_engine->_engine->localJoyD = 0;
+	g_engine->_engine->flagInitView = 2;
 	unfreezeTime();
 }
 } // namespace Fitd

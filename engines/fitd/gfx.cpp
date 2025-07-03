@@ -19,7 +19,6 @@
  *
  */
 
-#include "fitd/gfx.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/rendermode.h"
@@ -28,6 +27,9 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/costable.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
+#include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/renderer.h"
 #include "fitd/renderer_opengl.h"
@@ -159,37 +161,37 @@ void osystem_flushPendingPrimitives() {
 }
 
 void setPosCamera(int x, int y, int z) {
-	translateX = x;
-	translateY = y;
-	translateZ = z;
+	g_engine->_engine->translateX = x;
+	g_engine->_engine->translateY = y;
+	g_engine->_engine->translateZ = z;
 }
 
 void setAngleCamera(int x, int y, int z) {
-	transformX = x & 0x3FF;
-	if (transformX) {
-		transformXCos = cosTable[transformX];
-		transformXSin = cosTable[transformX + 0x100 & 0x3FF];
-		transformUseX = true;
+	g_engine->_engine->transformX = x & 0x3FF;
+	if (g_engine->_engine->transformX) {
+		g_engine->_engine->transformXCos = cosTable[g_engine->_engine->transformX];
+		g_engine->_engine->transformXSin = cosTable[g_engine->_engine->transformX + 0x100 & 0x3FF];
+		g_engine->_engine->transformUseX = true;
 	} else {
-		transformUseX = false;
+		g_engine->_engine->transformUseX = false;
 	}
 
-	transformY = y & 0x3FF;
-	if (transformY) {
-		transformYCos = cosTable[transformY];
-		transformYSin = cosTable[transformY + 0x100 & 0x3FF];
-		transformUseY = true;
+	g_engine->_engine->transformY = y & 0x3FF;
+	if (g_engine->_engine->transformY) {
+		g_engine->_engine->transformYCos = cosTable[g_engine->_engine->transformY];
+		g_engine->_engine->transformYSin = cosTable[g_engine->_engine->transformY + 0x100 & 0x3FF];
+		g_engine->_engine->transformUseY = true;
 	} else {
-		transformUseY = false;
+		g_engine->_engine->transformUseY = false;
 	}
 
-	transformZ = z & 0x3FF;
-	if (transformZ) {
-		transformZCos = cosTable[transformZ];
-		transformZSin = cosTable[transformZ + 0x100 & 0x3FF];
-		transformUseZ = true;
+	g_engine->_engine->transformZ = z & 0x3FF;
+	if (g_engine->_engine->transformZ) {
+		g_engine->_engine->transformZCos = cosTable[g_engine->_engine->transformZ];
+		g_engine->_engine->transformZSin = cosTable[g_engine->_engine->transformZ + 0x100 & 0x3FF];
+		g_engine->_engine->transformUseZ = true;
 	} else {
-		transformUseZ = false;
+		g_engine->_engine->transformUseZ = false;
 	}
 }
 
@@ -233,9 +235,9 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 			int y;
 			int z;
 
-			if (transformUseY) {
-				x = ((*iax * transformYSin - *icx * transformYCos) / 0x10000) << 1;
-				z = ((*iax * transformYCos + *icx * transformYSin) / 0x10000) << 1;
+			if (g_engine->_engine->transformUseY) {
+				x = ((*iax * g_engine->_engine->transformYSin - *icx * g_engine->_engine->transformYCos) / 0x10000) << 1;
+				z = ((*iax * g_engine->_engine->transformYCos + *icx * g_engine->_engine->transformYSin) / 0x10000) << 1;
 			} else {
 				x = *iax;
 				z = *icx;
@@ -244,11 +246,11 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 			// si = x
 			// ax = z
 
-			if (transformUseX) {
+			if (g_engine->_engine->transformUseX) {
 				const int tempY = *ibx;
 				const int tempZ = z;
-				y = ((tempY * transformXSin - tempZ * transformXCos) / 0x10000) << 1;
-				z = ((tempY * transformXCos + tempZ * transformXSin) / 0x10000) << 1;
+				y = ((tempY * g_engine->_engine->transformXSin - tempZ * g_engine->_engine->transformXCos) / 0x10000) << 1;
+				z = ((tempY * g_engine->_engine->transformXCos + tempZ * g_engine->_engine->transformXSin) / 0x10000) << 1;
 			} else {
 				y = *ibx;
 			}
@@ -256,11 +258,11 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 			// cx = y
 			// bx = z
 
-			if (transformUseZ) {
+			if (g_engine->_engine->transformUseZ) {
 				const int tempX = x;
 				const int tempY = y;
-				x = ((tempX * transformZSin - tempY * transformZCos) / 0x10000) << 1;
-				y = ((tempX * transformZCos + tempY * transformZSin) / 0x10000) << 1;
+				x = ((tempX * g_engine->_engine->transformZSin - tempY * g_engine->_engine->transformZCos) / 0x10000) << 1;
+				y = ((tempX * g_engine->_engine->transformZCos + tempY * g_engine->_engine->transformZSin) / 0x10000) << 1;
 			}
 
 			*iax = x;
@@ -393,9 +395,9 @@ static void RotateGroupe(Group *ptr) {
 }
 
 static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody) {
-	renderX = x - translateX;
+	renderX = x - g_engine->_engine->translateX;
 	renderY = y;
-	renderZ = z - translateZ;
+	renderZ = z - g_engine->_engine->translateZ;
 
 	assert(pBody->m_vertices.size() < NUM_MAX_POINT_IN_POINT_BUFFER);
 
@@ -512,13 +514,13 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 			Y += renderY;
 			Z += renderZ;
 
-			if (Y > waterHeight) // height clamp
+			if (Y > g_engine->_engine->waterHeight) // height clamp
 			{
 				*outPtr++ = -10000;
 				*outPtr++ = -10000;
 				*outPtr++ = -10000;
 			} else {
-				Y -= translateY;
+				Y -= g_engine->_engine->translateY;
 
 				transformPoint(&X, &Y, &Z);
 
@@ -529,7 +531,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 		}
 
 		ptr = (char *)cameraSpaceBuffer;
-		int16 *outPtr2 = renderPointList;
+		int16 *outPtr2 = g_engine->_engine->renderPointList;
 
 		do {
 
@@ -540,7 +542,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 			int16 Z = *(int16 *)ptr;
 			ptr += 2;
 
-			Z += cameraPerspective;
+			Z += g_engine->_engine->cameraPerspective;
 
 			if (Z <= 50) // clipping
 			{
@@ -548,7 +550,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 				*outPtr2++ = -10000;
 				*outPtr2++ = -10000;
 			} else {
-				const int16 transformedX = X * cameraFovX / Z + cameraCenterX;
+				const int16 transformedX = X * g_engine->_engine->cameraFovX / Z + g_engine->_engine->cameraCenterX;
 
 				*outPtr2++ = transformedX;
 
@@ -558,7 +560,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 				if (transformedX > BBox3D3)
 					BBox3D3 = (int)transformedX;
 
-				const int16 transformedY = Y * cameraFovY / Z + cameraCenterY;
+				const int16 transformedY = Y * g_engine->_engine->cameraFovY / Z + g_engine->_engine->cameraCenterY;
 
 				*outPtr2++ = transformedY;
 
@@ -584,9 +586,9 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 
 int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num, int16 *vertices) {
 
-	renderX = x - translateX;
+	renderX = x - g_engine->_engine->translateX;
 	renderY = y;
-	renderZ = z - translateZ;
+	renderZ = z - g_engine->_engine->translateZ;
 
 	if (!alpha && !beta && !gamma) {
 		noModelRotation = true;
@@ -603,7 +605,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 		modelSinGamma = cosTable[gamma + 0x100 & 0x3FF];
 	}
 
-	int16 *outPtr = renderPointList;
+	int16 *outPtr = g_engine->_engine->renderPointList;
 
 	for (int16 i = 0; i < num; i++) {
 		int16 X = vertices[i * 3];
@@ -642,23 +644,23 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 		X += renderX;
 		Y += renderY;
 
-		if (Y > waterHeight) // height clamp
+		if (Y > g_engine->_engine->waterHeight) // height clamp
 		{
 			*outPtr++ = -10000;
 			*outPtr++ = -10000;
 			*outPtr++ = -10000;
 		} else {
 
-			Y -= translateY;
+			Y -= g_engine->_engine->translateY;
 			Z += renderZ;
 
 			transformPoint(&X, &Y, &Z);
 
-			Z += cameraPerspective;
+			Z += g_engine->_engine->cameraPerspective;
 			if (Z == 0)
 				Z = 1;
 
-			const int16 transformedX = X * cameraFovX / Z + cameraCenterX;
+			const int16 transformedX = X * g_engine->_engine->cameraFovX / Z + g_engine->_engine->cameraCenterX;
 
 			*outPtr++ = transformedX;
 
@@ -668,7 +670,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 			if (transformedX > BBox3D3)
 				BBox3D3 = (int)transformedX;
 
-			const int16 transformedY = Y * cameraFovY / Z + cameraCenterY;
+			const int16 transformedY = Y * g_engine->_engine->cameraFovY / Z + g_engine->_engine->cameraCenterY;
 
 			*outPtr++ = transformedY;
 
@@ -707,9 +709,9 @@ static void processPrim_Line(int primType, Primitive *ptr, char **out) {
 	for (int i = 0; i < pCurrentPrimEntry->numOfVertices; i++) {
 		const uint16 pointIndex = ptr->m_points[i] * 6;
 		assert(pointIndex % 2 == 0);
-		pCurrentPrimEntry->vertices[i].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[i].Y = renderPointList[pointIndex / 2 + 1];
-		pCurrentPrimEntry->vertices[i].Z = renderPointList[pointIndex / 2 + 2];
+		pCurrentPrimEntry->vertices[i].X = g_engine->_engine->renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[i].Y = g_engine->_engine->renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[i].Z = g_engine->_engine->renderPointList[pointIndex / 2 + 2];
 
 		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[i].Z);
 		minDepth = MIN(minDepth, (float)pCurrentPrimEntry->vertices[i].Z);
@@ -743,9 +745,9 @@ static void processPrim_Poly(int primType, Primitive *ptr, char **out) {
 
 		assert(pointIndex % 2 == 0);
 
-		pCurrentPrimEntry->vertices[i].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[i].Y = renderPointList[pointIndex / 2 + 1];
-		pCurrentPrimEntry->vertices[i].Z = renderPointList[pointIndex / 2 + 2];
+		pCurrentPrimEntry->vertices[i].X = g_engine->_engine->renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[i].Y = g_engine->_engine->renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[i].Z = g_engine->_engine->renderPointList[pointIndex / 2 + 2];
 
 		if (pCurrentPrimEntry->vertices[i].Z > depth) {
 			depth = pCurrentPrimEntry->vertices[i].Z;
@@ -778,9 +780,9 @@ static void processPrim_Point(PrimType primType, Primitive *ptr, char **out) {
 	{
 		const uint16 pointIndex = ptr->m_points[0] * 6;
 		assert(pointIndex % 2 == 0);
-		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
-		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
+		pCurrentPrimEntry->vertices[0].X = g_engine->_engine->renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[0].Y = g_engine->_engine->renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[0].Z = g_engine->_engine->renderPointList[pointIndex / 2 + 2];
 
 		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[0].Z);
 		pCurrentPrimEntry->depth = depth;
@@ -832,9 +834,9 @@ void processPrim_Sphere(int primType, Primitive *ptr, char **out) {
 	{
 		const uint16 pointIndex = ptr->m_points[0] * 6;
 		assert(pointIndex % 2 == 0);
-		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
-		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
+		pCurrentPrimEntry->vertices[0].X = g_engine->_engine->renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[0].Y = g_engine->_engine->renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[0].Z = g_engine->_engine->renderPointList[pointIndex / 2 + 2];
 
 		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[0].Z);
 		pCurrentPrimEntry->depth = depth;
@@ -863,7 +865,7 @@ void renderPoly(PrimEntry *pEntry) // poly
 void renderZixel(PrimEntry *pEntry) // point
 {
 	const float pointSize = 20.f;
-	const float transformedSize = pointSize * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
+	const float transformedSize = pointSize * (float)g_engine->_engine->cameraFovX / (float)(pEntry->vertices[0].Z + g_engine->_engine->cameraPerspective);
 
 	osystem_drawZixel(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
@@ -880,7 +882,7 @@ void renderBigPoint(PrimEntry *pEntry) // point
 
 void renderSphere(PrimEntry *pEntry) // sphere
 {
-	const float transformedSize = (float)pEntry->size * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
+	const float transformedSize = (float)pEntry->size * (float)g_engine->_engine->cameraFovX / (float)(pEntry->vertices[0].Z + g_engine->_engine->cameraPerspective);
 
 	osystem_drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
@@ -1024,19 +1026,19 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 }
 
 void setupCameraProjection(int centerX, int centerY, int x, int y, int z) {
-	cameraCenterX = centerX;
-	cameraCenterY = centerY;
+	g_engine->_engine->cameraCenterX = centerX;
+	g_engine->_engine->cameraCenterY = centerY;
 
-	cameraPerspective = x;
-	cameraFovX = y;
-	cameraFovY = z;
+	g_engine->_engine->cameraPerspective = x;
+	g_engine->_engine->cameraFovX = y;
+	g_engine->_engine->cameraFovY = z;
 }
 
 void setClip(int left, int top, int right, int bottom) {
-	clipLeft = left;
-	clipTop = top;
-	clipRight = right;
-	clipBottom = bottom;
+	g_engine->_engine->clipLeft = left;
+	g_engine->_engine->clipTop = top;
+	g_engine->_engine->clipRight = right;
+	g_engine->_engine->clipBottom = bottom;
 }
 
 void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
@@ -1048,7 +1050,7 @@ void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
 	const int width = x2 - x1 + 1;
 	const int height = y2 - y1 + 1;
 
-	byte *dest = logicalScreen + y1 * 320 + x1;
+	byte *dest = g_engine->_engine->logicalScreen + y1 * 320 + x1;
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
@@ -1062,7 +1064,7 @@ void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
 void flushScreen() {
 	for (int i = 0; i < 200; i++) {
 		for (int j = 0; j < 320; j++) {
-			*(logicalScreen + i * 320 + j) = 0;
+			*(g_engine->_engine->logicalScreen + i * 320 + j) = 0;
 		}
 	}
 }

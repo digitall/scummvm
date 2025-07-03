@@ -22,12 +22,12 @@
 #include "common/system.h"
 #include "fitd/aitd1.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/input.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -45,7 +45,7 @@ void process_events() {
 
 	osystem_flushPendingPrimitives();
 
-	if (shakeVar1) {
+	if (g_engine->_engine->shakeVar1) {
 		shakeTime = (shakeTime + 1) % 6;
 		if (shakeTime == 0) {
 			g_system->setShakePos(0, 2);
@@ -58,8 +58,8 @@ void process_events() {
 	osystem_startFrame();
 
 	readKeyboard();
-	timeGlobal += timeIncrease;
-	timer = timeGlobal;
+	g_engine->_engine->timeGlobal += timeIncrease;
+	g_engine->_engine->timer = g_engine->_engine->timeGlobal;
 }
 
 int make3dTatou() {
@@ -83,7 +83,7 @@ int make3dTatou() {
 
 	copyPalette(tatouPal, currentGamePalette);
 	fastCopyScreen(tatou2d + 770, frontBuffer);
-	fastCopyScreen(frontBuffer, aux2);
+	fastCopyScreen(frontBuffer, g_engine->_engine->aux2);
 
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
@@ -94,12 +94,12 @@ int make3dTatou() {
 	do {
 		process_events();
 
-		// timeGlobal++;
-		timer = timeGlobal;
+		// g_engine->_engine->timeGlobal++;
+		g_engine->_engine->timer = g_engine->_engine->timeGlobal;
 
 		if (evalChrono(&localChrono) <= 180) // avant eclair
 		{
-			if (key || click) {
+			if (g_engine->_engine->key || g_engine->_engine->click) {
 				break;
 			}
 		} else // eclair
@@ -108,7 +108,7 @@ int make3dTatou() {
 			/*  LastSample = -1;
 			LastPriority = -1; */
 
-			playSound(cVars[getCVarsIdx(SAMPLE_TONNERRE)]);
+			playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_TONNERRE)]);
 
 			/*     LastSample = -1;
 			LastPriority = -1;*/
@@ -133,7 +133,7 @@ int make3dTatou() {
 
 			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
 
-			while (!::Engine::shouldQuit() && key == 0 && click == 0 && joyD == 0) // boucle de rotation du tatou
+			while (!::Engine::shouldQuit() && g_engine->_engine->key == 0 && g_engine->_engine->click == 0 && g_engine->_engine->joyD == 0) // boucle de rotation du tatou
 			{
 				const int deltaTime = 50;
 				process_events();
@@ -164,8 +164,8 @@ int make3dTatou() {
 	free(tatou3d);
 	free(tatou2d);
 
-	if (key || click || joyD) {
-		while (key) {
+	if (g_engine->_engine->key || g_engine->_engine->click || g_engine->_engine->joyD) {
+		while (g_engine->_engine->key) {
 			process_events();
 		}
 

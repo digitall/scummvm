@@ -23,6 +23,7 @@
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
 #include "common/memstream.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
@@ -46,7 +47,7 @@ void fadeInPhys(int step, int start) {
 
 	freezeTime();
 
-	if (fadeState == 2) {
+	if (g_engine->_engine->fadeState == 2) {
 		// only used for the end sequence
 		for (int i = 256; i >= 0; i -= 16) {
 			process_events();
@@ -66,7 +67,7 @@ void fadeInPhys(int step, int start) {
 		}
 	}
 
-	fadeState = 1;
+	g_engine->_engine->fadeState = 1;
 
 	unfreezeTime();
 }
@@ -88,16 +89,16 @@ void fadeOutPhys(int var1, int var2) {
 }
 
 void playRepeatedSound(int num) {
-	if (lastSample == num)
+	if (g_engine->_engine->lastSample == num)
 		return;
 
-	int16 *priorities = (int16 *)ptrPrioritySample;
-	if (lastPriority < priorities[num]) {
-		lastSample = num;
-		lastPriority = priorities[num];
-		g_engine->_mixer->stopID(lastSample);
+	int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
+	if (g_engine->_engine->lastPriority < priorities[num]) {
+		g_engine->_engine->lastSample = num;
+		g_engine->_engine->lastPriority = priorities[num];
+		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
 
-		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
+		byte *samplePtr = (byte *)HQR_Get(g_engine->_engine->listSamp, num);
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
@@ -110,12 +111,12 @@ void playSound(int num) {
 	if (num == -1)
 		return;
 
-	int16 *priorities = (int16 *)ptrPrioritySample;
-	if (lastPriority < priorities[num]) {
-		lastSample = num;
-		lastPriority = priorities[num];
-		g_engine->_mixer->stopID(lastSample);
-		byte *samplePtr = (byte *)HQR_Get(listSamp, num);
+	int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
+	if (g_engine->_engine->lastPriority < priorities[num]) {
+		g_engine->_engine->lastSample = num;
+		g_engine->_engine->lastPriority = priorities[num];
+		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
+		byte *samplePtr = (byte *)HQR_Get(g_engine->_engine->listSamp, num);
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
@@ -155,11 +156,11 @@ void fastCopyScreen(void *source, void *dest) {
 }
 
 void startChrono(uint *chrono) {
-	*chrono = timer;
+	*chrono = g_engine->_engine->timer;
 }
 
 int evalChrono(uint *chrono) {
-	return timer - *chrono;
+	return g_engine->_engine->timer - *chrono;
 }
 
 } // namespace Fitd

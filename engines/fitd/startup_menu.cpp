@@ -19,16 +19,16 @@
  *
  */
 
-#include "fitd/startup_menu.h"
-
 #include "fitd/aitd_box.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
+#include "fitd/pak.h"
+#include "fitd/sequence.h"
+#include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
-#include "pak.h"
-#include "sequence.h"
 
 namespace Fitd {
 
@@ -59,7 +59,7 @@ static void drawStartupMenu(int selectedEntry) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		pakLoad("ITD_RESS.PAK", 13, logicalScreen);
+		pakLoad("ITD_RESS.PAK", 13, g_engine->_engine->logicalScreen);
 	} else {
 		affBigCadre(160, 100, 320, 80);
 	}
@@ -90,9 +90,9 @@ int processStartupMenu() {
 	flushScreen();
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		pakLoad("ITD_RESS.PAK", 47, aux);
+		pakLoad("ITD_RESS.PAK", 47, g_engine->_engine->aux);
 		byte lpalette[768];
-		copyPalette((byte *)aux, lpalette);
+		copyPalette((byte *)g_engine->_engine->aux, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
@@ -101,7 +101,7 @@ int processStartupMenu() {
 
 	osystem_startFrame();
 	// osystem_stopFrame();
-	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 	osystem_flip(nullptr);
 	fadeInPhys(16, 0);
@@ -113,7 +113,7 @@ int processStartupMenu() {
 			selectedEntry = 2;
 		}
 
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 
 		if (selectedEntry != -1 || evalChrono(&chrono) > 0x10000) {
@@ -123,7 +123,7 @@ int processStartupMenu() {
 		process_events();
 		osystem_drawBackground();
 
-		if (joyD & 1) // up key
+		if (g_engine->_engine->joyD & 1) // up key
 		{
 			currentSelectedEntry--;
 
@@ -137,12 +137,12 @@ int processStartupMenu() {
 
 			startChrono(&chrono);
 
-			while (joyD) {
+			while (g_engine->_engine->joyD) {
 				process_events();
 			}
 		}
 
-		if (joyD & 2) // down key
+		if (g_engine->_engine->joyD & 2) // down key
 		{
 			currentSelectedEntry++;
 
@@ -156,12 +156,12 @@ int processStartupMenu() {
 
 			startChrono(&chrono);
 
-			while (joyD) {
+			while (g_engine->_engine->joyD) {
 				process_events();
 			}
 		}
 
-		if (key == 28 || click != 0) // select current entry
+		if (g_engine->_engine->key == 28 || g_engine->_engine->click != 0) // select current entry
 		{
 			selectedEntry = currentSelectedEntry;
 		}
@@ -174,7 +174,7 @@ int processStartupMenu() {
 		fadeOutPhys(16, 0);
 	}
 
-	while (joyD) {
+	while (g_engine->_engine->joyD) {
 		process_events();
 	}
 

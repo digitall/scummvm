@@ -47,7 +47,7 @@ namespace Fitd {
 
 static int getCVarsIdx(enumCVars searchedType) {
 	// TODO: optimize by reversing the table....
-	for (int i = 0; i < cVarsSize; i++) {
+	for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
 		if (currentCVarTable[i] == -1) {
 			assert(0);
 		}
@@ -84,33 +84,33 @@ static SceZone *processActor2Sub(int x, int y, int z, RoomData *pRoomData) {
 }
 
 void gereFrappe() {
-	switch (currentProcessedActorPtr->animActionType) {
+	switch (g_engine->_engine->currentProcessedActorPtr->animActionType) {
 	case WAIT_FRAPPE_ANIM:
 	case WAIT_FRAPPE_FRAME:
-		if (currentProcessedActorPtr->animActionType == WAIT_FRAPPE_ANIM && currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
-			currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;
+		if (g_engine->_engine->currentProcessedActorPtr->animActionType == WAIT_FRAPPE_ANIM && g_engine->_engine->currentProcessedActorPtr->ANIM == g_engine->_engine->currentProcessedActorPtr->animActionANIM) {
+			g_engine->_engine->currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;
 		}
 
-		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
-			currentProcessedActorPtr->animActionType = NO_FRAPPE;
+		if (g_engine->_engine->currentProcessedActorPtr->ANIM != g_engine->_engine->currentProcessedActorPtr->animActionANIM) {
+			g_engine->_engine->currentProcessedActorPtr->animActionType = NO_FRAPPE;
 			return;
 		}
 
-		if (currentProcessedActorPtr->FRAME == currentProcessedActorPtr->animActionFRAME) {
-			currentProcessedActorPtr->animActionType = FRAPPE_OK;
+		if (g_engine->_engine->currentProcessedActorPtr->FRAME == g_engine->_engine->currentProcessedActorPtr->animActionFRAME) {
+			g_engine->_engine->currentProcessedActorPtr->animActionType = FRAPPE_OK;
 		}
 		return;
 
 	case FRAPPE_OK: {
-		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
-			currentProcessedActorPtr->animActionType = 0;
+		if (g_engine->_engine->currentProcessedActorPtr->ANIM != g_engine->_engine->currentProcessedActorPtr->animActionANIM) {
+			g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
 		}
 
-		int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-		int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-		int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+		int x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x + g_engine->_engine->currentProcessedActorPtr->stepX;
+		int y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y + g_engine->_engine->currentProcessedActorPtr->stepY;
+		int z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		int range = currentProcessedActorPtr->animActionParam;
+		int range = g_engine->_engine->currentProcessedActorPtr->animActionParam;
 
 		ZVStruct rangeZv;
 		rangeZv.ZVX1 = x - range;
@@ -122,19 +122,19 @@ void gereFrappe() {
 
 		// drawProjectedBox(rangeZv.ZVX1,rangeZv.ZVX2,rangeZv.ZVY1,rangeZv.ZVY2,rangeZv.ZVZ1,rangeZv.ZVZ2,60,255);
 
-		int collision = checkObjectCollisions(currentProcessedActorIdx, &rangeZv);
+		int collision = checkObjectCollisions(g_engine->_engine->currentProcessedActorIdx, &rangeZv);
 
 		for (int i = 0; i < collision; i++) {
 			Object *actorPtr2;
 
-			currentProcessedActorPtr->HIT = currentProcessedActorPtr->COL[i];
-			actorPtr2 = &objectTable[currentProcessedActorPtr->COL[i]];
+			g_engine->_engine->currentProcessedActorPtr->HIT = g_engine->_engine->currentProcessedActorPtr->COL[i];
+			actorPtr2 = &g_engine->_engine->objectTable[g_engine->_engine->currentProcessedActorPtr->COL[i]];
 
-			actorPtr2->HIT_BY = currentProcessedActorIdx;
-			actorPtr2->hitForce = currentProcessedActorPtr->hitForce;
+			actorPtr2->HIT_BY = g_engine->_engine->currentProcessedActorIdx;
+			actorPtr2->hitForce = g_engine->_engine->currentProcessedActorPtr->hitForce;
 
 			if (actorPtr2->_flags & AF_ANIMATED) {
-				currentProcessedActorPtr->animActionType = 0;
+				g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
 				return;
 			}
 		}
@@ -142,13 +142,13 @@ void gereFrappe() {
 	}
 	case 4: // WAIT_TIR_ANIM
 	{
-		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM)
+		if (g_engine->_engine->currentProcessedActorPtr->ANIM != g_engine->_engine->currentProcessedActorPtr->animActionANIM)
 			return;
 
-		if (currentProcessedActorPtr->FRAME != currentProcessedActorPtr->animActionFRAME)
+		if (g_engine->_engine->currentProcessedActorPtr->FRAME != g_engine->_engine->currentProcessedActorPtr->animActionFRAME)
 			return;
 
-		currentProcessedActorPtr->animActionType = 5;
+		g_engine->_engine->currentProcessedActorPtr->animActionType = 5;
 
 		break;
 	}
@@ -157,60 +157,60 @@ void gereFrappe() {
 		int touchedActor;
 
 		initSpecialObjet(3,
-						 currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x,
-						 currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y,
-						 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z,
-						 currentProcessedActorPtr->stage,
-						 currentProcessedActorPtr->room,
+						 g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x,
+						 g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y,
+						 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z,
+						 g_engine->_engine->currentProcessedActorPtr->stage,
+						 g_engine->_engine->currentProcessedActorPtr->room,
 						 0,
-						 currentProcessedActorPtr->beta,
+						 g_engine->_engine->currentProcessedActorPtr->beta,
 						 0,
-						 &currentProcessedActorPtr->zv);
+						 &g_engine->_engine->currentProcessedActorPtr->zv);
 
 		touchedActor = checkLineProjectionWithActors(
-			currentProcessedActorIdx,
-			currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x,
-			currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y,
-			currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z,
-			currentProcessedActorPtr->beta - 0x100,
-			currentProcessedActorPtr->room,
-			currentProcessedActorPtr->animActionParam);
+			g_engine->_engine->currentProcessedActorIdx,
+			g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x,
+			g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y,
+			g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z,
+			g_engine->_engine->currentProcessedActorPtr->beta - 0x100,
+			g_engine->_engine->currentProcessedActorPtr->room,
+			g_engine->_engine->currentProcessedActorPtr->animActionParam);
 
 		if (touchedActor == -1) // no one has been touched
 		{
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, &currentProcessedActorPtr->zv);
+			initSpecialObjet(2, g_engine->_engine->animMoveX, g_engine->_engine->animMoveY, g_engine->_engine->animMoveZ, g_engine->_engine->currentProcessedActorPtr->stage, g_engine->_engine->currentProcessedActorPtr->room, 0, -g_engine->_engine->currentProcessedActorPtr->beta, 0, &g_engine->_engine->currentProcessedActorPtr->zv);
 
-			currentProcessedActorPtr->animActionType = 0;
+			g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
 		} else {
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, &currentProcessedActorPtr->zv);
+			initSpecialObjet(2, g_engine->_engine->animMoveX, g_engine->_engine->animMoveY, g_engine->_engine->animMoveZ, g_engine->_engine->currentProcessedActorPtr->stage, g_engine->_engine->currentProcessedActorPtr->room, 0, -g_engine->_engine->currentProcessedActorPtr->beta, 0, &g_engine->_engine->currentProcessedActorPtr->zv);
 
-			currentProcessedActorPtr->hotPoint.x = animMoveX - currentProcessedActorPtr->roomX;
-			currentProcessedActorPtr->hotPoint.y = animMoveY - currentProcessedActorPtr->roomY;
-			currentProcessedActorPtr->hotPoint.z = animMoveZ - currentProcessedActorPtr->roomZ;
+			g_engine->_engine->currentProcessedActorPtr->hotPoint.x = g_engine->_engine->animMoveX - g_engine->_engine->currentProcessedActorPtr->roomX;
+			g_engine->_engine->currentProcessedActorPtr->hotPoint.y = g_engine->_engine->animMoveY - g_engine->_engine->currentProcessedActorPtr->roomY;
+			g_engine->_engine->currentProcessedActorPtr->hotPoint.z = g_engine->_engine->animMoveZ - g_engine->_engine->currentProcessedActorPtr->roomZ;
 
-			currentProcessedActorPtr->HIT = touchedActor;
+			g_engine->_engine->currentProcessedActorPtr->HIT = touchedActor;
 
-			objectTable[touchedActor].HIT_BY = currentProcessedActorIdx;
-			objectTable[touchedActor].hitForce = currentProcessedActorPtr->hitForce;
+			g_engine->_engine->objectTable[touchedActor].HIT_BY = g_engine->_engine->currentProcessedActorIdx;
+			g_engine->_engine->objectTable[touchedActor].hitForce = g_engine->_engine->currentProcessedActorPtr->hitForce;
 
-			currentProcessedActorPtr->animActionType = 0;
+			g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
 		}
 		break;
 	}
 	case 6: // WAIT_ANIM_THROW
 	{
-		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
-			int objIdx = currentProcessedActorPtr->animActionParam;
+		if (g_engine->_engine->currentProcessedActorPtr->ANIM == g_engine->_engine->currentProcessedActorPtr->animActionANIM) {
+			int objIdx = g_engine->_engine->currentProcessedActorPtr->animActionParam;
 
 			WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
 
-			int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-			int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-			int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+			int x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x + g_engine->_engine->currentProcessedActorPtr->stepX;
+			int y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y + g_engine->_engine->currentProcessedActorPtr->stepY;
+			int z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
 			ZVStruct rangeZv;
 
-			giveZVObjet(HQR_Get(listBody, objPtr->body), &rangeZv);
+			giveZVObjet(HQR_Get(g_engine->_engine->listBody, objPtr->body), &rangeZv);
 
 			rangeZv.ZVX1 += x;
 			rangeZv.ZVX2 += x;
@@ -219,16 +219,16 @@ void gereFrappe() {
 			rangeZv.ZVZ1 += z;
 			rangeZv.ZVZ2 += z;
 
-			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
-				currentProcessedActorPtr->animActionType = 0;
-				putAtObjet(objIdx, currentProcessedActorPtr->indexInWorld);
+			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
+				g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
+				putAtObjet(objIdx, g_engine->_engine->currentProcessedActorPtr->indexInWorld);
 			} else {
-				if (currentProcessedActorPtr->FRAME == currentProcessedActorPtr->animActionFRAME) {
-					currentProcessedActorPtr->animActionType = 7;
+				if (g_engine->_engine->currentProcessedActorPtr->FRAME == g_engine->_engine->currentProcessedActorPtr->animActionFRAME) {
+					g_engine->_engine->currentProcessedActorPtr->animActionType = 7;
 
-					x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-					y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-					z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+					x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x + g_engine->_engine->currentProcessedActorPtr->stepX;
+					y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y + g_engine->_engine->currentProcessedActorPtr->stepY;
+					z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
 					deleteInventoryObjet(objIdx);
 
@@ -236,10 +236,10 @@ void gereFrappe() {
 					objPtr->y = y;
 					objPtr->z = z;
 
-					objPtr->room = currentProcessedActorPtr->room;
-					objPtr->stage = currentProcessedActorPtr->stage;
-					objPtr->alpha = currentProcessedActorPtr->alpha;
-					objPtr->beta = currentProcessedActorPtr->beta + 0x200;
+					objPtr->room = g_engine->_engine->currentProcessedActorPtr->room;
+					objPtr->stage = g_engine->_engine->currentProcessedActorPtr->stage;
+					objPtr->alpha = g_engine->_engine->currentProcessedActorPtr->alpha;
+					objPtr->beta = g_engine->_engine->currentProcessedActorPtr->beta + 0x200;
 
 					objPtr->flags2 &= 0xBFFF;
 					objPtr->flags |= 0x85;
@@ -257,26 +257,26 @@ void gereFrappe() {
 		int actorIdx;
 		Object *actorPtr;
 
-		currentProcessedActorPtr->animActionType = 0;
+		g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
 
-		int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-		int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-		int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+		int x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->hotPoint.x + g_engine->_engine->currentProcessedActorPtr->stepX;
+		int y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->hotPoint.y + g_engine->_engine->currentProcessedActorPtr->stepY;
+		int z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->hotPoint.z + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		objIdx = currentProcessedActorPtr->animActionParam;
+		objIdx = g_engine->_engine->currentProcessedActorPtr->animActionParam;
 
 		actorIdx = g_engine->_engine->worldObjets[objIdx].objIndex;
 
 		if (actorIdx == -1)
 			return;
 
-		actorPtr = &objectTable[actorIdx];
+		actorPtr = &g_engine->_engine->objectTable[actorIdx];
 
 		actorPtr->roomX = x;
 		actorPtr->roomY = y;
 		actorPtr->roomZ = z;
 
-		giveZVObjet(HQR_Get(listBody, actorPtr->bodyNum), &actorPtr->zv);
+		giveZVObjet(HQR_Get(g_engine->_engine->listBody, actorPtr->bodyNum), &actorPtr->zv);
 
 		actorPtr->zv.ZVX1 += x;
 		actorPtr->zv.ZVX2 += x;
@@ -292,12 +292,12 @@ void gereFrappe() {
 		g_engine->_engine->worldObjets[objIdx].y = y;
 		g_engine->_engine->worldObjets[objIdx].z = z;
 
-		g_engine->_engine->worldObjets[objIdx].alpha = currentProcessedActorPtr->indexInWorld; // original thrower
+		g_engine->_engine->worldObjets[objIdx].alpha = g_engine->_engine->currentProcessedActorPtr->indexInWorld; // original thrower
 
 		actorPtr->dynFlags = 0;
 		actorPtr->animActionType = 9;
 		actorPtr->animActionParam = 100;
-		actorPtr->hitForce = currentProcessedActorPtr->hitForce;
+		actorPtr->hitForce = g_engine->_engine->currentProcessedActorPtr->hitForce;
 		actorPtr->hotPointID = -1;
 		actorPtr->speed = 3000;
 
@@ -308,31 +308,31 @@ void gereFrappe() {
 	case 8: // HIT_OBJ
 	{
 		ZVStruct zv;
-		copyZv(&currentProcessedActorPtr->zv, &zv);
+		copyZv(&g_engine->_engine->currentProcessedActorPtr->zv, &zv);
 		zv.ZVX1 -= 10;
 		zv.ZVX2 += 10;
 		zv.ZVY1 -= 10;
 		zv.ZVY2 += 10;
 		zv.ZVZ1 -= 10;
 		zv.ZVZ2 += 10;
-		const int numCol = checkObjectCollisions(currentProcessedActorIdx, &zv);
+		const int numCol = checkObjectCollisions(g_engine->_engine->currentProcessedActorIdx, &zv);
 		if (numCol) {
 			for (int i = 0; i < numCol; ++i) {
-				int hitObjIndex = currentProcessedActorPtr->COL[i];
-				currentProcessedActorPtr->hotPoint.x = 0;
-				currentProcessedActorPtr->hotPoint.y = 0;
-				currentProcessedActorPtr->hotPoint.z = 0;
-				currentProcessedActorPtr->HIT = hitObjIndex;
-				Object *hitObj = &objectTable[hitObjIndex];
-				hitObj->HIT_BY = currentProcessedActorIdx;
-				hitObj->hitForce = currentProcessedActorPtr->hitForce;
+				int hitObjIndex = g_engine->_engine->currentProcessedActorPtr->COL[i];
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.x = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.y = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.z = 0;
+				g_engine->_engine->currentProcessedActorPtr->HIT = hitObjIndex;
+				Object *hitObj = &g_engine->_engine->objectTable[hitObjIndex];
+				hitObj->HIT_BY = g_engine->_engine->currentProcessedActorIdx;
+				hitObj->hitForce = g_engine->_engine->currentProcessedActorPtr->hitForce;
 			}
 		}
 		break;
 	}
 	case 9: // during throw
 	{
-		WorldObject *objPtr = &g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld];
+		WorldObject *objPtr = &g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld];
 
 		ZVStruct rangeZv;
 		ZVStruct rangeZv2;
@@ -349,12 +349,12 @@ void gereFrappe() {
 		int z3;
 		int step;
 
-		copyZv(&currentProcessedActorPtr->zv, &rangeZv);
-		copyZv(&currentProcessedActorPtr->zv, &rangeZv2);
+		copyZv(&g_engine->_engine->currentProcessedActorPtr->zv, &rangeZv);
+		copyZv(&g_engine->_engine->currentProcessedActorPtr->zv, &rangeZv2);
 
-		xtemp = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-		ytemp = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-		ztemp = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+		xtemp = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+		ytemp = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+		ztemp = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
 		rangeZv2.ZVX1 -= xtemp;
 		rangeZv2.ZVX2 -= xtemp;
@@ -376,18 +376,18 @@ void gereFrappe() {
 
 		step = 0;
 
-		animMoveZ = 0;
-		animMoveX = 0;
+		g_engine->_engine->animMoveZ = 0;
+		g_engine->_engine->animMoveX = 0;
 
 		do {
 			int collision;
 			SceZone *ptr;
 
-			walkStep(0, -step, currentProcessedActorPtr->beta);
+			walkStep(0, -step, g_engine->_engine->currentProcessedActorPtr->beta);
 			step += 100;
-			x2 = x1 + animMoveX;
+			x2 = x1 + g_engine->_engine->animMoveX;
 			y2 = y1;
-			z2 = z1 + animMoveZ;
+			z2 = z1 + g_engine->_engine->animMoveZ;
 
 			copyZv(&rangeZv2, &rangeZv);
 
@@ -398,20 +398,20 @@ void gereFrappe() {
 			rangeZv.ZVZ1 = z2 - 200;
 			rangeZv.ZVZ2 = z2 + 200;
 
-			collision = checkObjectCollisions(currentProcessedActorIdx, &rangeZv);
+			collision = checkObjectCollisions(g_engine->_engine->currentProcessedActorIdx, &rangeZv);
 
 			if (collision) {
 				int collision2 = collision;
 				int i;
 
-				currentProcessedActorPtr->hotPoint.x = 0;
-				currentProcessedActorPtr->hotPoint.y = 0;
-				currentProcessedActorPtr->hotPoint.z = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.x = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.y = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.z = 0;
 
 				for (i = 0; i < collision; i++) {
-					int currentActorCol = currentProcessedActorPtr->COL[i];
+					int currentActorCol = g_engine->_engine->currentProcessedActorPtr->COL[i];
 
-					if (objectTable[currentActorCol].indexInWorld == objPtr->alpha) {
+					if (g_engine->_engine->objectTable[currentActorCol].indexInWorld == objPtr->alpha) {
 						collision2--;
 						objPtr->x = xtemp;
 						objPtr->y = ytemp;
@@ -420,18 +420,18 @@ void gereFrappe() {
 						return;
 					}
 
-					if (objectTable[currentActorCol].indexInWorld == cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)]) {
-						objPtr->alpha = cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)];
-						currentProcessedActorPtr->beta += 0x200;
+					if (g_engine->_engine->objectTable[currentActorCol].indexInWorld == g_engine->_engine->cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)]) {
+						objPtr->alpha = g_engine->_engine->cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)];
+						g_engine->_engine->currentProcessedActorPtr->beta += 0x200;
 						xtemp = x3;
 						ztemp = z3;
 
-						currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = x3;
-						currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = y1;
-						currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = z3;
+						g_engine->_engine->currentProcessedActorPtr->worldX = g_engine->_engine->currentProcessedActorPtr->roomX = x3;
+						g_engine->_engine->currentProcessedActorPtr->worldY = g_engine->_engine->currentProcessedActorPtr->roomY = y1;
+						g_engine->_engine->currentProcessedActorPtr->worldZ = g_engine->_engine->currentProcessedActorPtr->roomZ = z3;
 
-						currentProcessedActorPtr->stepX = 0;
-						currentProcessedActorPtr->stepZ = 0;
+						g_engine->_engine->currentProcessedActorPtr->stepX = 0;
+						g_engine->_engine->currentProcessedActorPtr->stepZ = 0;
 
 						copyZv(&rangeZv2, &rangeZv);
 
@@ -442,7 +442,7 @@ void gereFrappe() {
 						rangeZv.ZVZ1 += z3;
 						rangeZv.ZVZ2 += z3;
 
-						copyZv(&rangeZv, &currentProcessedActorPtr->zv);
+						copyZv(&rangeZv, &g_engine->_engine->currentProcessedActorPtr->zv);
 
 						objPtr->x = xtemp;
 						objPtr->y = ytemp;
@@ -453,43 +453,43 @@ void gereFrappe() {
 					} else {
 						Object *actorPtr;
 
-						currentProcessedActorPtr->HIT = currentActorCol;
-						actorPtr = &objectTable[currentActorCol];
-						actorPtr->HIT_BY = currentProcessedActorIdx;
-						actorPtr->hitForce = currentProcessedActorPtr->hitForce;
+						g_engine->_engine->currentProcessedActorPtr->HIT = currentActorCol;
+						actorPtr = &g_engine->_engine->objectTable[currentActorCol];
+						actorPtr->HIT_BY = g_engine->_engine->currentProcessedActorIdx;
+						actorPtr->hitForce = g_engine->_engine->currentProcessedActorPtr->hitForce;
 					}
 				}
 
 				if (collision2) {
-					playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
 			}
 
-			ptr = processActor2Sub(x2, y2, z2, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room]);
+			ptr = processActor2Sub(x2, y2, z2, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room]);
 
 			if (ptr) {
 				if (ptr->type == 0 || ptr->type == 10) {
-					playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
 			}
 
-			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
-				currentProcessedActorPtr->hotPoint.x = 0;
-				currentProcessedActorPtr->hotPoint.y = 0;
-				currentProcessedActorPtr->hotPoint.z = 0;
+			if (asmCheckListCol(&rangeZv, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.x = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.y = 0;
+				g_engine->_engine->currentProcessedActorPtr->hotPoint.z = 0;
 
-				playSound(cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+				playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
 				throwStoppedAt(x3, z3);
 				return;
 			}
-		} while (currentProcessedActorPtr->zv.ZVX1 - 100 > x2 ||
-				 currentProcessedActorPtr->zv.ZVX2 + 100 < x2 ||
-				 currentProcessedActorPtr->zv.ZVZ1 - 100 > z2 ||
-				 currentProcessedActorPtr->zv.ZVZ2 + 100 < z2);
+		} while (g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 - 100 > x2 ||
+				 g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 + 100 < x2 ||
+				 g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 - 100 > z2 ||
+				 g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 + 100 < z2);
 
 		objPtr->x = xtemp;
 		objPtr->y = ytemp;
@@ -498,7 +498,7 @@ void gereFrappe() {
 		break;
 	}
 	default: {
-		debug("Unsupported processAnimAction type %d\n", currentProcessedActorPtr->animActionType);
+		debug("Unsupported processAnimAction type %d\n", g_engine->_engine->currentProcessedActorPtr->animActionType);
 		break;
 	}
 	}

@@ -57,6 +57,32 @@
 
 namespace Fitd {
 
+static const char *languageShortNameTable[LANGUAGE_NAME_SIZE] = {
+	"fr",
+	"it",
+	"en",
+	"es",
+	"de",
+};
+
+static const char *languageNameTable[LANGUAGE_NAME_SIZE] = {
+	"FRANCAIS.PAK",
+	"ITALIANO.PAK",
+	"ENGLISH.PAK",
+	"ESPAGNOL.PAK",
+	"DEUTSCH.PAK",
+};
+
+const char *listBodySelect[] = {
+	"LISTBODY.PAK",
+	"LISTBOD2.PAK",
+};
+
+const char *listAnimSelect[] = {
+	"LISTANIM.PAK",
+	"LISTANI2.PAK",
+};
+
 const byte defaultPalette[0x30] = {
 	0x00,
 	0x00,
@@ -168,14 +194,14 @@ void executeFoundLife(int objIdx) {
 	if (g_engine->_engine->worldObjets[objIdx].foundLife == -1)
 		return;
 
-	Object *currentActorPtr = currentProcessedActorPtr;
-	const int currentActorIdx = currentProcessedActorIdx;
-	const int currentActorLifeIdx = currentLifeActorIdx;
-	Object *currentActorLifePtr = currentLifeActorPtr;
-	const int currentActorLifeNum = currentLifeNum;
+	Object *currentActorPtr = g_engine->_engine->currentProcessedActorPtr;
+	const int currentActorIdx = g_engine->_engine->currentProcessedActorIdx;
+	const int currentActorLifeIdx = g_engine->_engine->currentLifeActorIdx;
+	Object *currentActorLifePtr = g_engine->_engine->currentLifeActorPtr;
+	const int currentActorLifeNum = g_engine->_engine->currentLifeNum;
 
-	if (currentLifeNum != -1) {
-		lifeOffset = (currentLifePtr - HQR_Get(listLife, currentActorLifeNum)) / 2;
+	if (g_engine->_engine->currentLifeNum != -1) {
+		lifeOffset = (g_engine->_engine->currentLifePtr - HQR_Get(g_engine->_engine->listLife, currentActorLifeNum)) / 2;
 	}
 
 	int var_2 = 0;
@@ -183,7 +209,7 @@ void executeFoundLife(int objIdx) {
 	int actorIdx = g_engine->_engine->worldObjets[objIdx].objIndex;
 
 	if (actorIdx == -1) {
-		const Object *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+		const Object *currentActorEntryPtr = &g_engine->_engine->objectTable[NUM_MAX_OBJECT - 1];
 		int currentActorEntry = NUM_MAX_OBJECT - 1;
 
 		while (currentActorEntry >= 0) {
@@ -197,60 +223,60 @@ void executeFoundLife(int objIdx) {
 		if (currentActorEntry == -1) // no space, we will have to overwrite the last actor !
 		{
 			currentActorEntry = NUM_MAX_OBJECT - 1;
-			currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+			currentActorEntryPtr = &g_engine->_engine->objectTable[NUM_MAX_OBJECT - 1];
 		}
 
 		actorIdx = currentActorEntry;
 		var_2 = 1;
 
-		currentProcessedActorPtr = &objectTable[actorIdx];
-		currentLifeActorPtr = &objectTable[actorIdx];
-		currentProcessedActorIdx = actorIdx;
-		currentLifeActorIdx = actorIdx;
+		g_engine->_engine->currentProcessedActorPtr = &g_engine->_engine->objectTable[actorIdx];
+		g_engine->_engine->currentLifeActorPtr = &g_engine->_engine->objectTable[actorIdx];
+		g_engine->_engine->currentProcessedActorIdx = actorIdx;
+		g_engine->_engine->currentLifeActorIdx = actorIdx;
 
-		currentProcessedActorPtr->indexInWorld = objIdx;
-		currentProcessedActorPtr->life = -1;
-		currentProcessedActorPtr->bodyNum = -1;
-		currentProcessedActorPtr->_flags = 0;
-		currentProcessedActorPtr->trackMode = -1;
-		currentProcessedActorPtr->room = -1;
-		currentProcessedActorPtr->lifeMode = -1;
-		currentProcessedActorPtr->ANIM = -1;
+		g_engine->_engine->currentProcessedActorPtr->indexInWorld = objIdx;
+		g_engine->_engine->currentProcessedActorPtr->life = -1;
+		g_engine->_engine->currentProcessedActorPtr->bodyNum = -1;
+		g_engine->_engine->currentProcessedActorPtr->_flags = 0;
+		g_engine->_engine->currentProcessedActorPtr->trackMode = -1;
+		g_engine->_engine->currentProcessedActorPtr->room = -1;
+		g_engine->_engine->currentProcessedActorPtr->lifeMode = -1;
+		g_engine->_engine->currentProcessedActorPtr->ANIM = -1;
 	}
 
 	processLife(foundLife, true);
 
 	if (var_2) {
-		currentProcessedActorPtr->indexInWorld = -1;
+		g_engine->_engine->currentProcessedActorPtr->indexInWorld = -1;
 	}
 
-	currentProcessedActorPtr = currentActorPtr;
-	currentProcessedActorIdx = currentActorIdx;
-	currentLifeActorIdx = currentActorLifeIdx;
-	currentLifeActorPtr = currentActorLifePtr;
+	g_engine->_engine->currentProcessedActorPtr = currentActorPtr;
+	g_engine->_engine->currentProcessedActorIdx = currentActorIdx;
+	g_engine->_engine->currentLifeActorIdx = currentActorLifeIdx;
+	g_engine->_engine->currentLifeActorPtr = currentActorLifePtr;
 
 	if (currentActorLifeNum != -1) {
-		currentLifeNum = currentActorLifeNum;
-		currentLifePtr = HQR_Get(listLife, currentLifeNum) + lifeOffset * 2;
+		g_engine->_engine->currentLifeNum = currentActorLifeNum;
+		g_engine->_engine->currentLifePtr = HQR_Get(g_engine->_engine->listLife, g_engine->_engine->currentLifeNum) + lifeOffset * 2;
 	}
 }
 
 void freeAll() {
-	HQR_Free(listSamp);
-	HQR_Free(listMus);
-	HQR_Free(hqMemory);
-	HQR_Free(listLife);
-	HQR_Free(listTrack);
-	HQR_Free(listBody);
-	HQR_Free(listAnim);
+	HQR_Free(g_engine->_engine->listSamp);
+	HQR_Free(g_engine->_engine->listMus);
+	HQR_Free(g_engine->_engine->hqMemory);
+	HQR_Free(g_engine->_engine->listLife);
+	HQR_Free(g_engine->_engine->listTrack);
+	HQR_Free(g_engine->_engine->listBody);
+	HQR_Free(g_engine->_engine->listAnim);
 	if (g_engine->getGameId() != GID_AITD1) {
-		HQR_Free(listMatrix);
+		HQR_Free(g_engine->_engine->listMatrix);
 	}
 
 	free(tabTextes);
-	free(ptrPrioritySample);
-	free(aux);
-	free(aux2);
+	free(g_engine->_engine->ptrPrioritySample);
+	free(g_engine->_engine->aux);
+	free(g_engine->_engine->aux2);
 }
 
 static void drawGradient(int x1, int x2) {
@@ -274,9 +300,9 @@ static void drawGradient(int x1, int x2) {
 
 static void turnPageForward() {
 	setClip(0, 0, 319, 199);
-	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
-	byte *saveLogicalScreen = logicalScreen;
-	logicalScreen = (byte *)&frontBuffer[0];
+	gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+	byte *saveLogicalScreen = g_engine->_engine->logicalScreen;
+	g_engine->_engine->logicalScreen = (byte *)&frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int i = 20;
 	int left = 260;
@@ -294,14 +320,14 @@ static void turnPageForward() {
 		i += 10;
 		left -= 10;
 	}
-	logicalScreen = saveLogicalScreen;
+	g_engine->_engine->logicalScreen = saveLogicalScreen;
 }
 
 static void turnPageBackward() {
 	setClip(0, 0, 319, 199);
 
-	byte *saveLogicalScreen = logicalScreen;
-	logicalScreen = (byte *)&frontBuffer[0];
+	byte *saveLogicalScreen = g_engine->_engine->logicalScreen;
+	g_engine->_engine->logicalScreen = (byte *)&frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int si = -540;
 	int di = 820;
@@ -318,7 +344,7 @@ static void turnPageBackward() {
 	} while (si < 260);
 	copyBoxLogPhys(si - 20, 0, 319, 199);
 
-	logicalScreen = saveLogicalScreen;
+	g_engine->_engine->logicalScreen = saveLogicalScreen;
 
 	gfx_copyBlockPhys((byte *)saveLogicalScreen, 0, 0, 320, 200);
 	osystem_drawBackground();
@@ -336,16 +362,16 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	int currentTextIdx;
 	Audio::SoundHandle handle;
 
-	extSetFont(ptrFont, color);
+	extSetFont(g_engine->_engine->ptrFont, color);
 
 	const int maxStringWidth = endx - startx + 4;
 
-	const int textIndexMalloc = HQ_Malloc(hqMemory, pakGetPakSize(languageNameString, index) + 300);
-	byte *textPtr = HQ_PtrMalloc(hqMemory, textIndexMalloc);
+	const int textIndexMalloc = HQ_Malloc(g_engine->_engine->hqMemory, pakGetPakSize(g_engine->_engine->languageNameString, index) + 300);
+	byte *textPtr = HQ_PtrMalloc(g_engine->_engine->hqMemory, textIndexMalloc);
 	if (!textPtr) error("No memory left");
 
-	if (!pakLoad(languageNameString, index, textPtr)) {
-		error("Failed to load pak %s", languageNameString);
+	if (!pakLoad(g_engine->_engine->languageNameString, index, textPtr)) {
+		error("Failed to load pak %s", g_engine->_engine->languageNameString);
 	}
 
 	memset(ptrpage, 0, sizeof(char *) * 100);
@@ -355,7 +381,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	//  LastPriority = -1;
 
 	while (!::Engine::shouldQuit() && !quit) {
-		fastCopyScreen(aux, logicalScreen);
+		fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
 		process_events();
 		setClip(startx, top, endx, bottom);
 
@@ -370,7 +396,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			int currentStringWidth;
 			int currentTextX;
 
-			RegularTextEntry *currentText = textTable;
+			RegularTextEntry *currentText = g_engine->_engine->textTable;
 
 			int numWordInLine = 0;
 
@@ -412,10 +438,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							ptrt++;
 						}
 
-						if (pakLoad("ITD_RESS.PAK", AITD1_TEXT_GRAPH, aux2)) {
+						if (pakLoad("ITD_RESS.PAK", AITD1_TEXT_GRAPH, g_engine->_engine->aux2)) {
 							assert(0); // when is this used?
-									   /*  var_C = printTextSub3(currentTextIdx,aux2);
-									   var_A = printTextSub4(currentTextIdx,aux2);
+									   /*  var_C = printTextSub3(currentTextIdx,g_engine->_engine->aux2);
+									   var_A = printTextSub4(currentTextIdx,g_engine->_engine->aux2);
 
 									   if(currentTextY + var_A > bottom)
 									   {
@@ -425,7 +451,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 									   }
 									   else
 									   {
-									   printTextSub5((((right-left)/2)+left)-var_C, currentTextY, currentTextIdx, aux2);
+									   printTextSub5((((right-left)/2)+left)-var_C, currentTextY, currentTextIdx, g_engine->_engine->aux2);
 									   currentTextY = var_A;
 									   }*/
 						}
@@ -489,7 +515,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				interWordSpace = (maxStringWidth - var_1BA) / (numWordInLine - 1);
 			}
 
-			currentText = textTable;
+			currentText = g_engine->_engine->textTable;
 
 			if (line_type & 8) // center
 			{
@@ -525,47 +551,47 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 		if (demoMode == 0) {
 			if (page > 0) {
-				affSpfI(startx - 19, 185, 12, ptrCadre);
+				affSpfI(startx - 19, 185, 12, g_engine->_engine->ptrCadre);
 			}
 
 			if (!lastPageReached) {
-				affSpfI(endx + 4, 185, 11, ptrCadre);
+				affSpfI(endx + 4, 185, 11, g_engine->_engine->ptrCadre);
 			}
 		}
 
 		if (demoMode == 2) {
 			if (page > 0) {
-				affSpfI(startx - 3, 191, 13, ptrCadre);
+				affSpfI(startx - 3, 191, 13, g_engine->_engine->ptrCadre);
 			}
 
 			if (!lastPageReached) {
-				affSpfI(endx - 10, 191, 14, ptrCadre);
+				affSpfI(endx - 10, 191, 14, g_engine->_engine->ptrCadre);
 			}
 		}
 
 		if (firstpage) {
 			if (demoMode != 1) {
-				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 				fadeInPhys(16, 0);
 			} else {
-				if (turnPageFlag) {
+				if (g_engine->_engine->turnPageFlag) {
 					turnPageForward();
 				} else {
-					gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 					osystem_drawBackground();
 				}
 			}
 
 			firstpage = 0;
 		} else {
-			if (turnPageFlag) {
+			if (g_engine->_engine->turnPageFlag) {
 				if (previousPage < page) {
 					turnPageForward();
 				} else {
 					turnPageBackward();
 				}
 			} else {
-				gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 				osystem_drawBackground();
 			}
 		}
@@ -593,52 +619,52 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 		{
 			do {
 				process_events();
-			} while (key || joyD || click);
+			} while (g_engine->_engine->key || g_engine->_engine->joyD || g_engine->_engine->click);
 
 			while (!::Engine::shouldQuit()) {
 				process_events();
-				localKey = key;
-				localJoyD = joyD;
-				localClick = click;
+				g_engine->_engine->localKey = g_engine->_engine->key;
+				g_engine->_engine->localJoyD = g_engine->_engine->joyD;
+				g_engine->_engine->localClick = g_engine->_engine->click;
 
-				if (localKey == 1 || localClick) {
+				if (g_engine->_engine->localKey == 1 || g_engine->_engine->localClick) {
 					quit = 1;
 					break;
 				}
 
-				if (demoMode == 2 && localKey == 0x1C) {
+				if (demoMode == 2 && g_engine->_engine->localKey == 0x1C) {
 					quit = 1;
 					break;
 				}
 
 				// flip to next page
-				if (joyD & 0xA || localKey == 0x1C) {
+				if (g_engine->_engine->joyD & 0xA || g_engine->_engine->localKey == 0x1C) {
 					if (!lastPageReached) {
 						previousPage = page;
 						page++;
 
 						if (demoMode == 2) {
-							playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
-							lastSample = -1;
-							lastPriority = -1;
+							playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_PAGE)]);
+							g_engine->_engine->lastSample = -1;
+							g_engine->_engine->lastPriority = -1;
 						}
 						break;
 					}
-					if (localKey == 0x1C) {
+					if (g_engine->_engine->localKey == 0x1C) {
 						quit = 1;
 						break;
 					}
 				}
 
 				// flip to previous page
-				if (joyD & 5) {
+				if (g_engine->_engine->joyD & 5) {
 					if (page > 0) {
 						previousPage = page;
 						page--;
 						if (demoMode == 2) {
-							playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
-							lastSample = -1;
-							lastPriority = -1;
+							playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_PAGE)]);
+							g_engine->_engine->lastSample = -1;
+							g_engine->_engine->lastPriority = -1;
 						}
 						break;
 					}
@@ -654,16 +680,16 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				if (evalChrono(&var_6) > 300) {
 					break;
 				}
-			} while (!key && !click);
+			} while (!g_engine->_engine->key && !g_engine->_engine->click);
 
-			if (key || click) {
+			if (g_engine->_engine->key || g_engine->_engine->click) {
 				quit = 1;
 			}
 
 			if (!lastPageReached) {
 				page++;
-				playSound(cVars[getCVarsIdx(SAMPLE_PAGE)]);
-				lastSample = -1;
+				playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_PAGE)]);
+				g_engine->_engine->lastSample = -1;
 			} else {
 				quit = 1;
 				demoMode = 0;
@@ -690,16 +716,16 @@ void initEngine() {
 	f.read(pObjectData, objectDataSize);
 	f.close();
 
-	maxObjects = READ_LE_U16(pObjectData);
+	g_engine->_engine->maxObjects = READ_LE_U16(pObjectData);
 	pObjectData += 2;
 
 	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
 		g_engine->_engine->worldObjets.resize(300);
 	} else {
-		g_engine->_engine->worldObjets.resize(maxObjects);
+		g_engine->_engine->worldObjets.resize(g_engine->_engine->maxObjects);
 	}
 
-	for (int i = 0; i < maxObjects; i++) {
+	for (int i = 0; i < g_engine->_engine->maxObjects; i++) {
 		g_engine->_engine->worldObjets[i].objIndex = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
@@ -787,62 +813,62 @@ void initEngine() {
 
 	free(pObjectDataBackup);
 
-	vars = (int16 *)loadFromItd("VARS.ITD");
+	g_engine->_engine->vars = (int16 *)loadFromItd("VARS.ITD");
 
-	varSize = fileSize;
+	g_engine->_engine->varSize = g_engine->_engine->fileSize;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		choosePersoBackup = cVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
+		choosePersoBackup = g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
 	}
 
 	f.open("DEFINES.ITD");
 
 	///////////////////////////////////////////////
 	{
-		f.read(&cVars[0], cVarsSize * 2);
+		f.read(&g_engine->_engine->cVars[0], g_engine->_engine->cVarsSize * 2);
 		f.close();
 
-		for (int i = 0; i < cVarsSize; i++) {
-			cVars[i] = (cVars[i] & 0xFF) << 8 | (cVars[i] & 0xFF00) >> 8;
+		for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
+			g_engine->_engine->cVars[i] = (g_engine->_engine->cVars[i] & 0xFF) << 8 | (g_engine->_engine->cVars[i] & 0xFF00) >> 8;
 		}
 	}
 	//////////////////////////////////////////////
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		cVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
+		g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 	}
 
-	listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
-	listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
+	g_engine->_engine->listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
+	g_engine->_engine->listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
 
 	// TODO: missing dos memory check here
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		listBody = HQR_InitRessource(listBodySelect[cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
-		listAnim = HQR_InitRessource(listAnimSelect[cVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
+		g_engine->_engine->listBody = HQR_InitRessource(listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
+		g_engine->_engine->listAnim = HQR_InitRessource(listAnimSelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
 	} else {
-		listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
-		listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
+		g_engine->_engine->listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
+		g_engine->_engine->listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
 
-		listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
+		g_engine->_engine->listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
 	}
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		objectTable[i].indexInWorld = -1;
+		g_engine->_engine->objectTable[i].indexInWorld = -1;
 	}
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		currentWorldTarget = cVars[getCVarsIdx(WORLD_NUM_PERSO)];
+		g_engine->_engine->currentWorldTarget = g_engine->_engine->cVars[getCVarsIdx(WORLD_NUM_PERSO)];
 	}
 }
 
 static void clearMessageList() {
 	for (int i = 0; i < 5; i++) {
-		messageTable[i].string = nullptr;
+		g_engine->_engine->messageTable[i].string = nullptr;
 	}
 }
 
 void initVars() {
-	giveUp = 0;
+	g_engine->_engine->giveUp = 0;
 
 	currentInventory = 0;
 
@@ -851,27 +877,27 @@ void initVars() {
 		inHandTable[i] = -1;
 	}
 
-	action = 0;
+	g_engine->_engine->action = 0;
 
-	listPhysBox = listBox1;
-	listLogBox = listBox2;
+	g_engine->_engine->listPhysBox = g_engine->_engine->listBox1;
+	g_engine->_engine->listLogBox = g_engine->_engine->listBox2;
 
-	nbPhysBoxs = 0;
-	nbLogBoxs = 0;
+	g_engine->_engine->nbPhysBoxs = 0;
+	g_engine->_engine->nbLogBoxs = 0;
 
-	lastSample = -1;
-	nextSample = -1;
-	lastPriority = -1;
-	currentMusic = -1;
-	nextMusic = -1;
+	g_engine->_engine->lastSample = -1;
+	g_engine->_engine->nextSample = -1;
+	g_engine->_engine->lastPriority = -1;
+	g_engine->_engine->currentMusic = -1;
+	g_engine->_engine->nextMusic = -1;
 
-	lightOff = 0;
-	newFlagLight = 0;
+	g_engine->_engine->lightOff = 0;
+	g_engine->_engine->newFlagLight = 0;
 
-	currentCameraTargetActor = -1;
-	currentWorldTarget = -1;
+	g_engine->_engine->currentCameraTargetActor = -1;
+	g_engine->_engine->currentWorldTarget = -1;
 
-	statusScreenAllowed = 1;
+	g_engine->_engine->statusScreenAllowed = 1;
 
 	clearMessageList();
 
@@ -880,12 +906,12 @@ void initVars() {
 
 static void loadCamera(int cameraIdx) {
 
-	Common::String name = Common::String::format("CAMERA%02d.PAK", currentFloor);
+	Common::String name = Common::String::format("CAMERA%02d.PAK", g_engine->_engine->currentFloor);
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		int useSpecial = -1;
-		if (cVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
-			switch (currentFloor) {
+		if (g_engine->_engine->cVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
+			switch (g_engine->_engine->currentFloor) {
 			case 6: {
 				if (cameraIdx == 0) {
 					useSpecial = AITD1_CAM06000;
@@ -916,16 +942,16 @@ static void loadCamera(int cameraIdx) {
 		}
 	}
 
-	if (!pakLoad(name.c_str(), cameraIdx, aux)) {
+	if (!pakLoad(name.c_str(), cameraIdx, g_engine->_engine->aux)) {
 		error("Cannot load pak %s", name.c_str());
 	}
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		// memmove(aux, aux + 4, 64000 + 0x300);
+		// memmove(g_engine->_engine->aux, g_engine->_engine->aux + 4, 64000 + 0x300);
 	}
 
 	if (g_engine->getGameId() >= GID_JACK) {
-		copyPalette((byte *)aux + 64000, currentGamePalette);
+		copyPalette((byte *)g_engine->_engine->aux + 64000, currentGamePalette);
 
 		if (g_engine->getGameId() == GID_AITD3) {
 			for (int i = 0; i < 16; i++) {
@@ -959,17 +985,17 @@ static void loadMask(int cameraIdx) {
 	if (g_engine->getGameId() == GID_TIMEGATE)
 		return;
 
-	const Common::String name = Common::String::format("MASK%02d.PAK", currentFloor);
+	const Common::String name = Common::String::format("MASK%02d.PAK", g_engine->_engine->currentFloor);
 
-	if (maskPtr) {
-		free(maskPtr);
+	if (g_engine->_engine->maskPtr) {
+		free(g_engine->_engine->maskPtr);
 	}
 
-	maskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
+	g_engine->_engine->maskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
 
-	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
-		const CameraViewedRoom *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
-		byte *pViewedRoomMask = maskPtr + READ_LE_U32(maskPtr + i * 4);
+	for (int i = 0; i < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; i++) {
+		const CameraViewedRoom *pRoomView = &cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[i];
+		byte *pViewedRoomMask = g_engine->_engine->maskPtr + READ_LE_U32(g_engine->_engine->maskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
 			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
@@ -998,7 +1024,7 @@ static void loadMask(int cameraIdx) {
 				const uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
 				pMaskData += 2;
 
-				// byte *pSourceBuffer = (byte *)aux;
+				// byte *pSourceBuffer = (byte *)g_engine->_engine->aux;
 
 				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
@@ -1015,7 +1041,7 @@ static void loadMask(int cameraIdx) {
 				}
 			}
 
-			osystem_createMask(pDestMask->mask, i, j, (byte *)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+			osystem_createMask(pDestMask->mask, i, j, (byte *)g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}
 	}
 }
@@ -1024,10 +1050,10 @@ void fillpoly(int16 *datas, int n, byte c);
 extern byte *polyBackBuffer;
 
 static void createAITD1Mask() {
-	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
-		const CameraViewedRoom *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
+	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; viewedRoomIdx++) {
+		const CameraViewedRoom *pcameraViewedRoomData = &cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[viewedRoomIdx];
 
-		byte *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		byte *data2 = g_engine->_engine->roomPtrCamera[g_engine->_engine->currentCamera] + pcameraViewedRoomData->offsetToMask;
 		byte *data = data2;
 		data += 2;
 
@@ -1059,7 +1085,7 @@ static void createAITD1Mask() {
 					const int numPoints = *(int16 *)src;
 					src += 2;
 
-					memcpy(cameraBuffer, src, numPoints * 4);
+					memcpy(g_engine->_engine->cameraBuffer, src, numPoints * 4);
 
 					fillpoly((int16 *)src, numPoints, 0xFF);
 
@@ -1082,7 +1108,7 @@ static void createAITD1Mask() {
 				polyBackBuffer = nullptr;
 			}
 
-			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (byte *)aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
+			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (byte *)g_engine->_engine->aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
 
 			const int numOverlay = *(int16 *)data;
 			data += 2;
@@ -1121,7 +1147,7 @@ static void createAITD1Mask() {
 		pMaskData += 2;
 
 		byte* pDestBuffer = pDestMask->mask;
-		byte* pSourceBuffer = (byte*)aux;
+		byte* pSourceBuffer = (byte*)g_engine->_engine->aux;
 
 		int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
@@ -1140,7 +1166,7 @@ static void createAITD1Mask() {
 		}
 		}
 
-		osystem_createMask(pDestMask->mask, i, j, (byte*)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+		osystem_createMask(pDestMask->mask, i, j, (byte*)g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}*/
 	}
 
@@ -1148,7 +1174,7 @@ static void createAITD1Mask() {
 }
 
 static int isInViewList(int value) {
-	const byte *ptr = currentCameraVisibilityList;
+	const byte *ptr = g_engine->_engine->currentCameraVisibilityList;
 	int var;
 
 	while ((var = *ptr++) != -1) {
@@ -1163,14 +1189,14 @@ static int isInViewList(int value) {
 // setup visibility list
 static void setupCameraSub1() {
 
-	byte *dataTabPos = currentCameraVisibilityList;
+	byte *dataTabPos = g_engine->_engine->currentCameraVisibilityList;
 
 	*dataTabPos = -1;
 
 	// visibility list: add linked rooms
-	for (uint32 i = 0; i < g_engine->_engine->roomDataTable[currentRoom].numSceZone; i++) {
-		if (g_engine->_engine->roomDataTable[currentRoom].sceZoneTable[i].type == 0) {
-			const int var_10 = g_engine->_engine->roomDataTable[currentRoom].sceZoneTable[i].parameter;
+	for (uint32 i = 0; i < g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].numSceZone; i++) {
+		if (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].sceZoneTable[i].type == 0) {
+			const int var_10 = g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].sceZoneTable[i].parameter;
 			if (!isInViewList(var_10)) {
 				*dataTabPos++ = var_10;
 				*dataTabPos = -1;
@@ -1179,9 +1205,9 @@ static void setupCameraSub1() {
 	}
 
 	// visibility list: add room seen by the current camera
-	for (int j = 0; j < cameraDataTable[currentCamera]->numViewedRooms; j++) {
-		if (!isInViewList(cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx)) {
-			*dataTabPos++ = (char)cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx;
+	for (int j = 0; j < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; j++) {
+		if (!isInViewList(cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[j].viewedRoomIdx)) {
+			*dataTabPos++ = (char)cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[j].viewedRoomIdx;
 			*dataTabPos = -1;
 		}
 	}
@@ -1189,14 +1215,14 @@ static void setupCameraSub1() {
 
 static void deleteObjet(int index) // remove actor
 {
-	Object *actorPtr = &objectTable[index];
+	Object *actorPtr = &g_engine->_engine->objectTable[index];
 
 	if (actorPtr->indexInWorld == -2) // flow
 	{
 		actorPtr->indexInWorld = -1;
 
 		if (actorPtr->ANIM == 4) {
-			cVars[getCVarsIdx(FOG_FLAG)] = 0;
+			g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] = 0;
 		}
 
 		// HQ_Free_Malloc(HQ_Memory,actorPtr->FRAME);
@@ -1237,30 +1263,30 @@ static void deleteObjet(int index) // remove actor
 			objectPtr->stage = actorPtr->stage;
 			objectPtr->room = actorPtr->room;
 
-			actorTurnedToObj = 1;
+			g_engine->_engine->actorTurnedToObj = 1;
 		}
 	}
 }
 
 static void setupCameraSub4() {
-	fastCopyScreen(aux, aux2);
+	fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->aux2);
 
 	// TODO: implementer la suite
 }
 
 void setMoveMode(int trackMode, int trackNumber) {
-	currentProcessedActorPtr->trackMode = trackMode;
+	g_engine->_engine->currentProcessedActorPtr->trackMode = trackMode;
 
 	switch (trackMode) {
 	case 2: {
-		currentProcessedActorPtr->trackNumber = trackNumber;
-		currentProcessedActorPtr->MARK = -1;
+		g_engine->_engine->currentProcessedActorPtr->trackNumber = trackNumber;
+		g_engine->_engine->currentProcessedActorPtr->MARK = -1;
 		break;
 	}
 	case 3: {
-		currentProcessedActorPtr->trackNumber = trackNumber;
-		currentProcessedActorPtr->positionInTrack = 0;
-		currentProcessedActorPtr->MARK = -1;
+		g_engine->_engine->currentProcessedActorPtr->trackNumber = trackNumber;
+		g_engine->_engine->currentProcessedActorPtr->positionInTrack = 0;
+		g_engine->_engine->currentProcessedActorPtr->MARK = -1;
 		break;
 	}
 	}
@@ -1269,10 +1295,10 @@ void setMoveMode(int trackMode, int trackNumber) {
 int16 cameraVisibilityVar = 0;
 
 int IsInCamera(int roomNumber) {
-	const int numZone = cameraDataTable[currentCamera]->numViewedRooms;
+	const int numZone = cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms;
 
 	for (int i = 0; i < numZone; i++) {
-		if (cameraDataTable[currentCamera]->viewedRoomTable[i].viewedRoomIdx == roomNumber) {
+		if (cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[i].viewedRoomIdx == roomNumber) {
 			cameraVisibilityVar = i;
 			return 1;
 		}
@@ -1285,13 +1311,13 @@ int IsInCamera(int roomNumber) {
 
 int IsInCamRectTestAITD2(int X, int Z) // TODO: not 100% exact
 {
-	// if(changeCameraSub1(X,X,Z,Z,&cameraDataTable[currentCamera]->cameraZoneDefTable[cameraVisibilityVar]))
+	// if(changeCameraSub1(X,X,Z,Z,&cameraDataTable[g_engine->_engine->currentCamera]->cameraZoneDefTable[cameraVisibilityVar]))
 	return 1;
 	return 0;
 }
 
 int updateActorAitd2Only(int actorIdx) {
-	Object *currentActor = &objectTable[actorIdx];
+	Object *currentActor = &g_engine->_engine->objectTable[actorIdx];
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		return 0;
@@ -1311,7 +1337,7 @@ int updateActorAitd2Only(int actorIdx) {
 
 void updateAllActorAndObjectsAITD2() {
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		Object *pObject = &objectTable[i];
+		Object *pObject = &g_engine->_engine->objectTable[i];
 
 		if (pObject->indexInWorld == -1) {
 			continue;
@@ -1319,14 +1345,14 @@ void updateAllActorAndObjectsAITD2() {
 
 		pObject->lifeMode &= ~4;
 
-		if (pObject->stage == currentFloor) {
+		if (pObject->stage == g_engine->_engine->currentFloor) {
 			switch (pObject->lifeMode) {
 			case 0: // OFF
 				break;
 			case 1: // STAGE
 				continue;
 			case 2: // ROOM
-				if (pObject->room == currentRoom) {
+				if (pObject->room == g_engine->_engine->currentRoom) {
 					continue;
 				}
 				break;
@@ -1348,15 +1374,15 @@ void updateAllActorAndObjectsAITD2() {
 		deleteObjet(i);
 	}
 
-	for (int i = 0; i < maxObjects; i++) {
+	for (int i = 0; i < g_engine->_engine->maxObjects; i++) {
 		WorldObject *currentObject = &g_engine->_engine->worldObjets[i];
 
 		if (currentObject->objIndex != -1) {
-			if (currentWorldTarget == i) {
-				currentCameraTargetActor = currentObject->objIndex;
+			if (g_engine->_engine->currentWorldTarget == i) {
+				g_engine->_engine->currentCameraTargetActor = currentObject->objIndex;
 			}
 		} else {
-			if (currentObject->stage == currentFloor) {
+			if (currentObject->stage == g_engine->_engine->currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
 						int di;
@@ -1371,7 +1397,7 @@ void updateAllActorAndObjectsAITD2() {
 							break;
 						}
 						case 2: {
-							if (currentObject->room != currentRoom) {
+							if (currentObject->room != g_engine->_engine->currentRoom) {
 								di = 0;
 							} else {
 								di = 1;
@@ -1423,28 +1449,28 @@ void updateAllActorAndObjectsAITD2() {
 						currentObject->objIndex = actorIdx;
 
 						if (actorIdx != -1) {
-							currentProcessedActorPtr = &objectTable[actorIdx];
-							currentProcessedActorIdx = actorIdx;
+							g_engine->_engine->currentProcessedActorPtr = &g_engine->_engine->objectTable[actorIdx];
+							g_engine->_engine->currentProcessedActorIdx = actorIdx;
 
-							if (currentWorldTarget == i) {
-								currentCameraTargetActor = currentProcessedActorIdx;
+							if (g_engine->_engine->currentWorldTarget == i) {
+								g_engine->_engine->currentCameraTargetActor = g_engine->_engine->currentProcessedActorIdx;
 							}
 
-							currentProcessedActorPtr->dynFlags = (currentObject->flags & 0x20) / 0x20; // recheck
-							currentProcessedActorPtr->life = currentObject->life;
-							currentProcessedActorPtr->lifeMode = currentObject->lifeMode;
+							g_engine->_engine->currentProcessedActorPtr->dynFlags = (currentObject->flags & 0x20) / 0x20; // recheck
+							g_engine->_engine->currentProcessedActorPtr->life = currentObject->life;
+							g_engine->_engine->currentProcessedActorPtr->lifeMode = currentObject->lifeMode;
 
-							currentProcessedActorPtr->indexInWorld = i;
+							g_engine->_engine->currentProcessedActorPtr->indexInWorld = i;
 
 							setMoveMode(currentObject->trackMode, currentObject->trackNumber);
 
-							currentProcessedActorPtr->positionInTrack = currentObject->positionInTrack;
+							g_engine->_engine->currentProcessedActorPtr->positionInTrack = currentObject->positionInTrack;
 
 							if (g_engine->getGameId() != GID_AITD1) {
-								currentProcessedActorPtr->MARK = currentObject->mark;
+								g_engine->_engine->currentProcessedActorPtr->MARK = currentObject->mark;
 							}
 
-							actorTurnedToObj = 1;
+							g_engine->_engine->actorTurnedToObj = 1;
 						}
 					}
 				} else {
@@ -1462,7 +1488,7 @@ void updateAllActorAndObjectsAITD2() {
 
 void updateAllActorAndObjects() {
 	int i;
-	const Object *currentActor = objectTable;
+	const Object *currentActor = g_engine->_engine->objectTable;
 
 	if (g_engine->getGameId() > GID_JACK) {
 		updateAllActorAndObjectsAITD2();
@@ -1470,14 +1496,14 @@ void updateAllActorAndObjects() {
 	}
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (currentActor->indexInWorld != -1) {
-			if (currentActor->stage == currentFloor) {
+			if (currentActor->stage == g_engine->_engine->currentFloor) {
 				if (currentActor->life != -1) {
 					switch (currentActor->lifeMode) {
 					case 0: {
 						break;
 					}
 					case 1: {
-						if (currentActor->room != currentRoom) {
+						if (currentActor->room != g_engine->_engine->currentRoom) {
 							deleteObjet(i);
 						}
 						break;
@@ -1508,19 +1534,19 @@ void updateAllActorAndObjects() {
 
 	WorldObject *currentObject = &g_engine->_engine->worldObjets[0];
 
-	for (i = 0; i < maxObjects; i++) {
+	for (i = 0; i < g_engine->_engine->maxObjects; i++) {
 		if (currentObject->objIndex != -1) {
-			if (currentWorldTarget == i) {
-				currentCameraTargetActor = currentObject->objIndex;
+			if (g_engine->_engine->currentWorldTarget == i) {
+				g_engine->_engine->currentCameraTargetActor = currentObject->objIndex;
 			}
 		} else {
-			if (currentObject->stage == currentFloor) {
+			if (currentObject->stage == g_engine->_engine->currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
 
 						switch (currentObject->lifeMode) {
 						case 1: {
-							if (currentObject->room != currentRoom) {
+							if (currentObject->room != g_engine->_engine->currentRoom) {
 								currentObject++;
 								continue;
 							}
@@ -1551,24 +1577,24 @@ void updateAllActorAndObjects() {
 						currentObject->objIndex = actorIdx;
 
 						if (actorIdx != -1) {
-							currentProcessedActorPtr = &objectTable[actorIdx];
-							currentProcessedActorIdx = actorIdx;
+							g_engine->_engine->currentProcessedActorPtr = &g_engine->_engine->objectTable[actorIdx];
+							g_engine->_engine->currentProcessedActorIdx = actorIdx;
 
-							if (currentWorldTarget == i) {
-								currentCameraTargetActor = currentProcessedActorIdx;
+							if (g_engine->_engine->currentWorldTarget == i) {
+								g_engine->_engine->currentCameraTargetActor = g_engine->_engine->currentProcessedActorIdx;
 							}
 
-							currentProcessedActorPtr->dynFlags = (currentObject->flags & 0x20) / 0x20; // recheck
-							currentProcessedActorPtr->life = currentObject->life;
-							currentProcessedActorPtr->lifeMode = currentObject->lifeMode;
+							g_engine->_engine->currentProcessedActorPtr->dynFlags = (currentObject->flags & 0x20) / 0x20; // recheck
+							g_engine->_engine->currentProcessedActorPtr->life = currentObject->life;
+							g_engine->_engine->currentProcessedActorPtr->lifeMode = currentObject->lifeMode;
 
-							currentProcessedActorPtr->indexInWorld = i;
+							g_engine->_engine->currentProcessedActorPtr->indexInWorld = i;
 
 							setMoveMode(currentObject->trackMode, currentObject->trackNumber);
 
-							currentProcessedActorPtr->positionInTrack = currentObject->positionInTrack;
+							g_engine->_engine->currentProcessedActorPtr->positionInTrack = currentObject->positionInTrack;
 
-							actorTurnedToObj = 1;
+							g_engine->_engine->actorTurnedToObj = 1;
 						}
 					}
 				} else {
@@ -1588,8 +1614,8 @@ void updateAllActorAndObjects() {
 
 static int checkActorInRoom(int room) {
 
-	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
-		if (cameraDataTable[currentCamera]->viewedRoomTable[i].viewedRoomIdx == room) {
+	for (int i = 0; i < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; i++) {
+		if (cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[i].viewedRoomIdx == room) {
 			return 1;
 		}
 	}
@@ -1599,19 +1625,19 @@ static int checkActorInRoom(int room) {
 
 void createActorList() {
 
-	numActorInList = 0;
+	g_engine->_engine->numActorInList = 0;
 
-	Object *actorPtr = objectTable;
+	Object *actorPtr = g_engine->_engine->objectTable;
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (actorPtr->indexInWorld != -1 && actorPtr->bodyNum != -1) {
 			if (checkActorInRoom(actorPtr->room)) {
-				sortedActorTable[numActorInList] = i;
+				g_engine->_engine->sortedActorTable[g_engine->_engine->numActorInList] = i;
 				if (!(actorPtr->_flags & (AF_SPECIAL & AF_ANIMATED))) {
 					actorPtr->_flags |= AF_BOXIFY;
 					//  FlagRefreshAux2 = 1;
 				}
-				numActorInList++;
+				g_engine->_engine->numActorInList++;
 			}
 		}
 
@@ -1623,25 +1649,25 @@ void setupCamera() {
 
 	freezeTime();
 
-	currentCamera = startGameVar1;
+	g_engine->_engine->currentCamera = g_engine->_engine->startGameVar1;
 
-	assert((uint32)startGameVar1 < g_engine->_engine->roomDataTable[currentRoom].numCameraInRoom);
+	assert((uint32)g_engine->_engine->startGameVar1 < g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].numCameraInRoom);
 
-	loadCamera(g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+	loadCamera(g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].cameraIdxTable[g_engine->_engine->startGameVar1]);
 	if (g_engine->getGameId() >= GID_JACK) {
-		loadMask(g_engine->_engine->roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+		loadMask(g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].cameraIdxTable[g_engine->_engine->startGameVar1]);
 	} else {
 		createAITD1Mask();
 	}
-	cameraBackgroundChanged = true;
+	g_engine->_engine->cameraBackgroundChanged = true;
 
-	const CameraData *pCamera = cameraDataTable[currentCamera];
+	const CameraData *pCamera = cameraDataTable[g_engine->_engine->currentCamera];
 
 	setAngleCamera(pCamera->alpha, pCamera->beta, pCamera->gamma);
 
-	const int x = (pCamera->x - g_engine->_engine->roomDataTable[currentRoom].worldX) * 10;
-	const int y = (g_engine->_engine->roomDataTable[currentRoom].worldY - pCamera->y) * 10;
-	const int z = (g_engine->_engine->roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
+	const int x = (pCamera->x - g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX) * 10;
+	const int y = (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - pCamera->y) * 10;
+	const int z = (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - pCamera->z) * 10;
 
 	setPosCamera(x, y, z); // setup camera position
 
@@ -1654,15 +1680,15 @@ void setupCamera() {
 	setupCameraSub4();
 	/*  setupCameraSub5();
 	 */
-	if (flagInitView == 2) {
-		flagRedraw = 2;
+	if (g_engine->_engine->flagInitView == 2) {
+		g_engine->_engine->flagRedraw = 2;
 	} else {
-		if (flagRedraw != 2) {
-			flagRedraw = 1;
+		if (g_engine->_engine->flagRedraw != 2) {
+			g_engine->_engine->flagRedraw = 1;
 		}
 	}
 
-	flagInitView = 0;
+	g_engine->_engine->flagInitView = 0;
 	unfreezeTime();
 }
 
@@ -1689,7 +1715,7 @@ void initRealValue(int16 beta, int16 newBeta, int16 param, InterpolatedValue *ro
 	rotatePtr->oldValue = beta;
 	rotatePtr->newValue = newBeta;
 	rotatePtr->param = param;
-	rotatePtr->timeOfRotate = timer;
+	rotatePtr->timeOfRotate = g_engine->_engine->timer;
 }
 
 int16 updateActorRotation(InterpolatedValue *rotatePtr) {
@@ -1697,7 +1723,7 @@ int16 updateActorRotation(InterpolatedValue *rotatePtr) {
 	if (!rotatePtr->param)
 		return rotatePtr->newValue;
 
-	const int timeDif = timer - rotatePtr->timeOfRotate;
+	const int timeDif = g_engine->_engine->timer - rotatePtr->timeOfRotate;
 
 	if (timeDif > rotatePtr->param) {
 		rotatePtr->param = 0;
@@ -1721,7 +1747,7 @@ int16 updateActorRotation(InterpolatedValue *rotatePtr) {
 }
 
 void removeFromBGIncrust(int actorIdx) {
-	Object *actorPtr = &objectTable[actorIdx];
+	Object *actorPtr = &g_engine->_engine->objectTable[actorIdx];
 
 	actorPtr->_flags &= ~AF_BOXIFY;
 
@@ -1791,7 +1817,7 @@ static void drawBgOverlay(Object *actorPtr) {
 
 	setClip(BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 
-	const CameraData *pCamera = cameraDataTable[currentCamera];
+	const CameraData *pCamera = cameraDataTable[g_engine->_engine->currentCamera];
 
 	// look for the correct room data of that camera
 	const CameraViewedRoom *pcameraViewedRoomData = nullptr;
@@ -1807,7 +1833,7 @@ static void drawBgOverlay(Object *actorPtr) {
 		return;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		byte *data2 = roomPtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		byte *data2 = g_engine->_engine->roomPtrCamera[g_engine->_engine->currentCamera] + pcameraViewedRoomData->offsetToMask;
 		byte *data = data2;
 		data += 2;
 
@@ -1820,7 +1846,7 @@ static void drawBgOverlay(Object *actorPtr) {
 									actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
 									data + 4,
 									*(int16 *)data)) {
-				osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
+				osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
 				osystem_drawMask(relativeCameraIndex, i);
 				osystem_clearClip();
 
@@ -1834,7 +1860,7 @@ static void drawBgOverlay(Object *actorPtr) {
 				int param = *(s16*)(src);
 				src+=2;
 
-				memcpy(cameraBuffer, src, param*4);
+				memcpy(g_engine->_engine->cameraBuffer, src, param*4);
 
 				src+=param*4;
 
@@ -1862,7 +1888,7 @@ static void drawBgOverlay(Object *actorPtr) {
 				const int actorZ2 = actorPtr->zv.ZVZ2 / 10;
 
 				if (actorX1 >= pRect->zoneX1 && actorZ1 >= pRect->zoneZ1 && actorX2 <= pRect->zoneX2 && actorZ2 <= pRect->zoneZ2) {
-					osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
+					osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
 					osystem_drawMask(relativeCameraIndex, i);
 					osystem_clearClip();
 					break;
@@ -1901,9 +1927,9 @@ static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
 }
 
 static void drawSpecialObject(int actorIdx) {
-	Object *actorPtr = &objectTable[actorIdx];
+	Object *actorPtr = &g_engine->_engine->objectTable[actorIdx];
 
-	byte *flowPtr = HQ_PtrMalloc(hqMemory, actorPtr->FRAME);
+	byte *flowPtr = HQ_PtrMalloc(g_engine->_engine->hqMemory, actorPtr->FRAME);
 	if (!flowPtr)
 		return;
 
@@ -1917,7 +1943,7 @@ static void drawSpecialObject(int actorIdx) {
 		// skip point list
 		int16 *flowAnimList = (int16 *)(flowPtr + 2 + 6 * (*flowPointList));
 
-		const int16 *pPointList = renderPointList;
+		const int16 *pPointList = g_engine->_engine->renderPointList;
 		bool freeData = true;
 
 		const int16 numPoints = flowPointList[0];
@@ -1929,7 +1955,7 @@ static void drawSpecialObject(int actorIdx) {
 				freeData = false;
 				const int16 z = pPointList[2];
 				if (z > 300) {
-					const float transformedSize = size * (float)cameraFovX / (float)(z + cameraPerspective);
+					const float transformedSize = size * (float)g_engine->_engine->cameraFovX / (float)(z + g_engine->_engine->cameraPerspective);
 					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, transformedSize);
 				}
 				flowAnimList[0] -= 5;                // size -= 5
@@ -1943,7 +1969,7 @@ static void drawSpecialObject(int actorIdx) {
 		if (freeData) {
 			// HQR_FreeMalloc(HQ_Memory, actorPtr->FRAME)
 			actorPtr->indexInWorld = -1;
-			actorTurnedToObj = 1;
+			g_engine->_engine->actorTurnedToObj = 1;
 		}
 		break;
 	}
@@ -1957,7 +1983,7 @@ static void drawSpecialObject(int actorIdx) {
 		// skip point list
 		int16 *flowAnimList = (int16 *)(flowPtr + 2 + 6 * (*flowPointList));
 
-		const int16 *pPointList = renderPointList;
+		const int16 *pPointList = g_engine->_engine->renderPointList;
 		bool freeData = true;
 		const int16 numPoints = flowPointList[0];
 		flowPointList++;
@@ -1971,9 +1997,9 @@ static void drawSpecialObject(int actorIdx) {
 				}
 				flowAnimList[1] += 6;
 				walkStep(10, 0, flowAnimList[0]);
-				flowPointList[0] += animMoveX;
+				flowPointList[0] += g_engine->_engine->animMoveX;
 				flowPointList[1] += flowAnimList[1];
-				flowPointList[2] += animMoveZ;
+				flowPointList[2] += g_engine->_engine->animMoveZ;
 			}
 			flowAnimList += 2;
 			flowPointList += 3;
@@ -1983,13 +2009,13 @@ static void drawSpecialObject(int actorIdx) {
 		if (freeData) {
 			// HQR_FreeMalloc(HQ_Memory, actorPtr->FRAME);
 			actorPtr->indexInWorld = -1;
-			actorTurnedToObj = 1;
+			g_engine->_engine->actorTurnedToObj = 1;
 		}
 		break;
 	}
 	case 3: {
 		// muzzle flash
-		flowPtr = HQR_Get(listBody, cVars[getCVarsIdx(BODY_FLAMME)]);
+		flowPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->cVars[getCVarsIdx(BODY_FLAMME)]);
 		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
 		actorPtr->indexInWorld = -1;
 		break;
@@ -2020,14 +2046,14 @@ static void drawSpecialObject(int actorIdx) {
 		actorPtr->beta += 4;
 		calcXYZNuage(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, flowPtr);
 
-		if (cVars[getCVarsIdx(FOG_FLAG)] == 2) {
-			cVars[getCVarsIdx(FOG_FLAG)] = 3;
+		if (g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] == 2) {
+			g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] = 3;
 		}
 
 		if (chrono1 >= 0) {
 			if (chrono1 != 0 || chrono2 >= 480) {
-				if (cVars[getCVarsIdx(FOG_FLAG)] == 1) {
-					cVars[getCVarsIdx(FOG_FLAG)] = 2;
+				if (g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] == 1) {
+					g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] = 2;
 				}
 			}
 		}
@@ -2038,13 +2064,13 @@ static void drawSpecialObject(int actorIdx) {
 			size = chrono2;
 		}
 
-		const int16 *pPointList = renderPointList;
+		const int16 *pPointList = g_engine->_engine->renderPointList;
 		for (int i = 0; i < 20; ++i) {
 			int x = pPointList[0];
 			int y = pPointList[1];
 			int z = pPointList[2];
 			if (z > 10) {
-				const float transformedSize = (float)size * (float)cameraFovX / (float)(z + cameraPerspective);
+				const float transformedSize = (float)size * (float)g_engine->_engine->cameraFovX / (float)(z + g_engine->_engine->cameraPerspective);
 				osystem_drawSphere(x, y, z, 176, 2, transformedSize);
 			}
 			pPointList += 3;
@@ -2052,10 +2078,10 @@ static void drawSpecialObject(int actorIdx) {
 
 		if (chrono1 >= 0) {
 			if (chrono1 != 0 || chrono2 >= 660) {
-				cVars[getCVarsIdx(FOG_FLAG)] = 0;
+				g_engine->_engine->cVars[getCVarsIdx(FOG_FLAG)] = 0;
 				// TODO: HQR_Free
 				actorPtr->indexInWorld = -1;
-				actorTurnedToObj = 1;
+				g_engine->_engine->actorTurnedToObj = 1;
 			}
 		}
 		break;
@@ -2124,30 +2150,30 @@ static int drawTextOverlay();
 void mainDraw(int flagFlip) {
 	// if(flagFlip == 2)
 	{
-		if (cameraBackgroundChanged) {
-			gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
-			cameraBackgroundChanged = false;
+		if (g_engine->_engine->cameraBackgroundChanged) {
+			gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+			g_engine->_engine->cameraBackgroundChanged = false;
 		}
 	}
 
 	if (flagFlip == 0) {
 		// restoreDirtyRects();
 	} else {
-		nbPhysBoxs = 0;
-		fastCopyScreen(aux2, logicalScreen);
+		g_engine->_engine->nbPhysBoxs = 0;
+		fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 	}
 
 	// osystem_drawBackground();
 
 	setClip(0, 0, 319, 199);
-	nbLogBoxs = 0;
+	g_engine->_engine->nbLogBoxs = 0;
 
 	// osystem_startModelRender();
 
-	for (int i = 0; i < numActorInList; i++) {
-		const int currentDrawActor = sortedActorTable[i];
+	for (int i = 0; i < g_engine->_engine->numActorInList; i++) {
+		const int currentDrawActor = g_engine->_engine->sortedActorTable[i];
 
-		Object *actorPtr = &objectTable[currentDrawActor];
+		Object *actorPtr = &g_engine->_engine->objectTable[currentDrawActor];
 
 		// this is commented out to draw actors incrusted in background
 		// if(actorPtr->_flags & (AF_ANIMATED | AF_DRAWABLE | AF_SPECIAL))
@@ -2157,10 +2183,10 @@ void mainDraw(int flagFlip) {
 			if (actorPtr->_flags & AF_SPECIAL) {
 				drawSpecialObject(currentDrawActor);
 			} else {
-				byte *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
+				byte *bodyPtr = HQR_Get(g_engine->_engine->listBody, actorPtr->bodyNum);
 
-				if (hqLoad) {
-					// setAnimObjet(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
+				if (g_engine->_engine->hqLoad) {
+					// setAnimObjet(actorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, actorPtr->ANIM), bodyPtr);
 				}
 
 				affObjet(actorPtr->worldX + actorPtr->stepX, actorPtr->worldY + actorPtr->stepY, actorPtr->worldZ + actorPtr->stepZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, bodyPtr);
@@ -2184,9 +2210,9 @@ void mainDraw(int flagFlip) {
 			if (BBox3D1 <= 319 && BBox3D2 <= 199 && BBox3D3 >= 0 && BBox3D4 >= 0) // is the character on screen ?
 			{
 				if (g_engine->getGameId() == GID_AITD1) {
-					if (actorPtr->indexInWorld == cVars[getCVarsIdx(LIGHT_OBJECT)]) {
-						lightX = (BBox3D3 + BBox3D1) / 2;
-						lightY = (BBox3D4 + BBox3D2) / 2;
+					if (actorPtr->indexInWorld == g_engine->_engine->cVars[getCVarsIdx(LIGHT_OBJECT)]) {
+						g_engine->_engine->lightX = (BBox3D3 + BBox3D1) / 2;
+						g_engine->_engine->lightY = (BBox3D4 + BBox3D2) / 2;
 					}
 				}
 
@@ -2207,20 +2233,20 @@ void mainDraw(int flagFlip) {
 	osystem_flushPendingPrimitives();
 
 	if (drawTextOverlay()) {
-		gfx_copyBlockPhys((byte *)logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
+		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 	} else {
 		// TODO: check if it's okay
-		fastCopyScreen(aux, logicalScreen);
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
+		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 	}
 
-	if (!lightOff) {
+	if (!g_engine->_engine->lightOff) {
 		if (flagFlip) {
-			if (flagFlip == 2 || newFlagLight) {
+			if (flagFlip == 2 || g_engine->_engine->newFlagLight) {
 				makeBlackPalette();
 				osystem_flip(nullptr);
 				fadeInPhys(0x10, 0);
-				newFlagLight = 0;
+				g_engine->_engine->newFlagLight = 0;
 			} else {
 				// osystem_flip(NULL);
 			}
@@ -2234,24 +2260,24 @@ void mainDraw(int flagFlip) {
 
 	//	osystem_flip(NULL);
 
-	flagRedraw = 0;
+	g_engine->_engine->flagRedraw = 0;
 }
 
 void walkStep(int angle1, int angle2, int angle3) {
-	rotate(angle3, angle1, angle2, &animMoveZ, &animMoveX);
+	rotate(angle3, angle1, angle2, &g_engine->_engine->animMoveZ, &g_engine->_engine->animMoveX);
 }
 
 void addActorToBgInscrust(int actorIdx) {
-	objectTable[actorIdx]._flags |= AF_BOXIFY + AF_DRAWABLE;
-	objectTable[actorIdx]._flags &= ~AF_ANIMATED;
+	g_engine->_engine->objectTable[actorIdx]._flags |= AF_BOXIFY + AF_DRAWABLE;
+	g_engine->_engine->objectTable[actorIdx]._flags &= ~AF_ANIMATED;
 
 	// FlagRefreshAux2 = 1;
 }
 
 void cleanClip() {
-	for (int x = clipLeft; x < clipRight; x++) {
-		for (int y = clipTop; y < clipBottom; y++) {
-			logicalScreen[y * 320 + x] = 0;
+	for (int x = g_engine->_engine->clipLeft; x < g_engine->_engine->clipRight; x++) {
+		for (int y = g_engine->_engine->clipTop; y < g_engine->_engine->clipBottom; y++) {
+			g_engine->_engine->logicalScreen[y * 320 + x] = 0;
 		}
 	}
 }
@@ -2259,27 +2285,27 @@ void cleanClip() {
 void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 	cleanClip();
 
-	setCameraTarget(0, 0, 0, 60, statusVar1, 0, zoomFactor);
+	setCameraTarget(0, 0, 0, 60, g_engine->_engine->statusVar1, 0, zoomFactor);
 
-	affObjet(0, 0, 0, 0, 0, 0, HQR_Get(listBody, currentFoundBodyIdx));
+	affObjet(0, 0, 0, 0, 0, 0, HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx));
 
-	simpleMessage(160, windowY1, 20, 1);
-	simpleMessage(160, windowY1 + 16, objectName, 1);
-	simpleMessage(160, windowY1 + 16, objectName, 1);
+	simpleMessage(160, g_engine->_engine->windowY1, 20, 1);
+	simpleMessage(160, g_engine->_engine->windowY1 + 16, objectName, 1);
+	simpleMessage(160, g_engine->_engine->windowY1 + 16, objectName, 1);
 
 	switch (menuState) {
 	case 0: {
-		selectedMessage(130, windowY2 - 16, 21, 1, 4);
-		simpleMessage(190, windowY2 - 16, 22, 4);
+		selectedMessage(130, g_engine->_engine->windowY2 - 16, 21, 1, 4);
+		simpleMessage(190, g_engine->_engine->windowY2 - 16, 22, 4);
 		break;
 	}
 	case 1: {
-		simpleMessage(130, windowY2 - 16, 21, 4);
-		selectedMessage(190, windowY2 - 16, 22, 1, 4);
+		simpleMessage(130, g_engine->_engine->windowY2 - 16, 21, 4);
+		selectedMessage(190, g_engine->_engine->windowY2 - 16, 22, 1, 4);
 		break;
 	}
 	case 2: {
-		selectedMessage(160, windowY2 - 16, 10, 1, 4);
+		selectedMessage(160, g_engine->_engine->windowY2 - 16, 10, 1, 4);
 		break;
 	}
 	}
@@ -2301,7 +2327,7 @@ void take(int objIdx) {
 
 	numObjInInventoryTable[currentInventory]++;
 
-	action = 0x800;
+	g_engine->_engine->action = 0x800;
 
 	executeFoundLife(objIdx);
 
@@ -2336,7 +2362,7 @@ void foundObject(int objIdx, int param) {
 	}
 
 	if (objPtr->trackNumber) {
-		if (timer - objPtr->trackNumber < 300) // prevent from reopening the window every frame
+		if (g_engine->_engine->timer - objPtr->trackNumber < 300) // prevent from reopening the window every frame
 			return;
 	}
 
@@ -2350,19 +2376,19 @@ void foundObject(int objIdx, int param) {
 		weight += g_engine->_engine->worldObjets[inventoryTable[currentInventory][i]].positionInTrack;
 	}
 
-	if (objPtr->positionInTrack + weight > cVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
+	if (objPtr->positionInTrack + weight > g_engine->_engine->cVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
 		var_6 = 3;
 	}
 
-	currentFoundBodyIdx = objPtr->foundBody;
-	currentFoundBody = HQR_Get(listBody, currentFoundBodyIdx);
+	g_engine->_engine->currentFoundBodyIdx = objPtr->foundBody;
+	g_engine->_engine->currentFoundBody = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
 
 	setupCameraProjection(160, 100, 128, 300, 298);
 
-	statusVar1 = 0;
+	g_engine->_engine->statusVar1 = 0;
 
 	memset(frontBuffer, 0, 320 * 200);
-	fastCopyScreen(frontBuffer, logicalScreen);
+	fastCopyScreen(frontBuffer, g_engine->_engine->logicalScreen);
 
 	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
 		affBigCadre(160, 100, 240, 120);
@@ -2376,17 +2402,17 @@ void foundObject(int objIdx, int param) {
 	input5 = 1;
 
 	while (!var_C && !::Engine::shouldQuit()) {
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 		process_events();
 		osystem_drawBackground();
 
-		localKey = key;
-		localJoyD = joyD;
-		localClick = click;
+		g_engine->_engine->localKey = g_engine->_engine->key;
+		g_engine->_engine->localJoyD = g_engine->_engine->joyD;
+		g_engine->_engine->localClick = g_engine->_engine->click;
 
 		if (!input5) {
-			if (localKey == 1) {
+			if (g_engine->_engine->localKey == 1) {
 				if (var_6 != 2) {
 					var_6 = 0;
 				}
@@ -2394,28 +2420,28 @@ void foundObject(int objIdx, int param) {
 				var_C = 1;
 			}
 			if (var_6 != 2) {
-				if (localJoyD & 4) {
+				if (g_engine->_engine->localJoyD & 4) {
 					var_6 = 0;
 				}
 
-				if (localJoyD & 8) {
+				if (g_engine->_engine->localJoyD & 8) {
 					var_6 = 1;
 				}
 			}
 
-			if (localKey == 28 || localClick != 0) {
-				while (key) {
+			if (g_engine->_engine->localKey == 28 || g_engine->_engine->localClick != 0) {
+				while (g_engine->_engine->key) {
 					process_events();
 				}
 
 				var_C = 1;
 			}
 		} else {
-			if (!localKey && !localJoyD && !localClick)
+			if (!g_engine->_engine->localKey && !g_engine->_engine->localJoyD && !g_engine->_engine->localClick)
 				input5 = 0;
 		}
 
-		statusVar1 -= 8;
+		g_engine->_engine->statusVar1 -= 8;
 
 		var_A += var_8; // zoom / dezoom
 
@@ -2435,22 +2461,22 @@ void foundObject(int objIdx, int param) {
 	if (var_6 == 1) {
 		take(objIdx);
 	} else {
-		objPtr->trackNumber = timer;
+		objPtr->trackNumber = g_engine->_engine->timer;
 	}
 
-	while (key && click) {
+	while (g_engine->_engine->key && g_engine->_engine->click) {
 		process_events();
 	}
 
-	localJoyD = 0;
-	localKey = 0;
-	localClick = 0;
+	g_engine->_engine->localJoyD = 0;
+	g_engine->_engine->localKey = 0;
+	g_engine->_engine->localClick = 0;
 
-	if (flagRotPal != 0) {
+	if (g_engine->_engine->flagRotPal != 0) {
 		setWaterHeight(-600);
 	}
 
-	flagInitView = 1;
+	g_engine->_engine->flagInitView = 1;
 }
 
 static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int x4, int z4) {
@@ -2518,14 +2544,14 @@ static int findBestCamera() {
 	int foundAngle = 32000;
 	int foundCamera = -1;
 
-	const Object *actorPtr = &objectTable[currentCameraTargetActor];
+	const Object *actorPtr = &g_engine->_engine->objectTable[g_engine->_engine->currentCameraTargetActor];
 
 	const int x1 = actorPtr->zv.ZVX1 / 10;
 	const int x2 = actorPtr->zv.ZVX2 / 10;
 	const int z1 = actorPtr->zv.ZVZ1 / 10;
 	const int z2 = actorPtr->zv.ZVZ2 / 10;
 
-	for (int i = 0; i < numCameraInRoom; i++) {
+	for (int i = 0; i < g_engine->_engine->numCameraInRoom; i++) {
 		assert(i < NUM_MAX_CAMERA_IN_ROOM);
 		if (currentCameraZoneList[i])
 			if (isInPoly(x1, x2, z1, z2, currentCameraZoneList[i])) // if in camera zone ?
@@ -2548,11 +2574,11 @@ static int findBestCamera() {
 }
 
 void checkIfCameraChangeIsRequired() {
-	int localCurrentCam = currentCamera;
+	int localCurrentCam = g_engine->_engine->currentCamera;
 
-	if (currentCamera != -1) {
+	if (g_engine->_engine->currentCamera != -1) {
 
-		const Object *actorPtr = &objectTable[currentCameraTargetActor];
+		const Object *actorPtr = &g_engine->_engine->objectTable[g_engine->_engine->currentCameraTargetActor];
 
 		const int zvx1 = actorPtr->zv.ZVX1 / 10;
 		const int zvx2 = actorPtr->zv.ZVX2 / 10;
@@ -2560,7 +2586,7 @@ void checkIfCameraChangeIsRequired() {
 		const int zvz1 = actorPtr->zv.ZVZ1 / 10;
 		const int zvz2 = actorPtr->zv.ZVZ2 / 10;
 
-		if (isInPoly(zvx1, zvx2, zvz1, zvz2, currentCameraZoneList[currentCamera])) // is still in current camera zone ?
+		if (isInPoly(zvx1, zvx2, zvz1, zvz2, currentCameraZoneList[g_engine->_engine->currentCamera])) // is still in current camera zone ?
 		{
 			return;
 		}
@@ -2572,9 +2598,9 @@ void checkIfCameraChangeIsRequired() {
 		localCurrentCam = newCamera;
 	}
 
-	if (currentCamera != localCurrentCam) {
-		startGameVar1 = localCurrentCam;
-		flagInitView = 1;
+	if (g_engine->_engine->currentCamera != localCurrentCam) {
+		g_engine->_engine->startGameVar1 = localCurrentCam;
+		g_engine->_engine->flagInitView = 1;
 	}
 }
 
@@ -2597,78 +2623,78 @@ void processActor2() {
 
 	do {
 		onceMore = false;
-		RoomData *pRoomData = &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room];
+		RoomData *pRoomData = &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room];
 		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 			SceZone *pCurrentZone = &pRoomData->sceZoneTable[i];
 
-			if (isPointInZV(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-							currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY,
-							currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+			if (isPointInZV(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+							g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY,
+							g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
 							&pCurrentZone->zv)) {
 				switch (pCurrentZone->type) {
 				case 0: {
 
-					const int oldRoom = currentProcessedActorPtr->room;
+					const int oldRoom = g_engine->_engine->currentProcessedActorPtr->room;
 
-					currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
+					g_engine->_engine->currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
 
-					const int x = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[oldRoom].worldX) * 10;
-					const int y = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[oldRoom].worldY) * 10;
-					const int z = (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[oldRoom].worldZ) * 10;
+					const int x = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[oldRoom].worldX) * 10;
+					const int y = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[oldRoom].worldY) * 10;
+					const int z = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[oldRoom].worldZ) * 10;
 
-					currentProcessedActorPtr->roomX -= x;
-					currentProcessedActorPtr->roomY += y;
-					currentProcessedActorPtr->roomZ += z;
+					g_engine->_engine->currentProcessedActorPtr->roomX -= x;
+					g_engine->_engine->currentProcessedActorPtr->roomY += y;
+					g_engine->_engine->currentProcessedActorPtr->roomZ += z;
 
-					currentProcessedActorPtr->zv.ZVX1 -= x;
-					currentProcessedActorPtr->zv.ZVX2 -= x;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 -= x;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 -= x;
 
-					currentProcessedActorPtr->zv.ZVY1 += y;
-					currentProcessedActorPtr->zv.ZVY2 += y;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += y;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += y;
 
-					currentProcessedActorPtr->zv.ZVZ1 += z;
-					currentProcessedActorPtr->zv.ZVZ2 += z;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 += z;
+					g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 += z;
 
 					onceMore = true;
-					if (currentProcessedActorIdx == currentCameraTargetActor) {
-						needChangeRoom = 1;
-						newRoom = (short)pCurrentZone->parameter;
+					if (g_engine->_engine->currentProcessedActorIdx == g_engine->_engine->currentCameraTargetActor) {
+						g_engine->_engine->needChangeRoom = 1;
+						g_engine->_engine->newRoom = (short)pCurrentZone->parameter;
 						if (g_engine->getGameId() > GID_AITD1)
-							loadRoom(newRoom);
+							loadRoom(g_engine->_engine->newRoom);
 
 					} else {
-						actorTurnedToObj = 1;
+						g_engine->_engine->actorTurnedToObj = 1;
 					}
 
-					startChrono(&currentProcessedActorPtr->ROOM_CHRONO);
+					startChrono(&g_engine->_engine->currentProcessedActorPtr->ROOM_CHRONO);
 
 					break;
 				}
 				case 8: {
 					assert(g_engine->getGameId() != GID_AITD1);
 					if (g_engine->getGameId() != GID_AITD1) {
-						currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
+						g_engine->_engine->currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
 					}
 					break;
 				}
 				case 9: // Scenar
 				{
 					if (g_engine->getGameId() == GID_AITD1 || !flagFloorChange) {
-						currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+						g_engine->_engine->currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
 					}
 					break;
 				}
 				case 10: // stage
 				{
 
-					const int life = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
+					const int life = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].floorLife;
 
 					if (life == -1)
 						return;
 
-					currentProcessedActorPtr->life = life;
+					g_engine->_engine->currentProcessedActorPtr->life = life;
 
-					currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					g_engine->_engine->currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
 					flagFloorChange = true;
 					return;
 				}
@@ -2699,17 +2725,17 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 	walkStep(param * 2, 0, beta);
 
 	while (foundFlag == -2) {
-		localZv.ZVX1 += animMoveX;
-		localZv.ZVX2 += animMoveX;
+		localZv.ZVX1 += g_engine->_engine->animMoveX;
+		localZv.ZVX2 += g_engine->_engine->animMoveX;
 
-		localZv.ZVZ1 += animMoveZ;
-		localZv.ZVZ2 += animMoveZ;
+		localZv.ZVZ1 += g_engine->_engine->animMoveZ;
+		localZv.ZVZ2 += g_engine->_engine->animMoveZ;
 
 		tempX = X;
 		tempZ = Z;
 
-		X += animMoveX;
-		Z += animMoveZ;
+		X += g_engine->_engine->animMoveX;
+		Z += g_engine->_engine->animMoveZ;
 
 		if (X > 20000 || X < -20000 || Z > 20000 || Z < -20000) {
 			foundFlag = -1;
@@ -2719,7 +2745,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 		if (asmCheckListCol(&localZv, &g_engine->_engine->roomDataTable[room]) <= 0) {
 			foundFlag = -1;
 		} else {
-			Object *currentActorPtr = objectTable;
+			Object *currentActorPtr = g_engine->_engine->objectTable;
 
 			for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 				if (currentActorPtr->indexInWorld != -1 && i != actorIdx && !(currentActorPtr->_flags & AF_SPECIAL)) {
@@ -2751,9 +2777,9 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 		}
 	}
 
-	animMoveX = tempX;
-	animMoveY = Y;
-	animMoveZ = tempZ;
+	g_engine->_engine->animMoveX = tempX;
+	g_engine->_engine->animMoveY = Y;
+	g_engine->_engine->animMoveZ = tempZ;
 
 	return foundFlag;
 }
@@ -2763,7 +2789,7 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 	const WorldObject *objPtrToPutAt = &g_engine->_engine->worldObjets[objIdxToPutAt];
 
 	if (objPtrToPutAt->objIndex != -1) {
-		const Object *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
+		const Object *actorToPutAtPtr = &g_engine->_engine->objectTable[objPtrToPutAt->objIndex];
 
 		deleteInventoryObjet(objIdx);
 
@@ -2783,17 +2809,17 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
 		} else {
-			currentProcessedActorPtr->roomX = actorToPutAtPtr->roomX;
-			currentProcessedActorPtr->roomY = actorToPutAtPtr->roomY;
-			currentProcessedActorPtr->roomZ = actorToPutAtPtr->roomZ;
-			currentProcessedActorPtr->room = actorToPutAtPtr->room;
-			currentProcessedActorPtr->stage = actorToPutAtPtr->stage;
-			currentProcessedActorPtr->alpha = actorToPutAtPtr->alpha;
-			currentProcessedActorPtr->beta = actorToPutAtPtr->beta;
-			currentProcessedActorPtr->gamma = actorToPutAtPtr->gamma;
+			g_engine->_engine->currentProcessedActorPtr->roomX = actorToPutAtPtr->roomX;
+			g_engine->_engine->currentProcessedActorPtr->roomY = actorToPutAtPtr->roomY;
+			g_engine->_engine->currentProcessedActorPtr->roomZ = actorToPutAtPtr->roomZ;
+			g_engine->_engine->currentProcessedActorPtr->room = actorToPutAtPtr->room;
+			g_engine->_engine->currentProcessedActorPtr->stage = actorToPutAtPtr->stage;
+			g_engine->_engine->currentProcessedActorPtr->alpha = actorToPutAtPtr->alpha;
+			g_engine->_engine->currentProcessedActorPtr->beta = actorToPutAtPtr->beta;
+			g_engine->_engine->currentProcessedActorPtr->gamma = actorToPutAtPtr->gamma;
 
-			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+			g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags |= 0x80;
 
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
@@ -2818,17 +2844,17 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
 		} else {
-			currentProcessedActorPtr->roomX = objPtrToPutAt->x;
-			currentProcessedActorPtr->roomY = objPtrToPutAt->y;
-			currentProcessedActorPtr->roomZ = objPtrToPutAt->z;
-			currentProcessedActorPtr->room = objPtrToPutAt->room;
-			currentProcessedActorPtr->stage = objPtrToPutAt->stage;
-			currentProcessedActorPtr->alpha = objPtrToPutAt->alpha;
-			currentProcessedActorPtr->beta = objPtrToPutAt->beta;
-			currentProcessedActorPtr->gamma = objPtrToPutAt->gamma;
+			g_engine->_engine->currentProcessedActorPtr->roomX = objPtrToPutAt->x;
+			g_engine->_engine->currentProcessedActorPtr->roomY = objPtrToPutAt->y;
+			g_engine->_engine->currentProcessedActorPtr->roomZ = objPtrToPutAt->z;
+			g_engine->_engine->currentProcessedActorPtr->room = objPtrToPutAt->room;
+			g_engine->_engine->currentProcessedActorPtr->stage = objPtrToPutAt->stage;
+			g_engine->_engine->currentProcessedActorPtr->alpha = objPtrToPutAt->alpha;
+			g_engine->_engine->currentProcessedActorPtr->beta = objPtrToPutAt->beta;
+			g_engine->_engine->currentProcessedActorPtr->gamma = objPtrToPutAt->gamma;
 
-			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-			g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+			g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags |= 0x80;
 
 			//      FlagGenereActiveList = 1;
 			//      FlagRefreshAux2 = 1;
@@ -2841,23 +2867,23 @@ void throwStoppedAt(int x, int z) {
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
 
-	uint8 *bodyPtr = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+	uint8 *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
 
 	giveZVObjet(bodyPtr, &zvLocal);
 
 	int x2 = x;
-	int y2 = currentProcessedActorPtr->roomY / 2000 * 2000;
+	int y2 = g_engine->_engine->currentProcessedActorPtr->roomY / 2000 * 2000;
 	int z2 = z;
 
 	int foundPosition = 0;
 	int step = 0;
 
 	while (!foundPosition) {
-		walkStep(0, -step, currentProcessedActorPtr->beta + 0x200);
+		walkStep(0, -step, g_engine->_engine->currentProcessedActorPtr->beta + 0x200);
 		copyZv(&zvLocal, &zvCopy);
 
-		x2 = x + animMoveX;
-		z2 = z + animMoveZ;
+		x2 = x + g_engine->_engine->animMoveX;
+		z2 = z + g_engine->_engine->animMoveZ;
 
 		zvCopy.ZVX1 += x2;
 		zvCopy.ZVX2 += x2;
@@ -2868,7 +2894,7 @@ void throwStoppedAt(int x, int z) {
 		zvCopy.ZVZ1 += z2;
 		zvCopy.ZVZ2 += z2;
 
-		if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
+		if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
 			foundPosition = 1;
 		}
 
@@ -2877,7 +2903,7 @@ void throwStoppedAt(int x, int z) {
 				zvCopy.ZVY1 += 100; // is the object reachable ? (100 is Carnby height. If hard col at Y + 100, carnby can't reach that spot)
 				zvCopy.ZVY2 += 100;
 
-				if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[currentProcessedActorPtr->room])) {
+				if (!asmCheckListCol(&zvCopy, &g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room])) {
 					y2 += 2000;
 					foundPosition = 0;
 				} else {
@@ -2890,33 +2916,33 @@ void throwStoppedAt(int x, int z) {
 		}
 	}
 
-	currentProcessedActorPtr->worldX = x2;
-	currentProcessedActorPtr->roomX = x2;
-	currentProcessedActorPtr->worldY = y2;
-	currentProcessedActorPtr->roomY = y2;
-	currentProcessedActorPtr->worldZ = z2;
-	currentProcessedActorPtr->roomZ = z2;
+	g_engine->_engine->currentProcessedActorPtr->worldX = x2;
+	g_engine->_engine->currentProcessedActorPtr->roomX = x2;
+	g_engine->_engine->currentProcessedActorPtr->worldY = y2;
+	g_engine->_engine->currentProcessedActorPtr->roomY = y2;
+	g_engine->_engine->currentProcessedActorPtr->worldZ = z2;
+	g_engine->_engine->currentProcessedActorPtr->roomZ = z2;
 
-	currentProcessedActorPtr->stepX = 0;
-	currentProcessedActorPtr->stepZ = 0;
+	g_engine->_engine->currentProcessedActorPtr->stepX = 0;
+	g_engine->_engine->currentProcessedActorPtr->stepZ = 0;
 
-	currentProcessedActorPtr->animActionType = 0;
-	currentProcessedActorPtr->speed = 0;
-	currentProcessedActorPtr->gamma = 0;
+	g_engine->_engine->currentProcessedActorPtr->animActionType = 0;
+	g_engine->_engine->currentProcessedActorPtr->speed = 0;
+	g_engine->_engine->currentProcessedActorPtr->gamma = 0;
 
-	giveZVObjet(bodyPtr, &currentProcessedActorPtr->zv);
+	giveZVObjet(bodyPtr, &g_engine->_engine->currentProcessedActorPtr->zv);
 
-	currentProcessedActorPtr->zv.ZVX1 += x2;
-	currentProcessedActorPtr->zv.ZVX2 += x2;
-	currentProcessedActorPtr->zv.ZVY1 += y2;
-	currentProcessedActorPtr->zv.ZVY2 += y2;
-	currentProcessedActorPtr->zv.ZVZ1 += z2;
-	currentProcessedActorPtr->zv.ZVZ2 += z2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += x2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += x2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += y2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += y2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 += z2;
+	g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 += z2;
 
-	g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
-	g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].flags2 &= 0xEFFF;
+	g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+	g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].flags2 &= 0xEFFF;
 
-	addActorToBgInscrust(currentProcessedActorIdx);
+	addActorToBgInscrust(g_engine->_engine->currentProcessedActorIdx);
 }
 
 void startGame(int startupFloor, int startupRoom, int allowSystemMenu) {
@@ -2926,12 +2952,12 @@ void startGame(int startupFloor, int startupRoom, int allowSystemMenu) {
 
 	loadFloor(startupFloor);
 
-	currentCamera = -1;
+	g_engine->_engine->currentCamera = -1;
 
 	loadRoom(startupRoom);
 
-	startGameVar1 = 0;
-	flagInitView = 2;
+	g_engine->_engine->startGameVar1 = 0;
+	g_engine->_engine->flagInitView = 2;
 
 	setupCamera();
 
@@ -2950,9 +2976,9 @@ static int drawTextOverlay() {
 	BBox3D1 = 319;
 	BBox3D3 = 0;
 
-	Message *currentMessage = messageTable;
+	Message *currentMessage = g_engine->_engine->messageTable;
 
-	if (lightOff == 0) {
+	if (g_engine->_engine->lightOff == 0) {
 		for (int i = 0; i < 5; i++) {
 			if (currentMessage->string) {
 				const int width = currentMessage->string->width;
@@ -2971,9 +2997,9 @@ static int drawTextOverlay() {
 					currentMessage->string = nullptr;
 				} else {
 					if (currentMessage->time < 26) {
-						extSetFont(ptrFont, 16);
+						extSetFont(g_engine->_engine->ptrFont, 16);
 					} else {
-						extSetFont(ptrFont, 16 + (currentMessage->time - 26) / 2);
+						extSetFont(g_engine->_engine->ptrFont, 16 + (currentMessage->time - 26) / 2);
 					}
 
 					renderText(X, y + 1, currentMessage->string->textPtr);
@@ -2992,7 +3018,7 @@ static int drawTextOverlay() {
 }
 
 static void setupScreen() {
-	logicalScreen = (byte *)malloc(64800);
+	g_engine->_engine->logicalScreen = (byte *)malloc(64800);
 
 	// screenBufferSize = 64800;
 
@@ -3005,11 +3031,11 @@ static void loadPalette() {
 	byte localPalette[768];
 
 	if (g_engine->getGameId() == GID_AITD2) {
-		pakLoad("ITD_RESS.PAK", 59, aux);
+		pakLoad("ITD_RESS.PAK", 59, g_engine->_engine->aux);
 	} else {
-		pakLoad("ITD_RESS.PAK", AITD1_PALETTE_JEU, aux);
+		pakLoad("ITD_RESS.PAK", AITD1_PALETTE_JEU, g_engine->_engine->aux);
 	}
-	copyPalette((byte *)aux, currentGamePalette);
+	copyPalette((byte *)g_engine->_engine->aux, currentGamePalette);
 
 	copyPalette(currentGamePalette, localPalette);
 	//  fadeInSub1(localPalette);
@@ -3032,18 +3058,18 @@ static void allocTextes() {
 	for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
 		Common::File f;
 		if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
-			languageNameString = languageNameTable[i];
+			g_engine->_engine->languageNameString = languageNameTable[i];
 			break;
 		}
 	}
 
-	if (!languageNameString) {
+	if (!g_engine->_engine->languageNameString) {
 		error("Unable to detect language file..\n");
 		assert(0);
 	}
 
-	systemTextes = (char*)checkLoadMallocPak(languageNameString, 0);
-	const int textLength = pakGetPakSize(languageNameString, 0);
+	g_engine->_engine->systemTextes = (char*)checkLoadMallocPak(g_engine->_engine->languageNameString, 0);
+	const int textLength = pakGetPakSize(g_engine->_engine->languageNameString, 0);
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
 		tabTextes[currentIndex].index = -1;
@@ -3051,11 +3077,11 @@ static void allocTextes() {
 		tabTextes[currentIndex].width = 0;
 	}
 
-	char *currentPosInTextes = systemTextes;
+	char *currentPosInTextes = g_engine->_engine->systemTextes;
 
 	int textCounter = 0;
 
-	while (currentPosInTextes < systemTextes + textLength) {
+	while (currentPosInTextes < g_engine->_engine->systemTextes + textLength) {
 		currentIndex = *currentPosInTextes++;
 
 		if (currentIndex == 26)
@@ -3107,16 +3133,16 @@ void runGame() {
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		cVarsSize = 45;
+		g_engine->_engine->cVarsSize = 45;
 		currentCVarTable = aitd1KnownCVars;
 		break;
 	case GID_JACK:
-		cVarsSize = 15;
+		g_engine->_engine->cVarsSize = 15;
 		currentCVarTable = aitd2KnownCVars;
 		break;
 	case GID_AITD2:
 	case GID_AITD3:
-		cVarsSize = 70;
+		g_engine->_engine->cVarsSize = 70;
 		currentCVarTable = aitd2KnownCVars;
 		break;
 	default:
@@ -3129,45 +3155,45 @@ void runGame() {
 	setupScreen();
 
 	initMusicDriver();
-	musicConfigured = 1;
-	musicEnabled = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kMusicSoundType) ? 0 : 1;
-	soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
-	detailToggle = 1;
+	g_engine->_engine->musicConfigured = 1;
+	g_engine->_engine->musicEnabled = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kMusicSoundType) ? 0 : 1;
+	g_engine->_engine->soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
+	g_engine->_engine->detailToggle = 1;
 
-	aux = (byte *)malloc(65068);
-	if (!aux) {
+	g_engine->_engine->aux = (byte *)malloc(65068);
+	if (!g_engine->_engine->aux) {
 		error("Failed to alloc Aux");
 	}
 
-	aux2 = (byte *)malloc(65068);
-	if (!aux2) {
+	g_engine->_engine->aux2 = (byte *)malloc(65068);
+	if (!g_engine->_engine->aux2) {
 		error("Failed to alloc Aux2");
 	}
 
-	initCopyBox(aux2, logicalScreen);
+	initCopyBox(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD3: {
-		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		g_engine->_engine->ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
 		break;
 	}
 	case GID_JACK:
 	case GID_AITD2: {
-		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		g_engine->_engine->ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
 		break;
 	}
 	case GID_AITD1: {
-		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", AITD1_ITDFONT);
+		g_engine->_engine->ptrFont = checkLoadMallocPak("ITD_RESS.PAK", AITD1_ITDFONT);
 		break;
 	}
 	case GID_TIMEGATE:
-		ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
+		g_engine->_engine->ptrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
 		break;
 	default:
 		assert(0);
 	}
 
-	extSetFont(ptrFont, 14);
+	extSetFont(g_engine->_engine->ptrFont, 14);
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		setFontSpace(2, 0);
@@ -3179,33 +3205,33 @@ void runGame() {
 	case GID_JACK:
 	case GID_AITD2:
 	case GID_AITD3: {
-		ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
+		g_engine->_engine->ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
 		break;
 	}
 	case GID_AITD1: {
-		ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", AITD1_CADRE_SPF);
+		g_engine->_engine->ptrCadre = checkLoadMallocPak("ITD_RESS.PAK", AITD1_CADRE_SPF);
 		break;
 	}
 	default:
 		break;
 	}
 
-	ptrPrioritySample = loadFromItd("PRIORITY.ITD");
+	g_engine->_engine->ptrPrioritySample = loadFromItd("PRIORITY.ITD");
 
 	// read cvars definitions
 	{
 		Common::File f;
 		f.open("DEFINES.ITD");
-		for (int i = 0; i < cVarsSize; i++) {
-			cVars[i] = f.readSint16BE();
+		for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
+			g_engine->_engine->cVars[i] = f.readSint16BE();
 		}
 		f.close();
 	}
 
 	allocTextes();
-	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
-	listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
-	hqMemory = HQR_Init(10000, 50);
+	g_engine->_engine->listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
+	g_engine->_engine->listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
+	g_engine->_engine->hqMemory = HQR_Init(10000, 50);
 
 	paletteFill(currentGamePalette, 0, 0, 0);
 	loadPalette();

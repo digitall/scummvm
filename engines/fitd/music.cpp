@@ -24,6 +24,7 @@
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
+#include "fitd/engine.h"
 #include "fitd/music.h"
 #include "fitd/vars.h"
 
@@ -61,11 +62,11 @@ typedef struct ChannelTableElement {
 
 static void callMusicUpdate();
 
-struct MusicUpdater : Common::Functor0<void> {
-	~MusicUpdater() final {}
+struct MusicUpdater final : Common::Functor0<void> {
+	~MusicUpdater() override {}
 
-	bool isValid() const final { return true; }
-	void operator()() const final { callMusicUpdate(); }
+	bool isValid() const override { return true; }
+	void operator()() const override { callMusicUpdate(); }
 };
 
 // tracks available: [0-7]
@@ -1102,7 +1103,7 @@ int fadeMusic(int param1, int param2, int param3) {
 void playMusic(int musicNumber) {
 	if (g_engine->getGameId() == GID_AITD3) // TODO:
 		return;
-	if (currentMusic == musicNumber)
+	if (g_engine->_engine->currentMusic == musicNumber)
 		return;
 
 	int trackNumber = musicNumber;
@@ -1119,13 +1120,13 @@ void playMusic(int musicNumber) {
 
 	// if (musicEnabled)
 	{
-		if (currentMusic != trackNumber) {
-			currentMusic = trackNumber;
+		if (g_engine->_engine->currentMusic != trackNumber) {
+			g_engine->_engine->currentMusic = trackNumber;
 
 			if (trackNumber >= 0) {
 				fadeMusic(0, 0, 0x40);
 
-				byte *musicPtr = HQR_Get(listMus, trackNumber);
+				byte *musicPtr = HQR_Get(g_engine->_engine->listMus, trackNumber);
 
 				if (musicPtr) {
 					musicLoad(musicPtr);

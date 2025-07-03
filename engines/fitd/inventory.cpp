@@ -56,15 +56,15 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 
 	if (g_engine->getGameId() <= GID_JACK) {
 		affBigCadre(160, 50, 320, 100);
-		y = windowY1 + 1;
+		y = g_engine->_engine->windowY1 + 1;
 	} else {
 		setClip(27, 25, 292, 98);
 		fillBox(27, 25, 292, 98, 0);
 
-		windowX1 = 30;
-		windowY1 = 27;
-		windowX2 = 288;
-		windowY2 = 95;
+		g_engine->_engine->windowX1 = 30;
+		g_engine->_engine->windowY1 = 27;
+		g_engine->_engine->windowX2 = 288;
+		g_engine->_engine->windowY2 = 95;
 
 		y = 28;
 	}
@@ -97,11 +97,11 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 	}
 
 	if (var_6 > 0) {
-		affSpfI(298, 10, 10, ptrCadre);
+		affSpfI(298, 10, 10, g_engine->_engine->ptrCadre);
 	}
 
 	if (var_6 + 5 < numObjInInventoryTable[currentInventory]) {
-		affSpfI(298, 74, 9, ptrCadre);
+		affSpfI(298, 74, 9, g_engine->_engine->ptrCadre);
 	}
 
 	return var_8;
@@ -111,15 +111,15 @@ void renderInventoryObject(int arg) {
 	setClip(statusLeft, statusTop, statusRight, statusBottom);
 	fillBox(statusLeft, statusTop, statusRight, statusBottom, 0);
 
-	statusVar1 -= 8;
+	g_engine->_engine->statusVar1 -= 8;
 
-	setCameraTarget(0, 0, 0, 60, statusVar1, 0, 24000);
-	affObjet(0, 0, 0, 0, 0, 0, currentFoundBody);
+	setCameraTarget(0, 0, 0, 60, g_engine->_engine->statusVar1, 0, 24000);
+	affObjet(0, 0, 0, 0, 0, 0, g_engine->_engine->currentFoundBody);
 
 	if (arg != -1) {
 		Common::String buffer;
-		extSetFont(ptrFont, 4);
-		buffer = Common::String::format("%d", vars[arg]);
+		extSetFont(g_engine->_engine->ptrFont, 4);
+		buffer = Common::String::format("%d", g_engine->_engine->vars[arg]);
 		renderText(statusLeft + 4, statusTop + 4, buffer.c_str());
 	}
 	switch (g_engine->getGameId()) {
@@ -142,10 +142,10 @@ void drawInventoryActions(int arg) {
 		setClip(162, 100, 292, 174);
 		fillBox(162, 100, 292, 174, 0);
 
-		windowX1 = 166;
-		windowY1 = 104;
-		windowX2 = 288;
-		windowY2 = 170;
+		g_engine->_engine->windowX1 = 166;
+		g_engine->_engine->windowY1 = 104;
+		g_engine->_engine->windowX2 = 288;
+		g_engine->_engine->windowY2 = 170;
 
 		y = 139 - numInventoryActions * fontHeight / 2;
 	}
@@ -191,12 +191,12 @@ void processInventory() {
 	int modeSelect = 0;
 	int antiBounce = 2;
 
-	statusVar1 = 0;
+	g_engine->_engine->statusVar1 = 0;
 
 	freezeTime();
 	saveAmbiance();
 
-	if (lightOff != 0) {
+	if (g_engine->_engine->lightOff != 0) {
 		makeBlackPalette();
 	}
 
@@ -205,10 +205,10 @@ void processInventory() {
 	case GID_JACK:
 		affBigCadre(80, 150, 160, 100);
 
-		statusLeft = windowX1;
-		statusTop = windowY1;
-		statusRight = windowX2;
-		statusBottom = windowY2;
+		statusLeft = g_engine->_engine->windowX1;
+		statusTop = g_engine->_engine->windowY1;
+		statusRight = g_engine->_engine->windowX2;
+		statusBottom = g_engine->_engine->windowY2;
 
 		setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 
@@ -232,35 +232,35 @@ void processInventory() {
 		process_events();
 		osystem_drawBackground();
 
-		localKey = key;
-		localJoyD = joyD;
-		localClick = click;
+		g_engine->_engine->localKey = g_engine->_engine->key;
+		g_engine->_engine->localJoyD = g_engine->_engine->joyD;
+		g_engine->_engine->localClick = g_engine->_engine->click;
 
-		if (!localKey && !localJoyD && !localClick) {
+		if (!g_engine->_engine->localKey && !g_engine->_engine->localJoyD && !g_engine->_engine->localClick) {
 			antiBounce = 0;
 		}
 
-		if (localKey == 1 || localKey == 0x1B) {
+		if (g_engine->_engine->localKey == 1 || g_engine->_engine->localKey == 0x1B) {
 			choice = 0;
 			exitMenu = 1;
 		}
 
 		if (modeSelect == 0) {
 			if (antiBounce < 1) {
-				if (localKey == 0x1C || localClick != 0 || localJoyD == 0xC) {
+				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick != 0 || g_engine->_engine->localJoyD == 0xC) {
 					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
-					gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
 					lastSelectedObjectIdx = -1;
 					selectedActions = 0;
 					antiBounce = 2;
 					continue;
 				}
-				if (localJoyD & 1 && selectedObjectIdx > 0) {
+				if (g_engine->_engine->localJoyD & 1 && selectedObjectIdx > 0) {
 					selectedObjectIdx--;
 				}
 
-				if (localJoyD & 2 && selectedObjectIdx < numObjInInventoryTable[currentInventory] - 1) {
+				if (g_engine->_engine->localJoyD & 2 && selectedObjectIdx < numObjInInventoryTable[currentInventory] - 1) {
 					selectedObjectIdx++;
 				}
 
@@ -272,7 +272,7 @@ void processInventory() {
 					firstObjectDisplayedIdx--;
 				}
 
-				if (localKey || localJoyD || localClick) {
+				if (g_engine->_engine->localKey || g_engine->_engine->localJoyD || g_engine->_engine->localClick) {
 					if (antiBounce == 0) {
 						antiBounce = 1;
 						startChrono(&chrono);
@@ -289,9 +289,9 @@ void processInventory() {
 			if (lastSelectedObjectIdx != selectedObjectIdx) {
 				selectedWorldObjectIdx = DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 15);
 
-				currentFoundBodyIdx = g_engine->_engine->worldObjets[selectedWorldObjectIdx].foundBody;
+				g_engine->_engine->currentFoundBodyIdx = g_engine->_engine->worldObjets[selectedWorldObjectIdx].foundBody;
 
-				currentFoundBody = HQR_Get(listBody, currentFoundBodyIdx);
+				g_engine->_engine->currentFoundBody = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
 
 				const int var_C = g_engine->_engine->worldObjets[selectedWorldObjectIdx].flags2;
 
@@ -315,14 +315,14 @@ void processInventory() {
 		} else // actions
 		{
 			if (antiBounce < 1) {
-				if (localKey == 0x1C || localClick) {
+				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) {
 					selectedObjectIdx = inventoryTable[currentInventory][selectedObjectIdx];
-					action = 1 << (inventoryActionTable[selectedActions] - 23);
+					g_engine->_engine->action = 1 << (inventoryActionTable[selectedActions] - 23);
 					choice = 1;
 					exitMenu = 1;
 				}
 
-				if (localJoyD & 0xC) {
+				if (g_engine->_engine->localJoyD & 0xC) {
 					drawInventoryActions(-1);
 					modeSelect = 0;
 					lastSelectedObjectIdx = -1;
@@ -330,15 +330,15 @@ void processInventory() {
 					continue;
 				}
 
-				if (localJoyD & 1 && selectedActions > 0) {
+				if (g_engine->_engine->localJoyD & 1 && selectedActions > 0) {
 					selectedActions--;
 				}
 
-				if (localJoyD & 2 && selectedActions < numInventoryActions - 1) {
+				if (g_engine->_engine->localJoyD & 2 && selectedActions < numInventoryActions - 1) {
 					selectedActions++;
 				}
 
-				if (localKey || localJoyD || localClick) {
+				if (g_engine->_engine->localKey || g_engine->_engine->localJoyD || g_engine->_engine->localClick) {
 					if (antiBounce == 0) {
 						antiBounce = 1;
 						startChrono(&chrono);
@@ -361,26 +361,26 @@ void processInventory() {
 
 		if (firstTime) {
 			firstTime = 0;
-			if (lightOff) {
+			if (g_engine->_engine->lightOff) {
 				fadeInPhys(0x40, 0);
 			}
 		}
 
-		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		// osystem_flip(NULL);
 	}
 
 	unfreezeTime();
 
-	flagInitView = 1;
+	g_engine->_engine->flagInitView = 1;
 
-	while (click || key || joyD) {
+	while (g_engine->_engine->click || g_engine->_engine->key || g_engine->_engine->joyD) {
 		process_events();
 	}
 
-	localJoyD = 0;
-	localKey = 0;
-	localClick = 0;
+	g_engine->_engine->localJoyD = 0;
+	g_engine->_engine->localKey = 0;
+	g_engine->_engine->localClick = 0;
 
 	if (choice == 1) {
 		executeFoundLife(selectedObjectIdx);

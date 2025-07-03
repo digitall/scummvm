@@ -73,18 +73,14 @@ void makeDefaultZV(ZVStruct *zvPtr) {
 }
 
 void getZvMax(byte *bodyPtr, ZVStruct *zvPtr) {
-	int x1;
-	int x2;
-	int z1;
-	int z2;
 
 	giveZVObjet(bodyPtr, zvPtr);
 
-	x1 = zvPtr->ZVX1;
-	x2 = zvPtr->ZVX2;
+	int x1 = zvPtr->ZVX1;
+	int x2 = zvPtr->ZVX2;
 
-	z1 = zvPtr->ZVZ1;
-	z2 = zvPtr->ZVZ2;
+	int z1 = zvPtr->ZVZ1;
+	int z2 = zvPtr->ZVZ2;
 
 	x2 = -x1 + x2;
 	z2 = -z1 + z2;
@@ -111,7 +107,7 @@ int asmCheckListCol(const ZVStruct *zvPtr, RoomData *pRoomData) {
 			if (pCurrentEntry->zv.ZVY1 < zvPtr->ZVY2 && zvPtr->ZVY1 < pCurrentEntry->zv.ZVY2) {
 				if (pCurrentEntry->zv.ZVZ1 < zvPtr->ZVZ2 && zvPtr->ZVZ1 < pCurrentEntry->zv.ZVZ2) {
 					assert(hardColVar < 10);
-					hardColTable[hardColVar++] = pCurrentEntry;
+					g_engine->_engine->hardColTable[hardColVar++] = pCurrentEntry;
 				}
 			}
 		}
@@ -126,12 +122,12 @@ static void hardColSuB1Sub1(int flag) {
 	switch (flag - 1) {
 	case 0:
 	case 1: {
-		hardColStepZ = 0;
+		g_engine->_engine->hardColStepZ = 0;
 		break;
 	}
 	case 3:
 	case 7: {
-		hardColStepX = 0;
+		g_engine->_engine->hardColStepX = 0;
 		break;
 	}
 	}
@@ -140,8 +136,6 @@ static void hardColSuB1Sub1(int flag) {
 void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVStruct *zvPtr3) {
 	int32 flag = 0;
 	int32 var_8;
-	int32 halfX;
-	int32 halfZ;
 	int32 var_A;
 	int32 var_6;
 
@@ -167,8 +161,8 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		if (!flag) {
 			var_8 = 0;
 
-			hardColStepZ = 0;
-			hardColStepX = 0;
+			g_engine->_engine->hardColStepZ = 0;
+			g_engine->_engine->hardColStepX = 0;
 
 			return;
 		} else {
@@ -176,8 +170,8 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		}
 	}
 
-	halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
-	halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
+	int32 halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
+	int32 halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
 
 	if (zvPtr3->ZVX1 > halfX) {
 		var_A = 4;
@@ -222,14 +216,14 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		const int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
 
 		if (Xmod > Zmod) {
-			hardColStepZ = 0;
+			g_engine->_engine->hardColStepZ = 0;
 		} else {
-			hardColStepX = 0;
+			g_engine->_engine->hardColStepX = 0;
 		}
 	} else {
 		if (!var_6 || (var_6 == 1 && !(var_A & flag))) {
-			hardColStepZ = 0;
-			hardColStepX = 0;
+			g_engine->_engine->hardColStepZ = 0;
+			g_engine->_engine->hardColStepX = 0;
 		} else {
 			hardColSuB1Sub1(flag & var_A);
 		}
@@ -277,11 +271,11 @@ int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2) {
 
 int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 	int currentCollisionSlot = 0;
-	Object *currentActor = objectTable;
-	const int actorRoom = objectTable[actorIdx].room;
+	Object *currentActor = g_engine->_engine->objectTable;
+	const int actorRoom = g_engine->_engine->objectTable[actorIdx].room;
 
 	for (int i = 0; i < 3; i++) {
-		currentProcessedActorPtr->COL[i] = -1;
+		g_engine->_engine->currentProcessedActorPtr->COL[i] = -1;
 	}
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -296,14 +290,14 @@ int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 				getZvRelativePosition(&localZv, actorRoom, currentActor->room);
 
 				if (checkZvCollision(&localZv, currentActorZv)) {
-					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
+					g_engine->_engine->currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
 
 					if (currentCollisionSlot == 3)
 						return 3;
 				}
 			} else {
 				if (checkZvCollision(zvPtr, currentActorZv)) {
-					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
+					g_engine->_engine->currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
 
 					if (currentCollisionSlot == 3)
 						return 3;
@@ -362,11 +356,11 @@ static void pointRotate(int x, int y, int z, int *destX, int *destY, int *destZ)
 static void zvRotSub(int X, int Y, int Z, int alpha, int beta, int gamma) {
 	if (alpha || beta || gamma) {
 		setupPointRotate(alpha, beta, gamma);
-		pointRotate(X, Y, Z, &animMoveX, &animMoveY, &animMoveZ);
+		pointRotate(X, Y, Z, &g_engine->_engine->animMoveX, &g_engine->_engine->animMoveY, &g_engine->_engine->animMoveZ);
 	} else {
-		animMoveX = X;
-		animMoveY = Y;
-		animMoveZ = Z;
+		g_engine->_engine->animMoveX = X;
+		g_engine->_engine->animMoveY = Y;
+		g_engine->_engine->animMoveZ = Z;
 	}
 }
 
@@ -379,14 +373,13 @@ void getZvRot(byte *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
 	int Y2 = -32000;
 	int Z2 = -32000;
 
-	int i;
 	int tempX = 0;
 	int tempY = 0;
 	int tempZ = 0;
 
 	giveZVObjet(bodyPtr, zvPtr);
 
-	for (i = 0; i < 8; i++) {
+	for (int i = 0; i < 8; i++) {
 		switch (i) {
 		case 0: {
 			tempX = zvPtr->ZVX1;
@@ -426,23 +419,23 @@ void getZvRot(byte *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
 
 		zvRotSub(tempX, tempY, tempZ, alpha, beta, gamma);
 
-		if (animMoveX < X1)
-			X1 = animMoveX;
+		if (g_engine->_engine->animMoveX < X1)
+			X1 = g_engine->_engine->animMoveX;
 
-		if (animMoveX > X2)
-			X2 = animMoveX;
+		if (g_engine->_engine->animMoveX > X2)
+			X2 = g_engine->_engine->animMoveX;
 
-		if (animMoveY < Y1)
-			Y1 = animMoveY;
+		if (g_engine->_engine->animMoveY < Y1)
+			Y1 = g_engine->_engine->animMoveY;
 
-		if (animMoveY > Y2)
-			Y2 = animMoveY;
+		if (g_engine->_engine->animMoveY > Y2)
+			Y2 = g_engine->_engine->animMoveY;
 
-		if (animMoveZ < Z1)
-			Z1 = animMoveZ;
+		if (g_engine->_engine->animMoveZ < Z1)
+			Z1 = g_engine->_engine->animMoveZ;
 
-		if (animMoveZ > Z2)
-			Z2 = animMoveZ;
+		if (g_engine->_engine->animMoveZ > Z2)
+			Z2 = g_engine->_engine->animMoveZ;
 	}
 
 	zvPtr->ZVX1 = X1;

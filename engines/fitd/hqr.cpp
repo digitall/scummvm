@@ -19,13 +19,13 @@
  *
  */
 
-#include "fitd/hqr.h"
 #include "common/array.h"
 #include "engines/engine.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
+#include "fitd/hqr.h"
 #include "fitd/game_time.h"
 #include "fitd/pak.h"
 #include "fitd/vars.h"
@@ -76,7 +76,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 
 	HqrSubEntry *dataPtr1 = hqrPtr->entries;
 
-	const int hq_key = hqrKeyGen;
+	const int hq_key = g_engine->_engine->hqrKeyGen;
 
 	dataPtr1[entryNum].key = hq_key;
 
@@ -86,7 +86,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;
 
-	hqrKeyGen++;
+	g_engine->_engine->hqrKeyGen++;
 
 	return hq_key;
 }
@@ -389,8 +389,8 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 	HqrSubEntry *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
 
 	if (foundEntry) {
-		foundEntry->lastTimeUsed = timer;
-		hqLoad = 0;
+		foundEntry->lastTimeUsed = g_engine->_engine->timer;
+		g_engine->_engine->hqLoad = 0;
 
 		return foundEntry->ptr;
 	}
@@ -414,10 +414,10 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	assert(foundEntry);
 
-	hqLoad = 1;
+	g_engine->_engine->hqLoad = 1;
 
 	foundEntry->key = index;
-	foundEntry->lastTimeUsed = timer;
+	foundEntry->lastTimeUsed = g_engine->_engine->timer;
 	foundEntry->size = size;
 	foundEntry->ptr = (byte *)malloc(size);
 
@@ -475,7 +475,7 @@ void HQR_Reset(HqrEntry *hqrPtr) {
 	hqrPtr->sizeFreeData = hqrPtr->maxFreeData;
 	hqrPtr->numUsedEntry = 0;
 
-	if (hqrPtr == listBody) {
+	if (hqrPtr == g_engine->_engine->listBody) {
 		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
 			delete g_engine->_engine->bodies[i];
 		}
@@ -494,14 +494,14 @@ void HQR_Free(HqrEntry *hqrPtr) {
 	if (!hqrPtr)
 		return;
 
-	if (hqrPtr == listBody) {
+	if (hqrPtr == g_engine->_engine->listBody) {
 		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
 			delete g_engine->_engine->bodies[i];
 		}
 		g_engine->_engine->bodies.clear();
 	}
 
-	if (hqrPtr == listAnim) {
+	if (hqrPtr == g_engine->_engine->listAnim) {
 		for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
 			delete g_engine->_engine->animations[i];
 		}

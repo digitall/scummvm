@@ -21,11 +21,12 @@
 
 #include "engines/util.h"
 #include "graphics/screen.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
+#include "fitd/gfx.h"
 #include "fitd/lines.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
-#include "fitd/gfx.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
@@ -845,7 +846,7 @@ static void render(byte color, uint8 material) {
 	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
 	MaterialRender matRender;
 
-	if (!detailToggle) {
+	if (!g_engine->_engine->detailToggle) {
 		// if low details -> flat
 		material = 0;
 	}
@@ -1010,7 +1011,7 @@ static bool computeSphere(float sx, float sy, float radius) {
 }
 
 static void drawPoint(int16 x, int16 y, uint8 color) {
-	if (x >= clipLeft && x < clipRight && y >= clipTop && y < clipBottom) {
+	if (x >= g_engine->_engine->clipLeft && x < g_engine->_engine->clipRight && y >= g_engine->_engine->clipTop && y < g_engine->_engine->clipBottom) {
 		g_engine->_screen->setPixel(x, y, color);
 		g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(x, y), 1, 1));
 	}

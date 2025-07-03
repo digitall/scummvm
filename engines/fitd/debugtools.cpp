@@ -45,15 +45,15 @@ static void drawCamera() {
 
 	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Camera", &_state->showCamera)) {
-		ImGui::Text("timer: %u", timer);
+		ImGui::Text("timer: %u", g_engine->_engine->timer);
 
-		CameraData *pCamera = cameraDataTable[currentCamera];
+		CameraData *pCamera = cameraDataTable[g_engine->_engine->currentCamera];
 		if (pCamera) {
 			ImGui::BeginGroup();
 			ImGui::PushID("Position");
-			ImGui::InputInt("X", &translateX);
-			ImGui::InputInt("Y", &translateY);
-			ImGui::InputInt("Z", &translateZ);
+			ImGui::InputInt("X", &g_engine->_engine->translateX);
+			ImGui::InputInt("Y", &g_engine->_engine->translateY);
+			ImGui::InputInt("Z", &g_engine->_engine->translateZ);
 			ImGui::PopID();
 			ImGui::EndGroup();
 
@@ -69,16 +69,16 @@ static void drawCamera() {
 
 			ImGui::BeginGroup();
 			ImGui::PushID("Center");
-			ImGui::InputInt("HCenter", &cameraCenterX);
-			ImGui::InputInt("VCenter", &cameraCenterY);
+			ImGui::InputInt("HCenter", &g_engine->_engine->cameraCenterX);
+			ImGui::InputInt("VCenter", &g_engine->_engine->cameraCenterY);
 			ImGui::PopID();
 			ImGui::EndGroup();
 
 			ImGui::BeginGroup();
 			ImGui::PushID("Projection");
-			ImGui::InputInt("Perspective", &cameraPerspective);
-			ImGui::InputInt("XFov", &cameraFovX);
-			ImGui::InputInt("YFov", &cameraFovY);
+			ImGui::InputInt("Perspective", &g_engine->_engine->cameraPerspective);
+			ImGui::InputInt("XFov", &g_engine->_engine->cameraFovX);
+			ImGui::InputInt("YFov", &g_engine->_engine->cameraFovY);
 			ImGui::PopID();
 			ImGui::EndGroup();
 		}
@@ -144,7 +144,7 @@ static void drawObjects() {
 		if (selectedObject > NUM_MAX_OBJECT)
 			selectedObject = NUM_MAX_OBJECT - 1;
 
-		Object *pObject = &objectTable[selectedObject];
+		Object *pObject = &g_engine->_engine->objectTable[selectedObject];
 
 		ImGui::PushItemWidth(100);
 

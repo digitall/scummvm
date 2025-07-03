@@ -19,43 +19,43 @@
  *
  */
 
-#include "fitd/fitd.h"
-#include "fitd/input.h"
-#include "fitd/vars.h"
 #include "common/events.h"
 #include "common/system.h"
+#include "fitd/input.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 
 namespace Fitd {
 
 static void handleKeyDown(const Common::Event &event) {
 	switch (event.kbd.keycode) {
 	case Common::KEYCODE_RETURN:
-		key = 0x1C;
+		g_engine->_engine->key = 0x1C;
 		break;
 	case Common::KEYCODE_ESCAPE:
-		key = 0x1B;
+		g_engine->_engine->key = 0x1B;
 		break;
 	case Common::KEYCODE_UP:
-		joyD |= 1;
+		g_engine->_engine->joyD |= 1;
 		break;
 	case Common::KEYCODE_DOWN:
-		joyD |= 2;
+		g_engine->_engine->joyD |= 2;
 		break;
 	case Common::KEYCODE_RIGHT:
-		joyD |= 8;
+		g_engine->_engine->joyD |= 8;
 		break;
 	case Common::KEYCODE_LEFT:
-		joyD |= 4;
+		g_engine->_engine->joyD |= 4;
 		break;
 	case Common::KEYCODE_SPACE:
-		click = 1;
-		character = 32;
+		g_engine->_engine->click = 1;
+		g_engine->_engine->character = 32;
 		break;
 	case Common::KEYCODE_BACKSPACE:
-		backspace = true;
+		g_engine->_engine->backspace = true;
 		break;
 	default:
-		character = event.kbd.ascii;
+		g_engine->_engine->character = event.kbd.ascii;
 		break;
 	}
 }
@@ -63,36 +63,36 @@ static void handleKeyDown(const Common::Event &event) {
 static void handleKeyUp(const Common::Event &event) {
 	switch (event.kbd.keycode) {
 	case Common::KEYCODE_RETURN:
-		key &= ~0x1C;
+		g_engine->_engine->key &= ~0x1C;
 		break;
 	case Common::KEYCODE_ESCAPE:
-		key &= ~0x1B;
+		g_engine->_engine->key &= ~0x1B;
 		break;
 	case Common::KEYCODE_UP:
-		joyD &= ~1;
+		g_engine->_engine->joyD &= ~1;
 		break;
 	case Common::KEYCODE_DOWN:
-		joyD &= ~2;
+		g_engine->_engine->joyD &= ~2;
 		break;
 	case Common::KEYCODE_RIGHT:
-		joyD &= ~8;
+		g_engine->_engine->joyD &= ~8;
 		break;
 	case Common::KEYCODE_LEFT:
-		joyD &= ~4;
+		g_engine->_engine->joyD &= ~4;
 		break;
 	case Common::KEYCODE_SPACE:
-		click &= ~1;
-		character = 0;
+		g_engine->_engine->click &= ~1;
+		g_engine->_engine->character = 0;
 		break;
 	case Common::KEYCODE_d:
-		debugFlag = !debugFlag;
-		character = 0;
+		g_engine->_engine->debugFlag = !g_engine->_engine->debugFlag;
+		g_engine->_engine->character = 0;
 		break;
 	case Common::KEYCODE_BACKSPACE:
-		backspace = false;
+		g_engine->_engine->backspace = false;
 		break;
 	default:
-		character = 0;
+		g_engine->_engine->character = 0;
 		break;
 	}
 }

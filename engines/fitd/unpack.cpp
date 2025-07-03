@@ -140,10 +140,9 @@ static uint16 cpdist8[] = {
 	}
 
 void PAK_huft_free(PAK_stream *pG, PAK_huft *t) {
-	PAK_huft *p, *q;
-	p = t;
+	PAK_huft *p = t;
 	while (p != (PAK_huft *)nullptr) {
-		q = (--p)->v.t;
+		PAK_huft *q = (--p)->v.t;
 		free(p);
 		p = q;
 	}
@@ -327,16 +326,16 @@ int PAK_huft_build(PAK_stream *pG, uint *b, uint n, uint s, uint16 *d, byte *e, 
 
 /* Get the bit lengths for a code representation from the compressed stream. */
 int PAK_get_tree(PAK_stream *pG, uint *l, uint n) {
-	uint i; /* uint chars remaining in list */
-	uint k; /* lengths entered */
+	/* uint chars remaining in list */
+	/* lengths entered */
 	uint j; /* number of codes */
-	uint b; /* bit length for those codes */
+			/* bit length for those codes */
 
 	/* get bit lengths */
-	i = PAK_NEXTBYTE + 1; /* length/count pairs to read */
-	k = 0;                /* next code */
+	uint i = PAK_NEXTBYTE + 1; /* length/count pairs to read */
+	uint k = 0;                /* next code */
 	do {
-		b = ((j = PAK_NEXTBYTE) & 0xf) + 1; /* bits in code (1..16) */
+		uint b = ((j = PAK_NEXTBYTE) & 0xf) + 1; /* bits in code (1..16) */
 		j = ((j & 0xf0) >> 4) + 1;          /* codes with those bits (1..16) */
 		if (k + j > n)
 			return 4; /* don't overflow l[] */
@@ -427,24 +426,24 @@ int PAK_explode_lit(PAK_stream *pG, PAK_huft *tb, PAK_huft *tl, PAK_huft *td, ui
 
 /* Decompress the imploded data using uncoded literals and a sliding window (of size 2^(6+bdl) bytes). */
 int PAK_explode_nolit(PAK_stream *pG, PAK_huft *tl, PAK_huft *td, uint bl, uint bd, uint bdl) {
-	uint64 s;    /* uint chars to decompress */
+	/* uint chars to decompress */
 	uint e;      /* table entry flag/number of PAK_extra bits */
-	uint n, d;   /* length and index for copy */
+				 /* length and index for copy */
 	uint w;      /* current window position */
 	PAK_huft *t; /* pointer to table entry */
-	uint ml, md; /* masks for bl and bd bits */
-	uint mdl;    /* mask for bdl (distance lower) bits */
-	uint64 b;    /* bit buffer */
+				 /* masks for bl and bd bits */
+	/* mask for bdl (distance lower) bits */
+	/* bit buffer */
 	uint k;      /* number of bits in bit buffer */
-	uint u;      /* true if unPAK_FLUSHed */
+			/* true if unPAK_FLUSHed */
 
 	/* explode the coded data */
-	b = k = w = 0;          /* initialize bit buffer, window */
-	u = 1;                  /* buffer unPAK_FLUSHed */
-	ml = PAK_mask_bits[bl]; /* precompute masks for speed */
-	md = PAK_mask_bits[bd];
-	mdl = PAK_mask_bits[bdl];
-	s = pG->ucsize;
+	uint64 b = k = w = 0;          /* initialize bit buffer, window */
+	uint u = 1;                  /* buffer unPAK_FLUSHed */
+	uint ml = PAK_mask_bits[bl]; /* precompute masks for speed */
+	uint md = PAK_mask_bits[bd];
+	uint mdl = PAK_mask_bits[bdl];
+	uint64 s = pG->ucsize;
 	while (s > 0) {
 		PAK_NEEDBITS(1)
 		if (b & 1) { /* then literal--get eight bits */
@@ -460,12 +459,12 @@ int PAK_explode_nolit(PAK_stream *pG, PAK_huft *tl, PAK_huft *td, uint bl, uint 
 		} else {
 			PAK_DUMPBITS(1)
 			PAK_NEEDBITS(bdl) /* get distance low bits */
-			d = (uint)b & mdl;
+			uint d = (uint)b & mdl;
 			PAK_DUMPBITS(bdl)
 			PAK_DECODEHUFT(td, bd, md) /* get coded distance high bits */
 			d = w - d - t->v.n;        /* conPAK_huftoffset */
 			PAK_DECODEHUFT(tl, bl, ml) /* get coded length */
-			n = t->v.n;
+			uint n = t->v.n;
 			if (e) { /* get length PAK_extra bits */
 				PAK_NEEDBITS(8)
 				n += (uint)b & 0xff;

@@ -19,9 +19,10 @@
  *
  */
 
-#include "fitd/aitd2.h"
 #include "common/scummsys.h"
+#include "fitd/aitd2.h"
 #include "fitd/common.h"
+#include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
@@ -32,7 +33,6 @@
 #include "fitd/sequence.h"
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 static byte *pAITD2InventorySprite = nullptr;
@@ -233,7 +233,7 @@ void aitd2Start(int saveSlot) {
 			if (g_engine->loadGameState(saveSlot != -1 ? saveSlot : 1).getCode() == Common::kNoError) {
 				restoreAmbiance();
 
-				flagInitView = 2;
+				g_engine->_engine->flagInitView = 2;
 
 				setupCamera();
 
@@ -258,15 +258,15 @@ void aitd2Start(int saveSlot) {
 }
 
 void aitd2DrawInventory() {
-	switch (cVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
+	switch (g_engine->_engine->cVars[getCVarsIdx(TYPE_INVENTAIRE)]) {
 	case 0:
-		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_PIRATE, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_PIRATE, g_engine->_engine->logicalScreen);
 		break;
 	case 1:
-		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GANG, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GANG, g_engine->_engine->logicalScreen);
 		break;
 	case 2:
-		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GRACE, logicalScreen);
+		pakLoad("ITD_RESS.PAK", AITD2_INVENTAIRE_GRACE, g_engine->_engine->logicalScreen);
 		break;
 	default:
 		assert(0);
@@ -281,7 +281,7 @@ void aitd2DrawInventory() {
 }
 
 void aitd2RedrawInventorySprite() {
-	const int inventoryType = cVars[getCVarsIdx(TYPE_INVENTAIRE)];
+	const int inventoryType = g_engine->_engine->cVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
 	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, pAITD2InventorySprite);
 }
@@ -290,40 +290,40 @@ void aitd2ReadBook(int index, int type) {
 	switch (type) {
 	case 0: // READ_MESSAGE
 	{
-		pakLoad("ITD_RESS.PAK", AITD2_LETTRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_LETTRE, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)aux + 64000, lpalette);
+		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
-		turnPageFlag = 0;
+		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
 	}
 	case 1: // READ_BOOK
 	{
-		pakLoad("ITD_RESS.PAK", AITD2_LIVRE, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_LIVRE, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)aux + 64000, lpalette);
+		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
-		turnPageFlag = 1;
+		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		g_engine->_engine->turnPageFlag = 1;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
 	}
 	case 2: // READ_CARNET
 	{
-		pakLoad("ITD_RESS.PAK", AITD2_CARNET, aux);
+		pakLoad("ITD_RESS.PAK", AITD2_CARNET, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)aux + 64000, lpalette);
+		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
-		turnPageFlag = 0;
+		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
 	}

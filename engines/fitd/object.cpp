@@ -35,7 +35,7 @@ namespace Fitd {
 
 int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animType, int animInfo) {
 	int i;
-	Object *actorPtr = objectTable;
+	Object *actorPtr = g_engine->_engine->objectTable;
 	byte *bodyPtr = nullptr;
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -48,8 +48,8 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	if (i == NUM_MAX_OBJECT)
 		return -1;
 
-	currentProcessedActorPtr = actorPtr;
-	currentProcessedActorIdx = i;
+	g_engine->_engine->currentProcessedActorPtr = actorPtr;
+	g_engine->_engine->currentProcessedActorIdx = i;
 
 	actorPtr->bodyNum = body;
 	actorPtr->_flags = objectType;
@@ -59,10 +59,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->worldY = actorPtr->roomY = y;
 	actorPtr->worldZ = actorPtr->roomZ = z;
 
-	if (room != currentRoom) {
-		actorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[actorPtr->room].worldX) * 10);
-		actorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[actorPtr->room].worldY) * 10);
-		actorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[actorPtr->room].worldZ) * 10);
+	if (room != g_engine->_engine->currentRoom) {
+		actorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[actorPtr->room].worldX) * 10);
+		actorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[actorPtr->room].worldY) * 10);
+		actorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[actorPtr->room].worldZ) * 10);
 	}
 
 	actorPtr->alpha = alpha;
@@ -124,10 +124,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->HIT_BY = -1;
 
 	if (body != -1) {
-		bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
+		bodyPtr = HQR_Get(g_engine->_engine->listBody, actorPtr->bodyNum);
 
 		if (anim != -1) {
-			byte *animPtr = HQR_Get(listAnim, anim);
+			byte *animPtr = HQR_Get(g_engine->_engine->listAnim, anim);
 
 			setAnimObjet(frame, animPtr, bodyPtr);
 
@@ -214,10 +214,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 				actorPtr->worldY = actorPtr->roomY = zvPtr->ZVY1 / 2 + zvPtr->ZVY2 / 2;
 				actorPtr->worldZ = actorPtr->roomZ = zvPtr->ZVZ1 / 2 + zvPtr->ZVZ2 / 2;
 
-				if (room != currentRoom) {
-					actorPtr->worldX -= (g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[room].worldX) * 10;
-					actorPtr->worldY += (g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[room].worldY) * 10;
-					actorPtr->worldZ += (g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[room].worldZ) * 10;
+				if (room != g_engine->_engine->currentRoom) {
+					actorPtr->worldX -= (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[room].worldX) * 10;
+					actorPtr->worldY += (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[room].worldY) * 10;
+					actorPtr->worldZ += (g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[room].worldZ) * 10;
 				}
 
 				bFound = true;

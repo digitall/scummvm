@@ -35,7 +35,7 @@
 #include "fitd/gfx.h"
 #include "fitd/system_menu.h"
 
-class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
+class FitdMetaEngine final : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
 	const char *getName() const final;
 	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const final;
@@ -80,9 +80,8 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 		{Common::kStandardActionMoveDown, _s("Down"), Fitd::kMoveDown, "DOWN|JOY_LEFT_STICK_Y+", Common::EVENT_INVALID, Common::KEYCODE_DOWN},
 		{nullptr, nullptr, Fitd::kDefaultAction, {}, Common::EVENT_INVALID, Common::KEYCODE_INVALID}};
 
-	Common::Action *act;
 	for (int i = 0; actions[i].name; i++) {
-		act = new Common::Action(actions[i].name, _(actions[i].desc));
+		Common::Action *act = new Common::Action(actions[i].name, _(actions[i].desc));
 		act->setCustomEngineActionEvent(actions[i].action);
 		char *strToken = strtok(actions[i].inputs, "|");
 		while (strToken) {

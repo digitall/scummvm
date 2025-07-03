@@ -19,13 +19,13 @@
  *
  */
 
-#include "fitd/track.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
+#include "fitd/track.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
@@ -61,8 +61,8 @@ int computeAngleModificatorToPositionSub1(int ax) {
 
 	rotate(ax, 0, 1000, &xOut, &yOut);
 
-	yOut *= angleCompZ;
-	xOut *= angleCompX;
+	yOut *= g_engine->_engine->angleCompZ;
+	xOut *= g_engine->_engine->angleCompX;
 
 	yOut -= xOut;
 
@@ -76,9 +76,9 @@ int computeAngleModificatorToPositionSub1(int ax) {
 
 int computeAngleModificatorToPosition(int x1, int z1, int beta, int x2, int z2) {
 
-	angleCompX = x2 - x1;
-	angleCompZ = z2 - z1;
-	angleCompBeta = beta;
+	g_engine->_engine->angleCompX = x2 - x1;
+	g_engine->_engine->angleCompZ = z2 - z1;
+	g_engine->_engine->angleCompBeta = beta;
 
 	const int resultMin = computeAngleModificatorToPositionSub1(beta - 4);
 	const int resultMax = computeAngleModificatorToPositionSub1(beta + 4);
@@ -91,47 +91,47 @@ int computeAngleModificatorToPosition(int x1, int z1, int beta, int x2, int z2) 
 }
 
 void gereManualRot(int param) {
-	if (localJoyD & 4) {
-		if (currentProcessedActorPtr->direction != 1) {
-			currentProcessedActorPtr->rotate.param = 0;
+	if (g_engine->_engine->localJoyD & 4) {
+		if (g_engine->_engine->currentProcessedActorPtr->direction != 1) {
+			g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 		}
 
-		currentProcessedActorPtr->direction = 1;
+		g_engine->_engine->currentProcessedActorPtr->direction = 1;
 
-		if (currentProcessedActorPtr->rotate.param == 0) {
-			const int oldBeta = currentProcessedActorPtr->beta;
+		if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0) {
+			const int oldBeta = g_engine->_engine->currentProcessedActorPtr->beta;
 
-			if (currentProcessedActorPtr->speed == 0) {
-				initRealValue(oldBeta, oldBeta + 0x100, param / 2, &currentProcessedActorPtr->rotate);
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 0) {
+				initRealValue(oldBeta, oldBeta + 0x100, param / 2, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			} else {
-				initRealValue(oldBeta, oldBeta + 0x100, param, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta + 0x100, param, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 		}
 
-		currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+		g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 	}
-	if (localJoyD & 8) {
-		if (currentProcessedActorPtr->direction != -1) {
-			currentProcessedActorPtr->rotate.param = 0;
+	if (g_engine->_engine->localJoyD & 8) {
+		if (g_engine->_engine->currentProcessedActorPtr->direction != -1) {
+			g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 		}
 
-		currentProcessedActorPtr->direction = -1;
+		g_engine->_engine->currentProcessedActorPtr->direction = -1;
 
-		if (currentProcessedActorPtr->rotate.param == 0) {
-			const int oldBeta = currentProcessedActorPtr->beta;
+		if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0) {
+			const int oldBeta = g_engine->_engine->currentProcessedActorPtr->beta;
 
-			if (currentProcessedActorPtr->speed == 0) {
-				initRealValue(oldBeta, oldBeta - 0x100, param / 2, &currentProcessedActorPtr->rotate);
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 0) {
+				initRealValue(oldBeta, oldBeta - 0x100, param / 2, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			} else {
-				initRealValue(oldBeta, oldBeta - 0x100, param, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta - 0x100, param, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 		}
 
-		currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+		g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 	}
-	if (!(localJoyD & 0xC)) {
-		currentProcessedActorPtr->direction = 0;
-		currentProcessedActorPtr->rotate.param = 0;
+	if (!(g_engine->_engine->localJoyD & 0xC)) {
+		g_engine->_engine->currentProcessedActorPtr->direction = 0;
+		g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 	}
 }
 
@@ -164,92 +164,92 @@ char *getRoomLink(uint room1, uint room2) {
 }
 
 void processTrack() {
-	switch (currentProcessedActorPtr->trackMode) {
+	switch (g_engine->_engine->currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
 		gereManualRot(60);
-		if (localJoyD & 1) // forward
+		if (g_engine->_engine->localJoyD & 1) // forward
 		{
-			if (timer - lastTimeForward < 10 && currentProcessedActorPtr->speed != 4) // start running ?
+			if (g_engine->_engine->timer - lastTimeForward < 10 && g_engine->_engine->currentProcessedActorPtr->speed != 4) // start running ?
 			{
-				currentProcessedActorPtr->speed = 5;
+				g_engine->_engine->currentProcessedActorPtr->speed = 5;
 			} else {
-				if (currentProcessedActorPtr->speed == 0 || currentProcessedActorPtr->speed == -1) {
-					currentProcessedActorPtr->speed = 4;
+				if (g_engine->_engine->currentProcessedActorPtr->speed == 0 || g_engine->_engine->currentProcessedActorPtr->speed == -1) {
+					g_engine->_engine->currentProcessedActorPtr->speed = 4;
 				}
 			}
 
-			/*        if(currentProcessedActorPtr->speed>0 && currentProcessedActorPtr->speed<4)
-			currentProcessedActorPtr->speed = 5; */
+			/*        if(g_engine->_engine->currentProcessedActorPtr->speed>0 && g_engine->_engine->currentProcessedActorPtr->speed<4)
+			g_engine->_engine->currentProcessedActorPtr->speed = 5; */
 
-			lastTimeForward = timer;
+			lastTimeForward = g_engine->_engine->timer;
 		} else {
-			if (currentProcessedActorPtr->speed > 0 && currentProcessedActorPtr->speed <= 4) {
-				currentProcessedActorPtr->speed--;
+			if (g_engine->_engine->currentProcessedActorPtr->speed > 0 && g_engine->_engine->currentProcessedActorPtr->speed <= 4) {
+				g_engine->_engine->currentProcessedActorPtr->speed--;
 			} else {
-				currentProcessedActorPtr->speed = 0;
+				g_engine->_engine->currentProcessedActorPtr->speed = 0;
 			}
 		}
 
-		if (localJoyD & 2) // backward
+		if (g_engine->_engine->localJoyD & 2) // backward
 		{
-			if (currentProcessedActorPtr->speed == 0 || currentProcessedActorPtr->speed >= 4)
-				currentProcessedActorPtr->speed = -1;
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 0 || g_engine->_engine->currentProcessedActorPtr->speed >= 4)
+				g_engine->_engine->currentProcessedActorPtr->speed = -1;
 
-			if (currentProcessedActorPtr->speed == 5)
-				currentProcessedActorPtr->speed = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 5)
+				g_engine->_engine->currentProcessedActorPtr->speed = 0;
 		}
 
 		break;
 	}
 	case 2: // follow
 	{
-		const int followedActorIdx = g_engine->_engine->worldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
-			currentProcessedActorPtr->direction = 0;
-			currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->direction = 0;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
 		} else {
-			const Object *followedActorPtr = &objectTable[followedActorIdx];
+			const Object *followedActorPtr = &g_engine->_engine->objectTable[followedActorIdx];
 
 			const int roomNumber = followedActorPtr->room;
 			int x = followedActorPtr->roomX;
 			// int y = followedActorPtr->roomY;
 			int z = followedActorPtr->roomZ;
 
-			if (currentProcessedActorPtr->room != roomNumber) {
-				char *link = getRoomLink(currentProcessedActorPtr->room, roomNumber);
+			if (g_engine->_engine->currentProcessedActorPtr->room != roomNumber) {
+				char *link = getRoomLink(g_engine->_engine->currentProcessedActorPtr->room, roomNumber);
 
 				x = *(int16 *)link + (*(int16 *)(link + 2) - *(int16 *)link) / 2;
 				// y = *(int16 *)(link + 4) + (((*(int16 *)(link + 6)) - (*(int16 *)(link + 4))) / 2);
 				z = *(int16 *)(link + 8) + (*(int16 *)(link + 10) - *(int16 *)(link + 8)) / 2;
 			}
 
-			const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-															   currentProcessedActorPtr->beta, x, z);
+			const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+															   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+															   g_engine->_engine->currentProcessedActorPtr->beta, x, z);
 
-			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+			if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->direction = angleModif;
+			g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
-			if (currentProcessedActorPtr->direction == 0) {
-				currentProcessedActorPtr->rotate.param = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->direction == 0) {
+				g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 			} else {
-				currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+				g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->speed = 4;
+			g_engine->_engine->currentProcessedActorPtr->speed = 4;
 		}
 		break;
 	}
 	case 3: // track
 	{
-		byte *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
+		byte *trackPtr = HQR_Get(g_engine->_engine->listTrack, g_engine->_engine->currentProcessedActorPtr->trackNumber);
 
-		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
+		trackPtr += g_engine->_engine->currentProcessedActorPtr->positionInTrack * 2;
 
 		const int16 trackMacro = *(int16 *)trackPtr;
 		trackPtr += 2;
@@ -262,44 +262,44 @@ void processTrack() {
 			const int roomNumber = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (currentProcessedActorPtr->room != roomNumber) {
-				if (currentCameraTargetActor == currentProcessedActorIdx) {
-					needChangeRoom = 1;
-					newRoom = roomNumber;
+			if (g_engine->_engine->currentProcessedActorPtr->room != roomNumber) {
+				if (g_engine->_engine->currentCameraTargetActor == g_engine->_engine->currentProcessedActorIdx) {
+					g_engine->_engine->needChangeRoom = 1;
+					g_engine->_engine->newRoom = roomNumber;
 				}
 
-				currentProcessedActorPtr->room = roomNumber;
+				g_engine->_engine->currentProcessedActorPtr->room = roomNumber;
 			}
 
-			currentProcessedActorPtr->zv.ZVX1 -= currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVX2 -= currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVY1 -= currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVY2 -= currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVZ1 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->zv.ZVZ2 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 -= g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 -= g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 -= g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 -= g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 -= g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 -= g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldX = g_engine->_engine->currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldY = g_engine->_engine->currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldZ = g_engine->_engine->currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
-			currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
-			currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
 
-			currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVY1 += currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVY2 += currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVZ1 += currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->zv.ZVZ2 += currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 += g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 += g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->speed = 0;
-			currentProcessedActorPtr->direction = 0;
-			currentProcessedActorPtr->rotate.param = 0;
-			currentProcessedActorPtr->positionInTrack += 5;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->direction = 0;
+			g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack += 5;
 
 			break;
 		}
@@ -314,37 +314,37 @@ void processTrack() {
 			int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (roomNumber != currentProcessedActorPtr->room) {
+			if (roomNumber != g_engine->_engine->currentProcessedActorPtr->room) {
 				// TODO: fix bug here...
-				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
-				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
+				x -= (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				z += (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+			const uint distanceToPoint = computeDistanceToPoint(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
 																  x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
-				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-																   currentProcessedActorPtr->beta,
+				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																   g_engine->_engine->currentProcessedActorPtr->beta,
 																   x, z);
 
-				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - angleModif * 64, 15, &currentProcessedActorPtr->rotate);
+				if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - angleModif * 64, 15, &g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 
-				currentProcessedActorPtr->direction = angleModif;
+				g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
 				if (!angleModif) {
-					currentProcessedActorPtr->rotate.param = 0;
+					g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 				} else {
-					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+					g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 			} else // reached position
 			{
-				currentProcessedActorPtr->positionInTrack += 4;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 4;
 			}
 
 			break;
@@ -364,37 +364,37 @@ void processTrack() {
 			const int time = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (roomNumber != currentProcessedActorPtr->room) {
+			if (roomNumber != g_engine->_engine->currentProcessedActorPtr->room) {
 				// TODO: fix bug here...
-				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
-				y += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[roomNumber].worldY) * 10;
-				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
+				x -= (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				y += (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[roomNumber].worldY) * 10;
+				z += (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
 			// reached position?
-			if (y == currentProcessedActorPtr->roomY && computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ, x, z) < DISTANCE_TO_POINT_TRESSHOLD) {
-				currentProcessedActorPtr->positionInTrack += 6;
+			if (y == g_engine->_engine->currentProcessedActorPtr->roomY && computeDistanceToPoint(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX, g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ, x, z) < DISTANCE_TO_POINT_TRESSHOLD) {
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 6;
 			} else {
 				const int angleModif = computeAngleModificatorToPosition(
-					currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-					currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-					currentProcessedActorPtr->beta,
+					g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+					g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+					g_engine->_engine->currentProcessedActorPtr->beta,
 					x, z);
 
-				if (currentProcessedActorPtr->YHandler.param == 0) {
-					initRealValue(0, y - (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY), time, &currentProcessedActorPtr->YHandler);
+				if (g_engine->_engine->currentProcessedActorPtr->YHandler.param == 0) {
+					initRealValue(0, y - (g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY), time, &g_engine->_engine->currentProcessedActorPtr->YHandler);
 				}
 
-				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - angleModif * 256, 60, &currentProcessedActorPtr->rotate);
+				if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - angleModif * 256, 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 
-				currentProcessedActorPtr->direction = angleModif;
+				g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
 				if (!angleModif) {
-					currentProcessedActorPtr->rotate.param = 0;
+					g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 				} else {
-					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+					g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 			}
 
@@ -402,35 +402,35 @@ void processTrack() {
 		}
 		case TL_END: // stop
 		{
-			currentProcessedActorPtr->speed = 0;
-			currentProcessedActorPtr->trackNumber = -1;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->trackNumber = -1;
 			setMoveMode(0, 0);
 			break;
 		}
 		case TL_REPEAT: {
-			currentProcessedActorPtr->positionInTrack = 0;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack = 0;
 			break;
 		}
 		case TL_MARK: // MARK
 		{
-			currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->positionInTrack += 2;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack += 2;
 			break;
 		}
 		case TL_WALK: {
-			currentProcessedActorPtr->speed = 4;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->speed = 4;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_RUN: {
-			currentProcessedActorPtr->speed = 5;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->speed = 5;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_STOP: {
-			currentProcessedActorPtr->speed = 0;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_SET_ANGLE: // TL_SET_ANGLE
@@ -438,56 +438,56 @@ void processTrack() {
 			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if ((currentProcessedActorPtr->beta - betaDif & 1023) > 512) {
-				currentProcessedActorPtr->direction = 1; // left
+			if ((g_engine->_engine->currentProcessedActorPtr->beta - betaDif & 1023) > 512) {
+				g_engine->_engine->currentProcessedActorPtr->direction = 1; // left
 			} else {
-				currentProcessedActorPtr->direction = -1; // right
+				g_engine->_engine->currentProcessedActorPtr->direction = -1; // right
 			}
 
-			if (!currentProcessedActorPtr->rotate.param) {
-				initRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
+			if (!g_engine->_engine->currentProcessedActorPtr->rotate.param) {
+				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, betaDif, 120, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+			g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 
-			if (currentProcessedActorPtr->beta == betaDif) {
-				currentProcessedActorPtr->direction = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->beta == betaDif) {
+				g_engine->_engine->currentProcessedActorPtr->direction = 0;
 
-				currentProcessedActorPtr->positionInTrack += 2;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 2;
 			}
 
 			break;
 		}
 		case TL_COL_OFF: {
-			currentProcessedActorPtr->dynFlags &= 0xFFFE;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->dynFlags &= 0xFFFE;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_COL_ON: {
-			currentProcessedActorPtr->dynFlags |= 1;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->dynFlags |= 1;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_DEC_OFF: // background collision off
 		{
-			currentProcessedActorPtr->_flags &= ~AF_TRIGGER;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->_flags &= ~AF_TRIGGER;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_DEC_ON: // background collision on
 		{
-			currentProcessedActorPtr->_flags |= AF_TRIGGER;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->_flags |= AF_TRIGGER;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case TL_MEMO_COOR: {
-			const int objNum = currentProcessedActorPtr->indexInWorld;
+			const int objNum = g_engine->_engine->currentProcessedActorPtr->indexInWorld;
 
-			g_engine->_engine->worldObjets[objNum].x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			g_engine->_engine->worldObjets[objNum].y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			g_engine->_engine->worldObjets[objNum].z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->worldObjets[objNum].x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->worldObjets[objNum].y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->worldObjets[objNum].z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 
 			break;
 		}
@@ -501,47 +501,47 @@ void processTrack() {
 			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			const int objX = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].x;
-			const int objY = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].y;
-			// objZ = g_engine->_engine->ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
+			const int objX = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].x;
+			const int objY = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].y;
+			// objZ = g_engine->_engine->ListWorldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].z;
 
-			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
-				const int propX = makeProportional(objY, y, x - objX, currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX - objX);
+			if (g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY < y - 100 || g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY > y + 100) {
+				const int propX = makeProportional(objY, y, x - objX, g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX - objX);
 
-				const int difY = propX - currentProcessedActorPtr->worldY;
+				const int difY = propX - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-				currentProcessedActorPtr->worldY += difY;
-				currentProcessedActorPtr->roomY += difY;
-				currentProcessedActorPtr->zv.ZVY1 += difY;
-				currentProcessedActorPtr->zv.ZVY2 += difY;
+				g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+				g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-																   currentProcessedActorPtr->beta,
+				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																   g_engine->_engine->currentProcessedActorPtr->beta,
 																   x, z);
 
-				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+				if (!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 
-				currentProcessedActorPtr->direction = angleModif;
+				g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
 				if (angleModif) {
-					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+					g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 				} else {
-					currentProcessedActorPtr->rotate.param = 0;
+					g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 				}
 
 			} else {
-				const int difY = y - currentProcessedActorPtr->worldY;
+				const int difY = y - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-				currentProcessedActorPtr->stepY = 0;
-				currentProcessedActorPtr->worldY += difY;
-				currentProcessedActorPtr->roomY += difY;
-				currentProcessedActorPtr->zv.ZVY1 += difY;
-				currentProcessedActorPtr->zv.ZVY2 += difY;
+				g_engine->_engine->currentProcessedActorPtr->stepY = 0;
+				g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+				g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				currentProcessedActorPtr->positionInTrack += 4;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 4;
 			}
 
 			break;
@@ -556,62 +556,62 @@ void processTrack() {
 			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			const int objY = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].y;
-			const int objZ = g_engine->_engine->worldObjets[currentProcessedActorPtr->indexInWorld].z;
+			const int objY = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].y;
+			const int objZ = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->indexInWorld].z;
 
-			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
-				const int propZ = makeProportional(objY, y, z - objZ, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ - objZ);
+			if (g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY < y - 100 || g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY > y + 100) {
+				const int propZ = makeProportional(objY, y, z - objZ, g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ - objZ);
 
-				const int difY = propZ - currentProcessedActorPtr->worldY;
+				const int difY = propZ - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-				currentProcessedActorPtr->worldY += difY;
-				currentProcessedActorPtr->roomY += difY;
-				currentProcessedActorPtr->zv.ZVY1 += difY;
-				currentProcessedActorPtr->zv.ZVY2 += difY;
+				g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+				g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-																   currentProcessedActorPtr->beta,
+				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																   g_engine->_engine->currentProcessedActorPtr->beta,
 																   x, z);
 
-				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+				if (!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 
-				currentProcessedActorPtr->direction = angleModif;
+				g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
 				if (angleModif) {
-					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+					g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 				} else {
-					currentProcessedActorPtr->rotate.param = 0;
+					g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 				}
 
 			} else {
-				const int difY = y - currentProcessedActorPtr->worldY;
+				const int difY = y - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-				currentProcessedActorPtr->stepY = 0;
-				currentProcessedActorPtr->worldY += difY;
-				currentProcessedActorPtr->roomY += difY;
-				currentProcessedActorPtr->zv.ZVY1 += difY;
-				currentProcessedActorPtr->zv.ZVY2 += difY;
+				g_engine->_engine->currentProcessedActorPtr->stepY = 0;
+				g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+				g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				currentProcessedActorPtr->positionInTrack += 4;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 4;
 			}
 
 			break;
 		}
 		case TL_ANGLE: // rotate
 		{
-			currentProcessedActorPtr->alpha = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->alpha = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->beta = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->beta = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->gamma = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->gamma = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			currentProcessedActorPtr->direction = 0;
+			g_engine->_engine->currentProcessedActorPtr->direction = 0;
 
-			currentProcessedActorPtr->positionInTrack += 4;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack += 4;
 
 			break;
 		}
@@ -625,92 +625,92 @@ void processTrack() {
 	}
 	}
 
-	currentProcessedActorPtr->beta &= 0x3FF;
+	g_engine->_engine->currentProcessedActorPtr->beta &= 0x3FF;
 }
 
 void processTrack2() {
-	switch (currentProcessedActorPtr->trackMode) {
+	switch (g_engine->_engine->currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
 		gereManualRot(60);
-		if (localJoyD & 1) // forward
+		if (g_engine->_engine->localJoyD & 1) // forward
 		{
-			if (timer - lastTimeForward < 10 && currentProcessedActorPtr->speed != 4)
-				currentProcessedActorPtr->speed = 5;
-			else if (currentProcessedActorPtr->speed == 0 || currentProcessedActorPtr->speed == -1)
-				currentProcessedActorPtr->speed = 4;
+			if (g_engine->_engine->timer - lastTimeForward < 10 && g_engine->_engine->currentProcessedActorPtr->speed != 4)
+				g_engine->_engine->currentProcessedActorPtr->speed = 5;
+			else if (g_engine->_engine->currentProcessedActorPtr->speed == 0 || g_engine->_engine->currentProcessedActorPtr->speed == -1)
+				g_engine->_engine->currentProcessedActorPtr->speed = 4;
 
-			/*        if(currentProcessedActorPtr->speed>0 && currentProcessedActorPtr->speed<4)
-			currentProcessedActorPtr->speed = 5; */
+			/*        if(g_engine->_engine->currentProcessedActorPtr->speed>0 && g_engine->_engine->currentProcessedActorPtr->speed<4)
+			g_engine->_engine->currentProcessedActorPtr->speed = 5; */
 
-			lastTimeForward = timer;
+			lastTimeForward = g_engine->_engine->timer;
 		} else {
-			if (currentProcessedActorPtr->speed > 0 && currentProcessedActorPtr->speed <= 4) {
-				currentProcessedActorPtr->speed--;
+			if (g_engine->_engine->currentProcessedActorPtr->speed > 0 && g_engine->_engine->currentProcessedActorPtr->speed <= 4) {
+				g_engine->_engine->currentProcessedActorPtr->speed--;
 			} else {
-				currentProcessedActorPtr->speed = 0;
+				g_engine->_engine->currentProcessedActorPtr->speed = 0;
 			}
 		}
 
-		if (localJoyD & 2) // backward
+		if (g_engine->_engine->localJoyD & 2) // backward
 		{
-			if (currentProcessedActorPtr->speed == 0 || currentProcessedActorPtr->speed >= 4)
-				currentProcessedActorPtr->speed = -1;
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 0 || g_engine->_engine->currentProcessedActorPtr->speed >= 4)
+				g_engine->_engine->currentProcessedActorPtr->speed = -1;
 
-			if (currentProcessedActorPtr->speed == 5)
-				currentProcessedActorPtr->speed = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->speed == 5)
+				g_engine->_engine->currentProcessedActorPtr->speed = 0;
 		}
 
 		break;
 	}
 	case 2: // follow
 	{
-		const int followedActorIdx = g_engine->_engine->worldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = g_engine->_engine->worldObjets[g_engine->_engine->currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
-			currentProcessedActorPtr->direction = 0;
-			currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->direction = 0;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
 		} else {
-			const Object *followedActorPtr = &objectTable[followedActorIdx];
+			const Object *followedActorPtr = &g_engine->_engine->objectTable[followedActorIdx];
 
 			const int roomNumber = followedActorPtr->room;
 			const int x = followedActorPtr->roomX;
 			// int y = followedActorPtr->roomY;
 			const int z = followedActorPtr->roomZ;
 
-			if (currentProcessedActorPtr->room != roomNumber) {
-				/*  char* link = getRoomLink(currentProcessedActorPtr->room,roomNumber);
+			if (g_engine->_engine->currentProcessedActorPtr->room != roomNumber) {
+				/*  char* link = getRoomLink(g_engine->_engine->currentProcessedActorPtr->room,roomNumber);
 
 				x = *(int16*)(link)+(((*(int16*)(link+2))-(*(int16 *)(link))) / 2);
 				y = *(int16*)(link+4)+(((*(int16*)(link+6))-(*(int16 *)(link+4))) / 2);
 				z = *(int16*)(link+8)+(((*(int16*)(link+10))-(*(int16 *)(link+8))) / 2); */
 			}
 
-			const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-															   currentProcessedActorPtr->beta, x, z);
+			const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+															   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+															   g_engine->_engine->currentProcessedActorPtr->beta, x, z);
 
-			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+			if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->direction = angleModif;
+			g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
-			if (currentProcessedActorPtr->direction == 0) {
-				currentProcessedActorPtr->rotate.param = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->direction == 0) {
+				g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 			} else {
-				currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+				g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->speed = 4;
+			g_engine->_engine->currentProcessedActorPtr->speed = 4;
 		}
 		break;
 	}
 	case 3: // track
 	{
-		byte *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
+		byte *trackPtr = HQR_Get(g_engine->_engine->listTrack, g_engine->_engine->currentProcessedActorPtr->trackNumber);
 
-		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
+		trackPtr += g_engine->_engine->currentProcessedActorPtr->positionInTrack * 2;
 
 		const int16 trackMacro = *(int16 *)trackPtr;
 		trackPtr += 2;
@@ -723,44 +723,44 @@ void processTrack2() {
 			const int roomNumber = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (currentProcessedActorPtr->room != roomNumber) {
-				if (currentCameraTargetActor == currentProcessedActorIdx) {
-					needChangeRoom = 1;
-					newRoom = roomNumber;
+			if (g_engine->_engine->currentProcessedActorPtr->room != roomNumber) {
+				if (g_engine->_engine->currentCameraTargetActor == g_engine->_engine->currentProcessedActorIdx) {
+					g_engine->_engine->needChangeRoom = 1;
+					g_engine->_engine->newRoom = roomNumber;
 				}
 
-				currentProcessedActorPtr->room = roomNumber;
+				g_engine->_engine->currentProcessedActorPtr->room = roomNumber;
 			}
 
-			currentProcessedActorPtr->zv.ZVX1 -= currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVX2 -= currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVY1 -= currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVY2 -= currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVZ1 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->zv.ZVZ2 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 -= g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 -= g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 -= g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 -= g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 -= g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 -= g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldX = g_engine->_engine->currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldY = g_engine->_engine->currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->worldZ = g_engine->_engine->currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[currentRoom].worldX - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
-			currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldY - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldY) * 10);
-			currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[currentRoom].worldZ - g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
 
-			currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
-			currentProcessedActorPtr->zv.ZVY1 += currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVY2 += currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
-			currentProcessedActorPtr->zv.ZVZ1 += currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
-			currentProcessedActorPtr->zv.ZVZ2 += currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->stepY;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ1 += g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
+			g_engine->_engine->currentProcessedActorPtr->zv.ZVZ2 += g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->speed = 0;
-			currentProcessedActorPtr->direction = 0;
-			currentProcessedActorPtr->rotate.param = 0;
-			currentProcessedActorPtr->positionInTrack += 5;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->direction = 0;
+			g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack += 5;
 
 			break;
 		}
@@ -775,56 +775,56 @@ void processTrack2() {
 			int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (roomNumber != currentProcessedActorPtr->room) {
-				x -= (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
-				z += (g_engine->_engine->roomDataTable[currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
+			if (roomNumber != g_engine->_engine->currentProcessedActorPtr->room) {
+				x -= (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[roomNumber].worldX) * 10;
+				z += (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ - g_engine->_engine->roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			const uint distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+			const uint distanceToPoint = computeDistanceToPoint(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
 																  x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
-				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-																   currentProcessedActorPtr->beta,
+				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
+																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																   g_engine->_engine->currentProcessedActorPtr->beta,
 																   x, z);
 
-				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 6), 15, &currentProcessedActorPtr->rotate);
+				if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 6), 15, &g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 
-				currentProcessedActorPtr->direction = angleModif;
+				g_engine->_engine->currentProcessedActorPtr->direction = angleModif;
 
 				if (!angleModif) {
-					currentProcessedActorPtr->rotate.param = 0;
+					g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 				} else {
-					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+					g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 				}
 			} else // reached position
 			{
-				currentProcessedActorPtr->positionInTrack += 4;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 4;
 			}
 
 			break;
 		}
 		case 2: // stop
 		{
-			currentProcessedActorPtr->speed = 0;
-			currentProcessedActorPtr->trackNumber = -1;
+			g_engine->_engine->currentProcessedActorPtr->speed = 0;
+			g_engine->_engine->currentProcessedActorPtr->trackNumber = -1;
 			setMoveMode(0, 0);
 			break;
 		}
 		case 3: {
-			currentProcessedActorPtr->positionInTrack = 0;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack = 0;
 			break;
 		}
 		case 4: // MARK
 		{
-			currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
+			g_engine->_engine->currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->positionInTrack += 2;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack += 2;
 			break;
 		}
 		case 5: {
@@ -834,55 +834,55 @@ void processTrack2() {
 			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if ((currentProcessedActorPtr->beta - betaDif & 0x3FF) > 0x200) {
-				currentProcessedActorPtr->direction = 1;
+			if ((g_engine->_engine->currentProcessedActorPtr->beta - betaDif & 0x3FF) > 0x200) {
+				g_engine->_engine->currentProcessedActorPtr->direction = 1;
 			} else {
-				currentProcessedActorPtr->direction = -1;
+				g_engine->_engine->currentProcessedActorPtr->direction = -1;
 			}
 
-			if (!currentProcessedActorPtr->rotate.param) {
-				initRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
+			if (!g_engine->_engine->currentProcessedActorPtr->rotate.param) {
+				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, betaDif, 120, &g_engine->_engine->currentProcessedActorPtr->rotate);
 			}
 
-			currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+			g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 
-			if (currentProcessedActorPtr->beta == betaDif) {
-				currentProcessedActorPtr->direction = 0;
+			if (g_engine->_engine->currentProcessedActorPtr->beta == betaDif) {
+				g_engine->_engine->currentProcessedActorPtr->direction = 0;
 
-				currentProcessedActorPtr->positionInTrack += 2;
+				g_engine->_engine->currentProcessedActorPtr->positionInTrack += 2;
 			}
 
 			break;
 		}
 		case 0x7: {
-			currentProcessedActorPtr->dynFlags &= 0xFFFE;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->dynFlags &= 0xFFFE;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case 0x8: {
-			currentProcessedActorPtr->dynFlags |= 1;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->dynFlags |= 1;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case 0xA: {
-			currentProcessedActorPtr->_flags &= 0xFFBF;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->_flags &= 0xFFBF;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		}
 		case 0xB: {
-			currentProcessedActorPtr->_flags |= 0x40;
-			currentProcessedActorPtr->positionInTrack++;
+			g_engine->_engine->currentProcessedActorPtr->_flags |= 0x40;
+			g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 			break;
 		} /*
 		  case 0x10:
 		  {
-		  int objNum = currentProcessedActorPtr->field_0;
+		  int objNum = g_engine->_engine->currentProcessedActorPtr->field_0;
 
-		  objectTable[objNum].x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->modX;
-		  objectTable[objNum].y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->modY;
-		  objectTable[objNum].z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->modZ;
+		  objectTable[objNum].x = g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->modX;
+		  objectTable[objNum].y = g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->modY;
+		  objectTable[objNum].z = g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->modZ;
 
-		  currentProcessedActorPtr->positionInTrack++;
+		  g_engine->_engine->currentProcessedActorPtr->positionInTrack++;
 
 		  break;
 		  }
@@ -902,56 +902,56 @@ void processTrack2() {
 		  z = *(int16*)(trackPtr);
 		  trackPtr += 2;
 
-		  objX = objectTable[currentProcessedActorPtr->field_0].x;
-		  objY = objectTable[currentProcessedActorPtr->field_0].y;
-		  objZ = objectTable[currentProcessedActorPtr->field_0].z;
+		  objX = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].x;
+		  objY = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].y;
+		  objZ = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].z;
 
-		  if(   currentProcessedActorPtr->roomY + currentProcessedActorPtr->modY < y - 100
-		  ||  currentProcessedActorPtr->roomY + currentProcessedActorPtr->modY > y + 100)
+		  if(   g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->modY < y - 100
+		  ||  g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->modY > y + 100)
 		  {
-		  int propX = makeProportional(objY, y, x - objX, (currentProcessedActorPtr->roomX + currentProcessedActorPtr->modX) - objX);
+		  int propX = makeProportional(objY, y, x - objX, (g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->modX) - objX);
 
-		  int difY = propX - currentProcessedActorPtr->worldY;
+		  int difY = propX - g_engine->_engine->currentProcessedActorPtr->worldY;
 		  int angleModif;
 
-		  currentProcessedActorPtr->worldY += difY;
-		  currentProcessedActorPtr->roomY += difY;
-		  currentProcessedActorPtr->zv.ZVY1 += difY;
-		  currentProcessedActorPtr->zv.ZVY2 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-		  angleModif = computeAngleModificatorToPosition( currentProcessedActorPtr->roomX + currentProcessedActorPtr->modX,
-		  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->modZ,
-		  currentProcessedActorPtr->beta,
+		  angleModif = computeAngleModificatorToPosition( g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->modX,
+		  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->modZ,
+		  g_engine->_engine->currentProcessedActorPtr->beta,
 		  x,z );
 
-		  if(!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->field_72 != angleModif)
+		  if(!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->field_72 != angleModif)
 		  {
-		  startActorRotation(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif<<8), 60, &currentProcessedActorPtr->rotate);
+		  startActorRotation(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif<<8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 		  }
 
-		  currentProcessedActorPtr->field_72 = angleModif;
+		  g_engine->_engine->currentProcessedActorPtr->field_72 = angleModif;
 
 		  if(angleModif)
 		  {
-		  currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+		  g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 		  }
 		  else
 		  {
-		  currentProcessedActorPtr->rotate.param = 0;
+		  g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 		  }
 
 		  }
 		  else
 		  {
-		  int difY = y - currentProcessedActorPtr->worldY;
+		  int difY = y - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-		  currentProcessedActorPtr->modY = 0;
-		  currentProcessedActorPtr->worldY += difY;
-		  currentProcessedActorPtr->roomY += difY;
-		  currentProcessedActorPtr->zv.ZVY1 += difY;
-		  currentProcessedActorPtr->zv.ZVY2 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->modY = 0;
+		  g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-		  currentProcessedActorPtr->positionInTrack +=4;
+		  g_engine->_engine->currentProcessedActorPtr->positionInTrack +=4;
 		  }
 
 		  break;
@@ -972,73 +972,73 @@ void processTrack2() {
 		  z = *(int16*)(trackPtr);
 		  trackPtr += 2;
 
-		  objX = objectTable[currentProcessedActorPtr->field_0].x;
-		  objY = objectTable[currentProcessedActorPtr->field_0].y;
-		  objZ = objectTable[currentProcessedActorPtr->field_0].z;
+		  objX = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].x;
+		  objY = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].y;
+		  objZ = objectTable[g_engine->_engine->currentProcessedActorPtr->field_0].z;
 
-		  if(   currentProcessedActorPtr->roomY + currentProcessedActorPtr->modY < y - 100
-		  ||  currentProcessedActorPtr->roomY + currentProcessedActorPtr->modY > y + 100)
+		  if(   g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->modY < y - 100
+		  ||  g_engine->_engine->currentProcessedActorPtr->roomY + g_engine->_engine->currentProcessedActorPtr->modY > y + 100)
 		  {
-		  int propZ = makeProportional(objY, y, z - objZ, (currentProcessedActorPtr->roomZ + currentProcessedActorPtr->modZ) - objZ);
+		  int propZ = makeProportional(objY, y, z - objZ, (g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->modZ) - objZ);
 
-		  int difY = propZ - currentProcessedActorPtr->worldY;
+		  int difY = propZ - g_engine->_engine->currentProcessedActorPtr->worldY;
 
 		  int angleModif;
 
-		  currentProcessedActorPtr->worldY += difY;
-		  currentProcessedActorPtr->roomY += difY;
-		  currentProcessedActorPtr->zv.ZVY1 += difY;
-		  currentProcessedActorPtr->zv.ZVY2 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-		  angleModif = computeAngleModificatorToPosition( currentProcessedActorPtr->roomX + currentProcessedActorPtr->modX,
-		  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->modZ,
-		  currentProcessedActorPtr->beta,
+		  angleModif = computeAngleModificatorToPosition( g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->modX,
+		  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->modZ,
+		  g_engine->_engine->currentProcessedActorPtr->beta,
 		  x,z );
 
-		  if(!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->field_72 != angleModif)
+		  if(!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->field_72 != angleModif)
 		  {
-		  startActorRotation(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif<<8), 60, &currentProcessedActorPtr->rotate);
+		  startActorRotation(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif<<8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
 		  }
 
-		  currentProcessedActorPtr->field_72 = angleModif;
+		  g_engine->_engine->currentProcessedActorPtr->field_72 = angleModif;
 
 		  if(angleModif)
 		  {
-		  currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
+		  g_engine->_engine->currentProcessedActorPtr->beta = updateActorRotation(&g_engine->_engine->currentProcessedActorPtr->rotate);
 		  }
 		  else
 		  {
-		  currentProcessedActorPtr->rotate.param = 0;
+		  g_engine->_engine->currentProcessedActorPtr->rotate.param = 0;
 		  }
 
 		  }
 		  else
 		  {
-		  int difY = y - currentProcessedActorPtr->worldY;
+		  int difY = y - g_engine->_engine->currentProcessedActorPtr->worldY;
 
-		  currentProcessedActorPtr->modY = 0;
-		  currentProcessedActorPtr->worldY += difY;
-		  currentProcessedActorPtr->roomY += difY;
-		  currentProcessedActorPtr->zv.ZVY1 += difY;
-		  currentProcessedActorPtr->zv.ZVY2 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->modY = 0;
+		  g_engine->_engine->currentProcessedActorPtr->worldY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->roomY += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY1 += difY;
+		  g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
-		  currentProcessedActorPtr->positionInTrack +=4;
+		  g_engine->_engine->currentProcessedActorPtr->positionInTrack +=4;
 		  }
 
 		  break;
 		  }
 		  case 0x13: // rotate
 		  {
-		  currentProcessedActorPtr->alpha = *(int16*)(trackPtr);
+		  g_engine->_engine->currentProcessedActorPtr->alpha = *(int16*)(trackPtr);
 		  trackPtr += 2;
-		  currentProcessedActorPtr->beta = *(int16*)(trackPtr);
+		  g_engine->_engine->currentProcessedActorPtr->beta = *(int16*)(trackPtr);
 		  trackPtr += 2;
-		  currentProcessedActorPtr->gamma = *(int16*)(trackPtr);
+		  g_engine->_engine->currentProcessedActorPtr->gamma = *(int16*)(trackPtr);
 		  trackPtr += 2;
 
-		  currentProcessedActorPtr->field_72 = 0;
+		  g_engine->_engine->currentProcessedActorPtr->field_72 = 0;
 
-		  currentProcessedActorPtr->positionInTrack +=4;
+		  g_engine->_engine->currentProcessedActorPtr->positionInTrack +=4;
 
 		  break;
 		  } */
@@ -1052,6 +1052,6 @@ void processTrack2() {
 	}
 	}
 
-	currentProcessedActorPtr->beta &= 0x3FF;
+	g_engine->_engine->currentProcessedActorPtr->beta &= 0x3FF;
 }
 } // namespace Fitd

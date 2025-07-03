@@ -26,7 +26,7 @@
 #include "fitd/detection.h"
 #include "fitd/detection_tables.h"
 
-class FitdMetaEngineDetection : public AdvancedMetaEngineDetection<Fitd::FitdGameDescription> {
+class FitdMetaEngineDetection final : public AdvancedMetaEngineDetection<Fitd::FitdGameDescription> {
 	static const DebugChannelDef debugFlagList[];
 
 public:

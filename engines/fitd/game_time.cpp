@@ -19,25 +19,26 @@
  *
  */
 
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 #include "fitd/game_time.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
 
 void freezeTime() {
-	if (timerSaved == 0) {
-		timerFreeze1 = timeGlobal;
+	if (g_engine->_engine->timerSaved == 0) {
+		g_engine->_engine->timerFreeze1 = g_engine->_engine->timeGlobal;
 	}
-	timerSaved++;
+	g_engine->_engine->timerSaved++;
 }
 
 void unfreezeTime() {
-	assert(timerSaved);
-	timerSaved--;
-	if (timerSaved == 0) {
-		timeGlobal = timerFreeze1;
-		timer = timeGlobal;
+	assert(g_engine->_engine->timerSaved);
+	g_engine->_engine->timerSaved--;
+	if (g_engine->_engine->timerSaved == 0) {
+		g_engine->_engine->timeGlobal = g_engine->_engine->timerFreeze1;
+		g_engine->_engine->timer = g_engine->_engine->timeGlobal;
 	}
 }
 

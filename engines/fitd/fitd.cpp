@@ -38,6 +38,7 @@ FitdEngine::FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc)
 	: Engine(syst), _gameDescription(gameDesc), _randomSource("Fitd") {
 	g_engine = this;
 	_engine = new Fitd::Engine();
+
 }
 
 FitdEngine::~FitdEngine() {
