@@ -57,16 +57,16 @@ public:
 	FitdGameId getGameId() const;
 	uint32 getRandomNumber(uint maxNum);
 
-	bool hasFeature(EngineFeature f) const final;
+	bool hasFeature(EngineFeature f) const override;
 
-	bool canLoadGameStateCurrently(Common::U32String *msg) final;
-	bool canSaveGameStateCurrently(Common::U32String *msg) final;
+	bool canLoadGameStateCurrently(Common::U32String *msg) override;
+	bool canSaveGameStateCurrently(Common::U32String *msg) override;
 	SaveStateList listSaveFiles() const;
-	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) final;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) override;
 
 private:
-	Common::Error loadGameStream(Common::SeekableReadStream *stream) final;
-	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave) final;
+	Common::Error loadGameStream(Common::SeekableReadStream *stream) override;
+	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave) override;
 };
 
 extern FitdEngine *g_engine;

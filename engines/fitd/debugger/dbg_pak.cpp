@@ -62,7 +62,7 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 
 static Common::String toHumanReadableBytes(uint64 size) {
 	const char *units;
-	Common::String text(Common::getHumanReadableBytes(size, units));
+	const Common::String text(Common::getHumanReadableBytes(size, units));
 	return Common::String::format("%s %s", text.c_str(), units);
 }
 
@@ -73,14 +73,14 @@ static void refreshPAK(const char *name) {
 	f.open(name);
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
-	uint32 numFiles = fileOffset / 4 - 2;
+	const uint32 numFiles = fileOffset / 4 - 2;
 
 	for (uint32 i = 0; i < numFiles; ++i) {
-		uint32 idOffset = (i + 1) * 4;
+		const uint32 idOffset = (i + 1) * 4;
 		f.seek(idOffset, SEEK_SET);
 		fileOffset = f.readUint32LE();
 		f.seek(fileOffset, SEEK_SET);
-		uint32 additionalDescriptorSize = f.readUint32LE();
+		const uint32 additionalDescriptorSize = f.readUint32LE();
 		if (additionalDescriptorSize) {
 			f.seek(additionalDescriptorSize - 4, SEEK_CUR);
 		}
@@ -93,12 +93,12 @@ static void refreshPAK(const char *name) {
 static void selectRes(int resIndex) {
 	// it should be an image
 	if (_state->infos[resIndex].uncompressedSize == 64000) {
-		byte *pal = (byte *)pakLoad("ITD_RESS.PAK", 3);
+		byte *pal = pakLoad("ITD_RESS.PAK", 3);
 		byte *selectedResData = pakLoad(_state->member.c_str(), resIndex);
-		Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
+		const Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
 		Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
 		s->setPalette(pal, 0, 256);
-		byte *dst = (byte *)s->getBasePtr(0, 0);
+		byte *dst = static_cast<byte *>(s->getBasePtr(0, 0));
 		memcpy(dst, selectedResData, 64000);
 		_state->selectedTexture = g_system->getImGuiTexture(*s, pal, 256);
 		free(pal);
@@ -127,8 +127,7 @@ void debugPakDraw() {
 	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("PAKS")) {
 		for (auto it = _state->members.begin(); it != _state->members.end(); ++it) {
-			// Common::String name((*it)->getName().c_str());
-			bool isSelected = *it == _state->member;
+			const bool isSelected = *it == _state->member;
 			if (ImGui::Selectable(it->c_str(), isSelected)) {
 				if (_state->member != *it) {
 					refreshPAK(it->c_str());

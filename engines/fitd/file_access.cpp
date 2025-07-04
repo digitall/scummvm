@@ -33,7 +33,7 @@ byte *loadFromItd(const char *name) {
 	Common::File f;
 	f.open(name);
 	g_engine->_engine->fileSize = f.size();
-	byte *ptr = (byte *)malloc(g_engine->_engine->fileSize);
+	byte *ptr = static_cast<byte *>(malloc(g_engine->_engine->fileSize));
 
 	if (!ptr) {
 		error("Failed to load %s", name);

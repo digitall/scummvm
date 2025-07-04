@@ -148,7 +148,7 @@ void renderText(int x, int y, const char *string) {
 
 				for (int bx = 0; cl > 0; cl--) {
 					if (dh & al) {
-						*outPtr = (char)fontSm3;
+						*outPtr = static_cast<char>(fontSm3);
 					}
 
 					outPtr++;

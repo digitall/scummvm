@@ -61,7 +61,7 @@ static int getCVarsIdx(enumCVars searchedType) {
 }
 
 int getCVarsIdx(int searchedType) {
-	return getCVarsIdx((enumCVars)searchedType);
+	return getCVarsIdx(static_cast<enumCVars>(searchedType));
 }
 
 static SceZone *processActor2Sub(int x, int y, int z, RoomData *pRoomData) {
@@ -420,8 +420,8 @@ void gereFrappe() {
 						return;
 					}
 
-					if (g_engine->_engine->objectTable[currentActorCol].indexInWorld == g_engine->_engine->cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)]) {
-						objPtr->alpha = g_engine->_engine->cVars[getCVarsIdx((enumCVars)REVERSE_OBJECT)];
+					if (g_engine->_engine->objectTable[currentActorCol].indexInWorld == g_engine->_engine->cVars[getCVarsIdx(static_cast<enumCVars>(REVERSE_OBJECT))]) {
+						objPtr->alpha = g_engine->_engine->cVars[getCVarsIdx(static_cast<enumCVars>(REVERSE_OBJECT))];
 						g_engine->_engine->currentProcessedActorPtr->beta += 0x200;
 						xtemp = x3;
 						ztemp = z3;
@@ -461,7 +461,7 @@ void gereFrappe() {
 				}
 
 				if (collision2) {
-					playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(g_engine->_engine->cVars[getCVarsIdx(static_cast<enumCVars>(SAMPLE_CHOC))]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
@@ -471,7 +471,7 @@ void gereFrappe() {
 
 			if (ptr) {
 				if (ptr->type == 0 || ptr->type == 10) {
-					playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+					playSound(g_engine->_engine->cVars[getCVarsIdx(static_cast<enumCVars>(SAMPLE_CHOC))]);
 					throwStoppedAt(x3, z3);
 					return;
 				}
@@ -482,7 +482,7 @@ void gereFrappe() {
 				g_engine->_engine->currentProcessedActorPtr->hotPoint.y = 0;
 				g_engine->_engine->currentProcessedActorPtr->hotPoint.z = 0;
 
-				playSound(g_engine->_engine->cVars[getCVarsIdx((enumCVars)SAMPLE_CHOC)]);
+				playSound(g_engine->_engine->cVars[getCVarsIdx(static_cast<enumCVars>(SAMPLE_CHOC))]);
 				throwStoppedAt(x3, z3);
 				return;
 			}

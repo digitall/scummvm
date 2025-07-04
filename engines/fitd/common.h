@@ -112,25 +112,25 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 // Endian safe read functions
 inline uint16 READ_LE_U16(const void *p) {
-	const uint8 *data = (const uint8 *)p;
-	return (uint16)(data[1] << 8 | data[0]);
+	const uint8 *data = static_cast<const uint8 *>(p);
+	return static_cast<uint16>(data[1] << 8 | data[0]);
 }
 
 inline int16 READ_LE_S16(const void *p) {
-	return (int16)READ_LE_U16(p);
+	return static_cast<int16>(READ_LE_U16(p));
 }
 
 inline uint32 READ_LE_U32(const void *p) {
-	const uint8 *data = (const uint8 *)p;
-	return (uint32)data[3] << 24 | (uint32)data[2] << 16 | (uint32)data[1] << 8 | (uint32)data[0];
+	const uint8 *data = static_cast<const uint8 *>(p);
+	return static_cast<uint32>(data[3]) << 24 | static_cast<uint32>(data[2]) << 16 | static_cast<uint32>(data[1]) << 8 | static_cast<uint32>(data[0]);
 }
 
 inline uint8 READ_LE_U8(const void *ptr) {
-	return *(const uint8 *)ptr;
+	return *static_cast<const uint8 *>(ptr);
 }
 
 inline int8 READ_LE_S8(const void *ptr) {
-	return (int8)READ_LE_U8(ptr);
+	return static_cast<int8>(READ_LE_U8(ptr));
 }
 
 extern const char *listBodySelect[];

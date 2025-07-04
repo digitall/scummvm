@@ -58,7 +58,7 @@ HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries) {
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntries;
 	dest->numUsedEntry = 0;
-	dest->entries = (HqrSubEntry *)malloc(numEntries * sizeof(HqrSubEntry));
+	dest->entries = static_cast<HqrSubEntry *>(malloc(numEntries * sizeof(HqrSubEntry)));
 
 	for (int i = 0; i < numEntries; i++) {
 		dest->entries[i].ptr = nullptr;
@@ -81,7 +81,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 	dataPtr1[entryNum].key = hq_key;
 
 	dataPtr1[entryNum].size = size;
-	dataPtr1[entryNum].ptr = (byte *)malloc(size);
+	dataPtr1[entryNum].ptr = static_cast<byte *>(malloc(size));
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;
@@ -116,7 +116,7 @@ void moveHqrEntry(HqrEntry *hqrPtr, int index) {
 }
 
 Animation *createAnimationFromPtr(void *ptr) {
-	const uint8 *animPtr = (uint8 *)ptr;
+	const uint8 *animPtr = static_cast<uint8 *>(ptr);
 
 	Animation *pAnimation = new Animation;
 
@@ -159,7 +159,7 @@ Animation *createAnimationFromPtr(void *ptr) {
 }
 
 static Body *createBodyFromPtr(void *ptr) {
-	uint8 *bodyBuffer = (uint8 *)ptr;
+	uint8 *bodyBuffer = static_cast<uint8 *>(ptr);
 
 	Body *newBody = new Body;
 
@@ -281,7 +281,7 @@ static Body *createBodyFromPtr(void *ptr) {
 	bodyBuffer += 2;
 	newBody->m_primitives.resize(numPrimitives);
 	for (int i = 0; i < numPrimitives; i++) {
-		newBody->m_primitives[i].m_type = (PrimType)READ_LE_U8(bodyBuffer);
+		newBody->m_primitives[i].m_type = static_cast<PrimType>(READ_LE_U8(bodyBuffer));
 		bodyBuffer += 1;
 
 		switch (newBody->m_primitives[i].m_type) {
@@ -419,7 +419,7 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 	foundEntry->key = index;
 	foundEntry->lastTimeUsed = g_engine->_engine->timer;
 	foundEntry->size = size;
-	foundEntry->ptr = (byte *)malloc(size);
+	foundEntry->ptr = static_cast<byte *>(malloc(size));
 
 	byte *ptr = foundEntry->ptr;
 
@@ -447,7 +447,7 @@ HqrEntry *HQR_Init(int size, int numEntry) {
 	if (!dest)
 		return nullptr;
 
-	const char *dest2 = (char *)malloc(size);
+	const char *dest2 = static_cast<char *>(malloc(size));
 
 	assert(dest2);
 
@@ -462,7 +462,7 @@ HqrEntry *HQR_Init(int size, int numEntry) {
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntry;
 	dest->numUsedEntry = 0;
-	dest->entries = (HqrSubEntry *)malloc(numEntry * sizeof(HqrSubEntry));
+	dest->entries = static_cast<HqrSubEntry *>(malloc(numEntry * sizeof(HqrSubEntry)));
 
 	for (int i = 0; i < numEntry; i++) {
 		dest->entries[i].ptr = nullptr;

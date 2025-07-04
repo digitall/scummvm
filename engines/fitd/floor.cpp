@@ -231,6 +231,7 @@ void loadFloor(int floorNumber) {
 
 			backupDataPtr = currentCameraData;
 
+			assert(currentCameraData);
 			g_engine->_engine->currentFloorCameraData[i].alpha = READ_LE_U16(currentCameraData + 0x00);
 			g_engine->_engine->currentFloorCameraData[i].beta = READ_LE_U16(currentCameraData + 0x02);
 			g_engine->_engine->currentFloorCameraData[i].gamma = READ_LE_U16(currentCameraData + 0x04);
@@ -328,7 +329,7 @@ void loadFloor(int floorNumber) {
 						pCurrentCameraViewedRoom->coverZones[j].numPoints = numPoints = READ_LE_U16(pZoneData);
 						pZoneData += 2;
 
-						pCurrentCameraViewedRoom->coverZones[j].pointTable = (CameraZonePoint *)malloc(sizeof(CameraZonePoint) * (numPoints + 1));
+						pCurrentCameraViewedRoom->coverZones[j].pointTable = static_cast<CameraZonePoint *>(malloc(sizeof(CameraZonePoint) * (numPoints + 1)));
 
 						for (pointIdx = 0; pointIdx < pCurrentCameraViewedRoom->coverZones[j].numPoints; pointIdx++) {
 							pCurrentCameraViewedRoom->coverZones[j].pointTable[pointIdx].x = READ_LE_U16(pZoneData);

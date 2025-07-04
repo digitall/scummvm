@@ -35,7 +35,6 @@
 #include "fitd/sequence.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 #define NB_OPTIONS 7
 #define SELECT_COUL 0xF
@@ -47,7 +46,7 @@ namespace Fitd {
 int input5;
 
 void AffOption(int n, int num, int selected) {
-	int y = g_engine->_engine->windowY1 + (g_engine->_engine->windowY2 - g_engine->_engine->windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
+	const int y = g_engine->_engine->windowY1 + (g_engine->_engine->windowY2 - g_engine->_engine->windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
 
 	if (n == selected) {
 		selectedMessage(160, y, num, SELECT_COUL, MENU_COUL);
@@ -78,7 +77,7 @@ static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, co
 }
 
 void aitd2AffOption(int n, int num, int selected) {
-	int y = 34 + n * fontHeight;
+	const int y = 34 + n * fontHeight;
 	if (n == selected) {
 		selectedMessage(160, y, num, 1, MENU_COUL);
 	} else {
@@ -113,10 +112,10 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(160, 100, 320, 200);
 
-	int backupTop = g_engine->_engine->windowY1;
-	int backupBottom = g_engine->_engine->windowY2;
-	int backupLeft = g_engine->_engine->windowX1;
-	int backupRight = g_engine->_engine->windowX2;
+	const int backupTop = g_engine->_engine->windowY1;
+	const int backupBottom = g_engine->_engine->windowY2;
+	const int backupLeft = g_engine->_engine->windowX1;
+	const int backupRight = g_engine->_engine->windowX2;
 
 	affBigCadre(80, 55, 120, 70);
 
@@ -151,7 +150,7 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 		return;
 	}
 
-	for (int i = 0; i < MIN(6, (int)saveStateList.size()); ++i) {
+	for (int i = 0; i < MIN(6, static_cast<int>(saveStateList.size())); ++i) {
 		Common::String desc(saveStateList[i].getDescription().encode(Common::kASCII));
 		if (i == selectedSlot) {
 			setClip(0, 0, 319, 199);
@@ -161,12 +160,12 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 			const Graphics::Surface *s = saveStateList[i].getThumbnail();
 			Graphics::Surface *d;
 			if (s) {
-				d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), 0, 256, currentGamePalette, 256);
+				d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), nullptr, 256, currentGamePalette, 256);
 			} else {
 				d = new Graphics::Surface();
 				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
 			}
-			scaleDownImage(d->w, d->h, 30, y - 20, (const byte *)d->getBasePtr(0, 0));
+			scaleDownImage(d->w, d->h, 30, y - 20, static_cast<const byte *>(d->getBasePtr(0, 0)));
 			renderText(140, y, desc.c_str());
 		} else {
 			renderText(140, y, desc.c_str());
@@ -197,7 +196,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 	}
 
 	const uint maxSavegameCount = MIN(saveStateList.size(), 6U);
-	if (selectedSlot < saveStateList.size()) {
+	if (selectedSlot < static_cast<int>(saveStateList.size())) {
 		desc = saveStateList[selectedSlot].getDescription();
 	}
 
@@ -227,7 +226,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				selectedSlot = 0;
 			}
 
-			if (selectedSlot < saveStateList.size()) {
+			if (selectedSlot < static_cast<int>(saveStateList.size())) {
 				desc = saveStateList[selectedSlot].getDescription();
 			}
 
@@ -240,7 +239,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 			// down g_engine->_engine->key
 			edit = false;
 			selectedSlot++;
-			if (selectedSlot >= maxSavegameCount) {
+			if (selectedSlot >= static_cast<int>(maxSavegameCount)) {
 				selectedSlot = 0;
 			}
 
@@ -248,7 +247,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 				process_events();
 			}
 
-			if (selectedSlot < saveStateList.size()) {
+			if (selectedSlot < static_cast<int>(saveStateList.size())) {
 				desc = saveStateList[selectedSlot].getDescription();
 			}
 		}

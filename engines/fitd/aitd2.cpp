@@ -292,11 +292,11 @@ void aitd2ReadBook(int index, int type) {
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_LETTRE, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
+		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
@@ -305,11 +305,11 @@ void aitd2ReadBook(int index, int type) {
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_LIVRE, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
+		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 1;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;
@@ -318,11 +318,11 @@ void aitd2ReadBook(int index, int type) {
 	{
 		pakLoad("ITD_RESS.PAK", AITD2_CARNET, g_engine->_engine->aux);
 		byte lpalette[0x300];
-		copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
+		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
-		gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 0;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);
 		break;

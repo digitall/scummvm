@@ -48,7 +48,7 @@ uint pakGetNumFiles(const char* name)
     f.open(name);
 
     f.seek(4,SEEK_CUR);
-    uint32 fileOffset = f.readUint32LE();
+    const uint32 fileOffset = f.readUint32LE();
 // #ifdef MACOSX
 //     fileOffset = READ_LE_U32(&fileOffset);
 // #endif
@@ -62,13 +62,13 @@ byte *pakLoad(const char *fileName, int index) {
 	f.open(fileName);
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
-	uint32 numFiles = fileOffset / 4 - 2;
-	assert((uint32)index <= numFiles);
-	uint32 idOffset = (index + 1) * 4;
+	const uint32 numFiles = fileOffset / 4 - 2;
+	assert(static_cast<uint32>(index) <= numFiles);
+	const uint32 idOffset = (index + 1) * 4;
 	f.seek(idOffset, SEEK_SET);
 	fileOffset = f.readUint32LE();
 	f.seek(fileOffset, SEEK_SET);
-	uint32 additionalDescriptorSize = f.readUint32LE();
+	const uint32 additionalDescriptorSize = f.readUint32LE();
 	if (additionalDescriptorSize) {
 		f.seek(additionalDescriptorSize - 4, SEEK_CUR);
 	}
@@ -83,14 +83,14 @@ byte *pakLoad(const char *fileName, int index) {
 	byte *ptr = nullptr;
 	switch (pakInfo.compressionFlag) {
 	case 0: {
-		ptr = (byte *)malloc(pakInfo.discSize);
+		ptr = static_cast<byte *>(malloc(pakInfo.discSize));
 		f.read(ptr, pakInfo.discSize);
 		break;
 	}
 	case 1: {
-		byte *compressedDataPtr = (byte *)malloc(pakInfo.discSize);
+		byte *compressedDataPtr = static_cast<byte *>(malloc(pakInfo.discSize));
 		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (byte *)malloc(pakInfo.uncompressedSize);
+		ptr = static_cast<byte *>(malloc(pakInfo.uncompressedSize));
 
 		PAK_explode(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
 
@@ -98,9 +98,9 @@ byte *pakLoad(const char *fileName, int index) {
 		break;
 	}
 	case 4: {
-		byte *compressedDataPtr = (byte *)malloc(pakInfo.discSize);
+		byte *compressedDataPtr = static_cast<byte *>(malloc(pakInfo.discSize));
 		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (byte *)malloc(pakInfo.uncompressedSize);
+		ptr = static_cast<byte *>(malloc(pakInfo.uncompressedSize));
 
 		PAK_deflate(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize);
 
@@ -137,7 +137,7 @@ int pakGetPakSize(const char* name, int index)
 
 	f.seek((index+1)*4, SEEK_SET);
 
-	int32 fileOffset = f.readSint32LE();
+	const int32 fileOffset = f.readSint32LE();
 	f.seek(fileOffset, SEEK_SET);
 
 	(void)f.readSint32LE();

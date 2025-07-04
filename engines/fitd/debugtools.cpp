@@ -96,7 +96,7 @@ static void drawObjects() {
 
 			ImGui::Separator();
 
-			if ((uint)selectedWorldObject > g_engine->_engine->worldObjets.size())
+			if (static_cast<uint>(selectedWorldObject) > g_engine->_engine->worldObjets.size())
 				selectedWorldObject = g_engine->_engine->worldObjets.size() - 1;
 
 			WorldObject *pWorldObject = &g_engine->_engine->worldObjets[selectedWorldObject];

@@ -22,8 +22,6 @@
 #ifndef FITD_OPENGLRENDERER_H
 #define FITD_OPENGLRENDERER_H
 
-#include "common/scummsys.h"
-
 namespace Graphics {
 struct Surface;
 }

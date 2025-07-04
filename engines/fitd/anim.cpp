@@ -215,7 +215,7 @@ int evaluateReal(InterpolatedValue *data) {
 	if (!data->param)
 		return data->newValue;
 
-	if (g_engine->_engine->timer - data->timeOfRotate > (uint)data->param) {
+	if (g_engine->_engine->timer - data->timeOfRotate > static_cast<uint>(data->param)) {
 		data->param = 0;
 		return data->newValue;
 	}
@@ -228,7 +228,7 @@ int manageFall(int actorIdx, ZVStruct *zvPtr) {
 	const int room = g_engine->_engine->objectTable[actorIdx].room;
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		Object *currentTestedActorPtr = &g_engine->_engine->objectTable[i];
+		const Object *currentTestedActorPtr = &g_engine->_engine->objectTable[i];
 
 		if (currentTestedActorPtr->indexInWorld != -1 && i != actorIdx) {
 			const ZVStruct *testedZv = &currentTestedActorPtr->zv;
@@ -398,7 +398,7 @@ void updateAnimation() {
 				HardCol *pHardCol = g_engine->_engine->hardColTable[i];
 
 				if (pHardCol->type == 9) {
-					g_engine->_engine->currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
+					g_engine->_engine->currentProcessedActorPtr->HARD_COL = static_cast<short>(pHardCol->parameter);
 				}
 
 				if (pHardCol->type == 3) {
@@ -678,7 +678,7 @@ static void initBufferAnim(int16 *buffer, byte *bodyPtr) {
 	if (flag & 2) {
 		byte *source = bodyPtr + 0x10;
 
-		*(uint16 *)(source + 4) = (uint16)g_engine->_engine->timer;
+		*(uint16 *)(source + 4) = static_cast<uint16>(g_engine->_engine->timer);
 
 		g_engine->_engine->bodyBufferMap[source] = (byte *)&buffer[0];
 
@@ -840,13 +840,13 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 	uint16 bx = ax;
 	bodyPtr += bx * 2; // skip group order table
 
-	if ((uint)numOfBonesInAnim > pBody->m_groupOrder.size()) {
+	if (static_cast<uint>(numOfBonesInAnim) > pBody->m_groupOrder.size()) {
 		numOfBonesInAnim = pBody->m_groupOrder.size();
 	}
 
 	bodyPtr += 10; // skip bone 0
 
-	const uint16 time = (uint16)g_engine->_engine->timer - timeOfKeyframeStart;
+	const uint16 time = static_cast<uint16>(g_engine->_engine->timer) - timeOfKeyframeStart;
 
 	bx = keyframeLength;
 	const int bp = time;
@@ -950,7 +950,7 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 		g_engine->_engine->bodyBufferMap[g_engine->_engine->animVar3] = g_engine->_engine->animVar1;
 		//*(char**)g_engine->_engine->animVar3 = g_engine->_engine->animVar1;
 
-		*(uint16 *)(g_engine->_engine->animVar3 + 4) = (uint16)g_engine->_engine->timer;
+		*(uint16 *)(g_engine->_engine->animVar3 + 4) = static_cast<uint16>(g_engine->_engine->timer);
 
 		tempBx += 2;
 

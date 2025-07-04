@@ -19,12 +19,12 @@
  *
  */
 
+#include "fitd/zv.h"
+#include "fitd/costable.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/costable.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
-#include "fitd/zv.h"
 
 namespace Fitd {
 
@@ -76,10 +76,10 @@ void getZvMax(byte *bodyPtr, ZVStruct *zvPtr) {
 
 	giveZVObjet(bodyPtr, zvPtr);
 
-	int x1 = zvPtr->ZVX1;
+	const int x1 = zvPtr->ZVX1;
 	int x2 = zvPtr->ZVX2;
 
-	int z1 = zvPtr->ZVZ1;
+	const int z1 = zvPtr->ZVZ1;
 	int z2 = zvPtr->ZVZ2;
 
 	x2 = -x1 + x2;
@@ -170,8 +170,8 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		}
 	}
 
-	int32 halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
-	int32 halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
+	const int32 halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
+	const int32 halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
 
 	if (zvPtr3->ZVX1 > halfX) {
 		var_A = 4;
@@ -271,7 +271,7 @@ int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2) {
 
 int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 	int currentCollisionSlot = 0;
-	Object *currentActor = g_engine->_engine->objectTable;
+	const Object *currentActor = g_engine->_engine->objectTable;
 	const int actorRoom = g_engine->_engine->objectTable[actorIdx].room;
 
 	for (int i = 0; i < 3; i++) {
@@ -314,13 +314,13 @@ static void setupPointRotate(int alpha, int beta, int gamma) {
 	pointRotateEnable = true;
 
 	pointRotateCosX = cosTable[alpha & 0x3FF];
-	pointRotateSinX = cosTable[(alpha & 0x3FF) + 0x100 & 0x3FF];
+	pointRotateSinX = cosTable[((alpha & 0x3FF) + 0x100) & 0x3FF];
 
 	pointRotateCosY = cosTable[beta & 0x3FF];
-	pointRotateSinY = cosTable[(beta & 0x3FF) + 0x100 & 0x3FF];
+	pointRotateSinY = cosTable[((beta & 0x3FF) + 0x100) & 0x3FF];
 
 	pointRotateCosZ = cosTable[gamma & 0x3FF];
-	pointRotateSinZ = cosTable[(gamma & 0x3FF) + 0x100 & 0x3FF];
+	pointRotateSinZ = cosTable[((gamma & 0x3FF) + 0x100) & 0x3FF];
 }
 
 static void pointRotate(int x, int y, int z, int *destX, int *destY, int *destZ) {

@@ -81,6 +81,6 @@ extern int numOfPoints;
 #define NUM_MAX_POINT_IN_POINT_BUFFER 800
 
 extern int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
-}; // namespace Fitd
+} // namespace Fitd
 
 #endif

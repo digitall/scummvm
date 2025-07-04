@@ -19,13 +19,13 @@
  *
  */
 
+#include "fitd/track.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
-#include "fitd/track.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
@@ -152,7 +152,7 @@ char *getRoomLink(uint room1, uint room2) {
 		if (*(int16 *)(zoneData + 14) == 4) {
 			bestZone = zoneData;
 
-			if (*(int16 *)(zoneData + 12) == (int16)room2) {
+			if (*(int16 *)(zoneData + 12) == static_cast<int16>(room2)) {
 				return bestZone;
 			}
 		}
@@ -226,8 +226,8 @@ void processTrack() {
 			}
 
 			const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-															   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-															   g_engine->_engine->currentProcessedActorPtr->beta, x, z);
+																	 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																	 g_engine->_engine->currentProcessedActorPtr->beta, x, z);
 
 			if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -285,9 +285,9 @@ void processTrack() {
 			g_engine->_engine->currentProcessedActorPtr->worldZ = g_engine->_engine->currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			g_engine->_engine->currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldX -= static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldY += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldZ += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
 
 			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
 			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
@@ -321,15 +321,15 @@ void processTrack() {
 			}
 
 			const uint distanceToPoint = computeDistanceToPoint(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																  x, z);
+																g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
 				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																   g_engine->_engine->currentProcessedActorPtr->beta,
-																   x, z);
+																		 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																		 g_engine->_engine->currentProcessedActorPtr->beta,
+																		 x, z);
 
 				if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - angleModif * 64, 15, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -438,7 +438,7 @@ void processTrack() {
 			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if ((g_engine->_engine->currentProcessedActorPtr->beta - betaDif & 1023) > 512) {
+			if (((g_engine->_engine->currentProcessedActorPtr->beta - betaDif) & 1023) > 512) {
 				g_engine->_engine->currentProcessedActorPtr->direction = 1; // left
 			} else {
 				g_engine->_engine->currentProcessedActorPtr->direction = -1; // right
@@ -516,9 +516,9 @@ void processTrack() {
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
 				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																   g_engine->_engine->currentProcessedActorPtr->beta,
-																   x, z);
+																		 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																		 g_engine->_engine->currentProcessedActorPtr->beta,
+																		 x, z);
 
 				if (!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -570,9 +570,9 @@ void processTrack() {
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVY2 += difY;
 
 				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																   g_engine->_engine->currentProcessedActorPtr->beta,
-																   x, z);
+																		 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																		 g_engine->_engine->currentProcessedActorPtr->beta,
+																		 x, z);
 
 				if (!g_engine->_engine->currentProcessedActorPtr->rotate.param || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -687,8 +687,8 @@ void processTrack2() {
 			}
 
 			const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-															   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-															   g_engine->_engine->currentProcessedActorPtr->beta, x, z);
+																	 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																	 g_engine->_engine->currentProcessedActorPtr->beta, x, z);
 
 			if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 				initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 8), 60, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -746,9 +746,9 @@ void processTrack2() {
 			g_engine->_engine->currentProcessedActorPtr->worldZ = g_engine->_engine->currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			g_engine->_engine->currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldX -= static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldY += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldZ += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldZ) * 10);
 
 			g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
 			g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX;
@@ -781,15 +781,15 @@ void processTrack2() {
 			}
 
 			const uint distanceToPoint = computeDistanceToPoint(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																  g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																  x, z);
+																g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
 				const int angleModif = computeAngleModificatorToPosition(g_engine->_engine->currentProcessedActorPtr->roomX + g_engine->_engine->currentProcessedActorPtr->stepX,
-																   g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
-																   g_engine->_engine->currentProcessedActorPtr->beta,
-																   x, z);
+																		 g_engine->_engine->currentProcessedActorPtr->roomZ + g_engine->_engine->currentProcessedActorPtr->stepZ,
+																		 g_engine->_engine->currentProcessedActorPtr->beta,
+																		 x, z);
 
 				if (g_engine->_engine->currentProcessedActorPtr->rotate.param == 0 || g_engine->_engine->currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(g_engine->_engine->currentProcessedActorPtr->beta, g_engine->_engine->currentProcessedActorPtr->beta - (angleModif << 6), 15, &g_engine->_engine->currentProcessedActorPtr->rotate);
@@ -834,7 +834,7 @@ void processTrack2() {
 			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if ((g_engine->_engine->currentProcessedActorPtr->beta - betaDif & 0x3FF) > 0x200) {
+			if (((g_engine->_engine->currentProcessedActorPtr->beta - betaDif) & 0x3FF) > 0x200) {
 				g_engine->_engine->currentProcessedActorPtr->direction = 1;
 			} else {
 				g_engine->_engine->currentProcessedActorPtr->direction = -1;

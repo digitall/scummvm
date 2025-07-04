@@ -35,7 +35,7 @@ namespace Fitd {
 int getPosRelTable[] = {4, 1, 8, 2, 4, 1, 8, 0};
 
 int getMatrix(int param1, int actorIdx, int param2) {
-	byte *matrixPtr = (byte *)HQR_Get(g_engine->_engine->listMatrix, param1);
+	byte *matrixPtr = HQR_Get(g_engine->_engine->listMatrix, param1);
 
 	const int matrixWidth = *matrixPtr++;
 	(void)*matrixPtr++;
@@ -183,7 +183,7 @@ int evalVar(const char *name) {
 
 			const int objectNumber = *(int16 *)g_engine->_engine->currentLifePtr;
 
-			int actorIdx = g_engine->_engine->worldObjets[objectNumber].objIndex;
+			const int actorIdx = g_engine->_engine->worldObjets[objectNumber].objIndex;
 
 			g_engine->_engine->currentLifePtr += 2;
 			actorPtr = &g_engine->_engine->objectTable[actorIdx];

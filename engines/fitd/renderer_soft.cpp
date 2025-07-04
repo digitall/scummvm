@@ -20,13 +20,12 @@
  */
 
 #include "engines/util.h"
-#include "graphics/screen.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/lines.h"
 #include "fitd/renderer.h"
-#include "fitd/vars.h"
+#include "graphics/screen.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
@@ -130,7 +129,7 @@ Renderer createSoftwareRenderer() {
 }
 
 static void renderer_init() {
-	_state = (State *)malloc(sizeof(State));
+	_state = static_cast<State *>(malloc(sizeof(State)));
 	_state->numMasks = 0;
 	renderer_clearClip();
 	initGraphics(WIDTH, HEIGHT);
@@ -150,7 +149,7 @@ static void renderer_startFrame() {
 
 static void renderer_drawBackground() {
 	g_engine->_screen->setPalette(_state->RGB_Pal);
-	byte *screen = (byte *)g_engine->_screen->getBasePtr(0, 0);
+	byte *screen = static_cast<byte *>(g_engine->_screen->getBasePtr(0, 0));
 	memcpy(screen, _state->physicalScreen, WIDTH * HEIGHT);
 	g_engine->_screen->markAllDirty();
 }
@@ -171,7 +170,7 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 	}
 
 	for (int i = top; i < bottom; i++) {
-		const byte *in = (const byte *)&videoBuffer[0] + left + i * WIDTH;
+		const byte *in = static_cast<const byte *>(&videoBuffer[0]) + left + i * WIDTH;
 		byte *out2 = _state->physicalScreen + left + i * WIDTH;
 		byte *out = _state->physicalScreenRGB + left * 3 + i * WIDTH * 3;
 
@@ -218,6 +217,7 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte 
 		assert(_state->numMasks < NUM_MAX_MASKS);
 	}
 
+	assert(pMask);
 	pMask->roomId = roomId;
 	pMask->maskId = maskId;
 	pMask->maskX1 = maskX1;
@@ -234,11 +234,11 @@ static void renderer_setClip(float left, float top, float right, float bottom) {
 	_state->clipMask.w = right - left + 1;
 	_state->clipMask.h = bottom - top + 1;
 
-	_state->clipMask.x = CLIP(_state->clipMask.x, (int16)0, (int16)WIDTH);
-	_state->clipMask.y = CLIP(_state->clipMask.y, (int16)0, (int16)HEIGHT);
+	_state->clipMask.x = CLIP(_state->clipMask.x, static_cast<int16>(0), static_cast<int16>(WIDTH));
+	_state->clipMask.y = CLIP(_state->clipMask.y, static_cast<int16>(0), static_cast<int16>(HEIGHT));
 
-	_state->clipMask.w = CLIP(_state->clipMask.w, (int16)0, (int16)(WIDTH - _state->clipMask.x - 1));
-	_state->clipMask.h = CLIP(_state->clipMask.h, (int16)0, (int16)(HEIGHT - _state->clipMask.y - 1));
+	_state->clipMask.w = CLIP(_state->clipMask.w, static_cast<int16>(0), static_cast<int16>(WIDTH - _state->clipMask.x - 1));
+	_state->clipMask.h = CLIP(_state->clipMask.h, static_cast<int16>(0), static_cast<int16>(HEIGHT - _state->clipMask.y - 1));
 }
 
 static void renderer_clearClip() {
@@ -250,9 +250,9 @@ static void renderer_clearClip() {
 
 static void renderer_drawMask(int roomId, int maskId) {
 	for (uint16 i = 0; i < _state->numMasks; i++) {
-		Mask *pMask = &_state->masks[i];
+		const Mask *pMask = &_state->masks[i];
 		if (pMask->roomId == roomId && pMask->maskId == maskId) {
-			byte *s = (byte *)g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y);
+			byte *s = static_cast<byte *>(g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y));
 			const byte *p = &_state->physicalScreen[_state->clipMask.y * WIDTH + _state->clipMask.x];
 			const byte *m = &pMask->mask[_state->clipMask.y * WIDTH + _state->clipMask.x];
 			for (int16 h = 0; h < _state->clipMask.h; h++) {
@@ -316,9 +316,9 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 			const int32 dz = p1->Z - p0->Z;
 			const int32 dxClip = 0 - p0->X;
 
-			pTabPolyClip->X = (int16)0;
-			pTabPolyClip->Y = (int16)(p0->Y + dxClip * dy / dx);
-			pTabPolyClip->Z = p0->Z + (float)(dxClip * dz) / dx;
+			pTabPolyClip->X = static_cast<int16>(0);
+			pTabPolyClip->Y = static_cast<int16>(p0->Y + dxClip * dy / dx);
+			pTabPolyClip->Z = p0->Z + static_cast<float>(dxClip * dz) / dx;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -373,9 +373,9 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 			const int32 dz = p1->Z - p0->Z;
 			const int32 dxClip = WIDTH - 1 - p0->X;
 
-			pTabPolyClip->X = (int16)(WIDTH - 1);
-			pTabPolyClip->Y = (int16)(p0->Y + dxClip * dy / dx);
-			pTabPolyClip->Z = p0->Z + (float)(dxClip * dz) / dx;
+			pTabPolyClip->X = static_cast<int16>(WIDTH - 1);
+			pTabPolyClip->Y = static_cast<int16>(p0->Y + dxClip * dy / dx);
+			pTabPolyClip->Z = p0->Z + static_cast<float>(dxClip * dz) / dx;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -430,9 +430,9 @@ static int16 topClip(polyVertex **polys, int16 num) {
 			const int32 dz = p1->Z - p0->Z;
 			const int32 dyClip = 0 - p0->Y;
 
-			pTabPolyClip->X = (int16)(p0->X + dyClip * dx / dy);
-			pTabPolyClip->Y = (int16)0;
-			pTabPolyClip->Z = p0->Z + (float)(dyClip * dz) / dy;
+			pTabPolyClip->X = static_cast<int16>(p0->X + dyClip * dx / dy);
+			pTabPolyClip->Y = static_cast<int16>(0);
+			pTabPolyClip->Z = p0->Z + static_cast<float>(dyClip * dz) / dy;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -487,9 +487,9 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 			const int32 dz = p1->Z - p0->Z;
 			const int32 dyClip = HEIGHT - 1 - p0->Y;
 
-			pTabPolyClip->X = (int16)(p0->X + dyClip * dx / dy);
-			pTabPolyClip->Y = (int16)(HEIGHT - 1);
-			pTabPolyClip->Z = p0->Z + (float)(dyClip * dz) / dy;
+			pTabPolyClip->X = static_cast<int16>(p0->X + dyClip * dx / dy);
+			pTabPolyClip->Y = static_cast<int16>(HEIGHT - 1);
+			pTabPolyClip->Z = p0->Z + static_cast<float>(dyClip * dz) / dy;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -602,7 +602,7 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 		int32 x = p0->X;
 
 		for (int32 y = 0; y <= dy; y++) {
-			*pVertic = (int16)x;
+			*pVertic = static_cast<int16>(x);
 			assert(x >= 0);
 			assert(x < WIDTH);
 			pVertic += incY;
@@ -741,7 +741,7 @@ void dither_init(byte c) {
 }
 
 void dither_render(byte *dst) {
-	_ditherState.color = (_ditherState.color + _ditherState.acc & 0xFF03) + _ditherState.initColor;
+	_ditherState.color = ((_ditherState.color + _ditherState.acc) & 0xFF03) + _ditherState.initColor;
 	_ditherState.acc = ROL16(_ditherState.acc, 2) + 1;
 
 	*dst = _ditherState.color;
@@ -841,7 +841,7 @@ static void render(byte color, uint8 material) {
 	assert(_state->polyMinY >= 0);
 	assert(_state->polyMaxY < HEIGHT);
 	int16 y = _state->polyMinY;
-	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
+	byte *pDestLine = static_cast<uint8 *>(g_engine->_screen->getBasePtr(0, y));
 	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
 	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
 	MaterialRender matRender;
@@ -955,7 +955,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 }
 
 static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {
-	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, 0);
+	byte *pDestLine = static_cast<uint8 *>(g_engine->_screen->getBasePtr(0, 0));
 	polyBackBuffer = pDestLine;
 	line(x1, y1, x2, y2, color);
 }
@@ -970,10 +970,10 @@ static bool computeSphere(float sx, float sy, float radius) {
 	if (radius <= 0) {
 		return false;
 	}
-	int16 left = (int16)(sx - radius);
-	int16 right = (int16)(sx + radius);
-	int16 bottom = (int16)(sy + radius);
-	int16 top = (int16)(sy - radius);
+	int16 left = static_cast<int16>(sx - radius);
+	int16 right = static_cast<int16>(sx + radius);
+	int16 bottom = static_cast<int16>(sy + radius);
+	int16 top = static_cast<int16>(sy - radius);
 	const Common::Rect &clip = Common::Rect(0, 0, WIDTH - 1, HEIGHT - 1);
 	const int16 cleft = clip.left;
 	const int16 cright = clip.right;
@@ -1039,7 +1039,7 @@ static void renderer_updateScreen() {
 }
 
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
-	byte *dst = (byte *)g_engine->_screen->getBasePtr(0, 0);
+	byte *dst = static_cast<byte *>(g_engine->_screen->getBasePtr(0, 0));
 
 	while ((right - left) % 4) {
 		right++;
@@ -1050,7 +1050,7 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 	}
 
 	for (int i = top; i < bottom; i++) {
-		const byte *in = (const byte *)&frontBuffer[0] + left + i * 320;
+		const byte *in = static_cast<const byte *>(&frontBuffer[0]) + left + i * 320;
 		byte *out2 = dst + left + i * 320;
 
 		for (int j = left; j < right; j++) {

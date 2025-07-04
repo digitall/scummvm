@@ -300,9 +300,9 @@ static void drawGradient(int x1, int x2) {
 
 static void turnPageForward() {
 	setClip(0, 0, 319, 199);
-	gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 	byte *saveLogicalScreen = g_engine->_engine->logicalScreen;
-	g_engine->_engine->logicalScreen = (byte *)&frontBuffer[0];
+	g_engine->_engine->logicalScreen = &frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int i = 20;
 	int left = 260;
@@ -327,13 +327,13 @@ static void turnPageBackward() {
 	setClip(0, 0, 319, 199);
 
 	byte *saveLogicalScreen = g_engine->_engine->logicalScreen;
-	g_engine->_engine->logicalScreen = (byte *)&frontBuffer[0];
+	g_engine->_engine->logicalScreen = &frontBuffer[0];
 	polyBackBuffer = &frontBuffer[0];
 	int si = -540;
 	int di = 820;
 	do {
 		if (si >= 20) {
-			copyBlock((byte *)saveLogicalScreen, frontBuffer, 0, 0, si - 19, 199);
+			copyBlock(saveLogicalScreen, frontBuffer, 0, 0, si - 19, 199);
 			copyBoxLogPhys(0, 0, 280, 199);
 		}
 
@@ -346,7 +346,7 @@ static void turnPageBackward() {
 
 	g_engine->_engine->logicalScreen = saveLogicalScreen;
 
-	gfx_copyBlockPhys((byte *)saveLogicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys(saveLogicalScreen, 0, 0, 320, 200);
 	osystem_drawBackground();
 }
 
@@ -571,13 +571,13 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 		if (firstpage) {
 			if (demoMode != 1) {
-				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 				fadeInPhys(16, 0);
 			} else {
 				if (g_engine->_engine->turnPageFlag) {
 					turnPageForward();
 				} else {
-					gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 					osystem_drawBackground();
 				}
 			}
@@ -591,7 +591,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 					turnPageBackward();
 				}
 			} else {
-				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 				osystem_drawBackground();
 			}
 		}
@@ -711,7 +711,7 @@ void initEngine() {
 	f.open("OBJETS.ITD");
 	const uint64 objectDataSize = f.size();
 
-	uint8 *pObjectDataBackup = pObjectData = (uint8 *)malloc(objectDataSize);
+	uint8 *pObjectDataBackup = pObjectData = static_cast<uint8 *>(malloc(objectDataSize));
 	assert(pObjectData);
 	f.read(pObjectData, objectDataSize);
 	f.close();
@@ -951,7 +951,7 @@ static void loadCamera(int cameraIdx) {
 	}
 
 	if (g_engine->getGameId() >= GID_JACK) {
-		copyPalette((byte *)g_engine->_engine->aux + 64000, currentGamePalette);
+		copyPalette(g_engine->_engine->aux + 64000, currentGamePalette);
 
 		if (g_engine->getGameId() == GID_AITD3) {
 			for (int i = 0; i < 16; i++) {
@@ -991,11 +991,11 @@ static void loadMask(int cameraIdx) {
 		free(g_engine->_engine->maskPtr);
 	}
 
-	g_engine->_engine->maskPtr = (byte *)pakLoad(name.c_str(), cameraIdx);
+	g_engine->_engine->maskPtr = pakLoad(name.c_str(), cameraIdx);
 
 	for (int i = 0; i < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; i++) {
 		const CameraViewedRoom *pRoomView = &cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[i];
-		byte *pViewedRoomMask = g_engine->_engine->maskPtr + READ_LE_U32(g_engine->_engine->maskPtr + i * 4);
+		const byte *pViewedRoomMask = g_engine->_engine->maskPtr + READ_LE_U32(g_engine->_engine->maskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
 			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
@@ -1041,7 +1041,7 @@ static void loadMask(int cameraIdx) {
 				}
 			}
 
-			osystem_createMask(pDestMask->mask, i, j, (byte *)g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+			osystem_createMask(pDestMask->mask, i, j, g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}
 	}
 }
@@ -1093,10 +1093,10 @@ static void createAITD1Mask() {
 						const short verticeX = *(short *)(src + verticeId * 4 + 0);
 						const short verticeY = *(short *)(src + verticeId * 4 + 2);
 
-						minX = MIN(minX, (int)verticeX);
-						minY = MIN(minY, (int)verticeY);
-						maxX = MAX(maxX, (int)verticeX);
-						maxY = MAX(maxY, (int)verticeY);
+						minX = MIN(minX, static_cast<int>(verticeX));
+						minY = MIN(minY, static_cast<int>(verticeY));
+						maxX = MAX(maxX, static_cast<int>(verticeX));
+						maxY = MAX(maxY, static_cast<int>(verticeY));
 					}
 
 					src += numPoints * 4;
@@ -1108,7 +1108,7 @@ static void createAITD1Mask() {
 				polyBackBuffer = nullptr;
 			}
 
-			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (byte *)g_engine->_engine->aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
+			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, g_engine->_engine->aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
 
 			const int numOverlay = *(int16 *)data;
 			data += 2;
@@ -1191,7 +1191,7 @@ static void setupCameraSub1() {
 
 	byte *dataTabPos = g_engine->_engine->currentCameraVisibilityList;
 
-	*dataTabPos = -1;
+	*dataTabPos = UINT8_MAX;
 
 	// visibility list: add linked rooms
 	for (uint32 i = 0; i < g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].numSceZone; i++) {
@@ -1199,7 +1199,7 @@ static void setupCameraSub1() {
 			const int var_10 = g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].sceZoneTable[i].parameter;
 			if (!isInViewList(var_10)) {
 				*dataTabPos++ = var_10;
-				*dataTabPos = -1;
+				*dataTabPos = UINT8_MAX;
 			}
 		}
 	}
@@ -1207,8 +1207,8 @@ static void setupCameraSub1() {
 	// visibility list: add room seen by the current camera
 	for (int j = 0; j < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; j++) {
 		if (!isInViewList(cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[j].viewedRoomIdx)) {
-			*dataTabPos++ = (char)cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[j].viewedRoomIdx;
-			*dataTabPos = -1;
+			*dataTabPos++ = static_cast<char>(cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[j].viewedRoomIdx);
+			*dataTabPos = UINT8_MAX;
 		}
 	}
 }
@@ -1651,7 +1651,7 @@ void setupCamera() {
 
 	g_engine->_engine->currentCamera = g_engine->_engine->startGameVar1;
 
-	assert((uint32)g_engine->_engine->startGameVar1 < g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].numCameraInRoom);
+	assert(static_cast<uint32>(g_engine->_engine->startGameVar1) < g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].numCameraInRoom);
 
 	loadCamera(g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].cameraIdxTable[g_engine->_engine->startGameVar1]);
 	if (g_engine->getGameId() >= GID_JACK) {
@@ -1695,13 +1695,13 @@ void setupCamera() {
 int16 computeDistanceToPoint(int x1, int z1, int x2, int z2) {
 	// int axBackup = x1;
 	x1 -= x2;
-	if ((int16)x1 < 0) {
-		x1 = -(int16)x1;
+	if (static_cast<int16>(x1) < 0) {
+		x1 = -static_cast<int16>(x1);
 	}
 
 	z1 -= z2;
-	if ((int16)z1 < 0) {
-		z1 = -(int16)z1;
+	if (static_cast<int16>(z1) < 0) {
+		z1 = -static_cast<int16>(z1);
 	}
 
 	if (x1 + z1 > 0xFFFF) {
@@ -1908,7 +1908,7 @@ static int16 regleTrois(int i1, int i2, int i3, int i4) {
 }
 
 static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
-	int siSaved = si;
+	const int siSaved = si;
 	SWAP(si, ax);
 	SWAP(ax, dx);
 	if (ax) {
@@ -1955,7 +1955,7 @@ static void drawSpecialObject(int actorIdx) {
 				freeData = false;
 				const int16 z = pPointList[2];
 				if (z > 300) {
-					const float transformedSize = size * (float)g_engine->_engine->cameraFovX / (float)(z + g_engine->_engine->cameraPerspective);
+					const float transformedSize = size * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(z + g_engine->_engine->cameraPerspective);
 					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, transformedSize);
 				}
 				flowAnimList[0] -= 5;                // size -= 5
@@ -2025,8 +2025,8 @@ static void drawSpecialObject(int actorIdx) {
 		const uint32 *chronoPtr = (uint32 *)flowPtr;
 		uint tmpChrono = *chronoPtr;
 		const uint chrono = evalChrono(&tmpChrono);
-		const int16 chrono1 = (int16)((chrono & 0xFFFF0000) >> 16);
-		const int16 chrono2 = (int16)(chrono & 0x0000FFFF);
+		const int16 chrono1 = static_cast<int16>((chrono & 0xFFFF0000) >> 16);
+		const int16 chrono2 = static_cast<int16>(chrono & 0x0000FFFF);
 		flowPtr += 4;
 		byte *flowPtrSaved = flowPtr;
 		flowPtr += 120; // skip 20 * x,y,z
@@ -2034,8 +2034,8 @@ static void drawSpecialObject(int actorIdx) {
 		*(int16 *)flowPtr = 20; // number of points
 		flowPtr += 2;
 		for (int j = 0; j < 20; ++j) {
-			int16 x = *(int16 *)flowPtrSaved;
-			int16 z = *(int16 *)(flowPtrSaved + 4);
+			const int16 x = *(int16 *)flowPtrSaved;
+			const int16 z = *(int16 *)(flowPtrSaved + 4);
 			*(int16 *)flowPtr = regleTrois(0, x, 600, chrono2);
 			*(int16 *)(flowPtr + 2) = -200;
 			*(int16 *)(flowPtr + 4) = regleTrois(0, z, 600, chrono2);
@@ -2066,11 +2066,11 @@ static void drawSpecialObject(int actorIdx) {
 
 		const int16 *pPointList = g_engine->_engine->renderPointList;
 		for (int i = 0; i < 20; ++i) {
-			int x = pPointList[0];
-			int y = pPointList[1];
-			int z = pPointList[2];
+			const int x = pPointList[0];
+			const int y = pPointList[1];
+			const int z = pPointList[2];
 			if (z > 10) {
-				const float transformedSize = (float)size * (float)g_engine->_engine->cameraFovX / (float)(z + g_engine->_engine->cameraPerspective);
+				const float transformedSize = static_cast<float>(size) * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(z + g_engine->_engine->cameraPerspective);
 				osystem_drawSphere(x, y, z, 176, 2, transformedSize);
 			}
 			pPointList += 3;
@@ -2151,7 +2151,7 @@ void mainDraw(int flagFlip) {
 	// if(flagFlip == 2)
 	{
 		if (g_engine->_engine->cameraBackgroundChanged) {
-			gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+			gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 			g_engine->_engine->cameraBackgroundChanged = false;
 		}
 	}
@@ -2233,11 +2233,11 @@ void mainDraw(int flagFlip) {
 	osystem_flushPendingPrimitives();
 
 	if (drawTextOverlay()) {
-		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 	} else {
 		// TODO: check if it's okay
 		fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
-		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 	}
 
 	if (!g_engine->_engine->lightOff) {
@@ -2402,7 +2402,7 @@ void foundObject(int objIdx, int param) {
 	input5 = 1;
 
 	while (!var_C && !::Engine::shouldQuit()) {
-		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 		process_events();
 		osystem_drawBackground();
@@ -2557,7 +2557,7 @@ static int findBestCamera() {
 			if (isInPoly(x1, x2, z1, z2, currentCameraZoneList[i])) // if in camera zone ?
 			{
 				// we try to select the best camera that looks behind the player
-				int newAngle = actorPtr->beta + (cameraDataTable[i]->beta + 0x200 & 0x3FF);
+				int newAngle = actorPtr->beta + ((cameraDataTable[i]->beta + 0x200) & 0x3FF);
 
 				if (newAngle < 0) {
 					newAngle = -newAngle;
@@ -2636,7 +2636,7 @@ void processActor2() {
 
 					const int oldRoom = g_engine->_engine->currentProcessedActorPtr->room;
 
-					g_engine->_engine->currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
+					g_engine->_engine->currentProcessedActorPtr->room = static_cast<short>(pCurrentZone->parameter);
 
 					const int x = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[oldRoom].worldX) * 10;
 					const int y = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[oldRoom].worldY) * 10;
@@ -2658,7 +2658,7 @@ void processActor2() {
 					onceMore = true;
 					if (g_engine->_engine->currentProcessedActorIdx == g_engine->_engine->currentCameraTargetActor) {
 						g_engine->_engine->needChangeRoom = 1;
-						g_engine->_engine->newRoom = (short)pCurrentZone->parameter;
+						g_engine->_engine->newRoom = static_cast<short>(pCurrentZone->parameter);
 						if (g_engine->getGameId() > GID_AITD1)
 							loadRoom(g_engine->_engine->newRoom);
 
@@ -2673,14 +2673,14 @@ void processActor2() {
 				case 8: {
 					assert(g_engine->getGameId() != GID_AITD1);
 					if (g_engine->getGameId() != GID_AITD1) {
-						g_engine->_engine->currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
+						g_engine->_engine->currentProcessedActorPtr->hardMat = static_cast<short>(pCurrentZone->parameter);
 					}
 					break;
 				}
 				case 9: // Scenar
 				{
 					if (g_engine->getGameId() == GID_AITD1 || !flagFloorChange) {
-						g_engine->_engine->currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+						g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<short>(pCurrentZone->parameter);
 					}
 					break;
 				}
@@ -2694,7 +2694,7 @@ void processActor2() {
 
 					g_engine->_engine->currentProcessedActorPtr->life = life;
 
-					g_engine->_engine->currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<short>(pCurrentZone->parameter);
 					flagFloorChange = true;
 					return;
 				}
@@ -2712,8 +2712,8 @@ void processActor2() {
 int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, int room, int param) {
 	ZVStruct localZv;
 	int foundFlag = -2;
-	int tempX;
-	int tempZ;
+	int tempX = X;
+	int tempZ = Z;
 
 	localZv.ZVX1 = X - param;
 	localZv.ZVX2 = X + param;
@@ -2745,7 +2745,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 		if (asmCheckListCol(&localZv, &g_engine->_engine->roomDataTable[room]) <= 0) {
 			foundFlag = -1;
 		} else {
-			Object *currentActorPtr = g_engine->_engine->objectTable;
+			const Object *currentActorPtr = g_engine->_engine->objectTable;
 
 			for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 				if (currentActorPtr->indexInWorld != -1 && i != actorIdx && !(currentActorPtr->_flags & AF_SPECIAL)) {
@@ -2867,7 +2867,7 @@ void throwStoppedAt(int x, int z) {
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
 
-	uint8 *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
+	const uint8 *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
 
 	giveZVObjet(bodyPtr, &zvLocal);
 
@@ -3018,7 +3018,7 @@ static int drawTextOverlay() {
 }
 
 static void setupScreen() {
-	g_engine->_engine->logicalScreen = (byte *)malloc(64800);
+	g_engine->_engine->logicalScreen = static_cast<byte *>(malloc(64800));
 
 	// screenBufferSize = 64800;
 
@@ -3035,7 +3035,7 @@ static void loadPalette() {
 	} else {
 		pakLoad("ITD_RESS.PAK", AITD1_PALETTE_JEU, g_engine->_engine->aux);
 	}
-	copyPalette((byte *)g_engine->_engine->aux, currentGamePalette);
+	copyPalette(g_engine->_engine->aux, currentGamePalette);
 
 	copyPalette(currentGamePalette, localPalette);
 	//  fadeInSub1(localPalette);
@@ -3046,7 +3046,7 @@ static void loadPalette() {
 static void allocTextes() {
 	int currentIndex;
 
-	tabTextes = (TextEntryStruct *)malloc(NUM_MAX_TEXT_ENTRY * sizeof(TextEntryStruct)); // 2000 = 250 * 8
+	tabTextes = static_cast<TextEntryStruct *>(malloc(NUM_MAX_TEXT_ENTRY * sizeof(TextEntryStruct))); // 2000 = 250 * 8
 
 	assert(tabTextes);
 
@@ -3102,7 +3102,7 @@ static void allocTextes() {
 
 				do {
 					currentPosInTextes++;
-				} while ((byte) * (currentPosInTextes - 1) >= ' '); // detect the end of the string
+				} while (static_cast<byte>(*(currentPosInTextes - 1)) >= ' '); // detect the end of the string
 
 				*(currentPosInTextes - 1) = 0; // add the end of string
 
@@ -3160,12 +3160,12 @@ void runGame() {
 	g_engine->_engine->soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
 	g_engine->_engine->detailToggle = 1;
 
-	g_engine->_engine->aux = (byte *)malloc(65068);
+	g_engine->_engine->aux = static_cast<byte *>(malloc(65068));
 	if (!g_engine->_engine->aux) {
 		error("Failed to alloc Aux");
 	}
 
-	g_engine->_engine->aux2 = (byte *)malloc(65068);
+	g_engine->_engine->aux2 = static_cast<byte *>(malloc(65068));
 	if (!g_engine->_engine->aux2) {
 		error("Failed to alloc Aux2");
 	}

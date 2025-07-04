@@ -85,7 +85,7 @@ void fillpoly(int16 *datas, int n, byte c) {
 			continue;
 		}
 
-		double step = (double)(x2 - x1) / (y2 - y1);
+		const double step = static_cast<double>(x2 - x1) / (y2 - y1);
 
 		//  printf("x1: %i, y1 = %i, x2 = %i, y2 = %i, step: %f\n", x1, y1, x2, y2, step);
 
@@ -94,7 +94,7 @@ void fillpoly(int16 *datas, int n, byte c) {
 		if (y1 < y2) {
 			for (j = y1; j < y2; j++, curx += step) {
 				//    printf("j = %i, curx = %f\n", j, curx);
-				putdot((int)(curx + 0.5), j);
+				putdot(static_cast<int>(curx + 0.5), j);
 			}
 			if (dir == -1) {
 				//    printf("Adding extra (%i, %i)\n", x1, y1);
@@ -104,7 +104,7 @@ void fillpoly(int16 *datas, int n, byte c) {
 		} else {
 			for (j = y1; j > y2; j--, curx -= step) {
 				//    printf("j = %i, curx = %f\n", j, curx);
-				putdot((int)(curx + 0.5), j);
+				putdot(static_cast<int>(curx + 0.5), j);
 			}
 			if (dir == 1) {
 				//    printf("Adding extra (%i, %i)\n", x1, y1);

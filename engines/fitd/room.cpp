@@ -50,10 +50,10 @@ RoomDef *getRoomData(int roomNumber) {
 }
 
 int getNumberOfRoom() {
-	int j = 0;
 
 	if (g_engine->_engine->currentFloorRoomRawData) {
-		int numMax = READ_LE_U32(g_engine->_engine->currentFloorRoomRawData) / 4;
+		int j = 0;
+		const int numMax = READ_LE_U32(g_engine->_engine->currentFloorRoomRawData) / 4;
 
 		for (int i = 0; i < numMax; i++) {
 			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_engine->_engine->currentFloorRoomRawData + i * 4)) {
@@ -128,7 +128,7 @@ void loadRoom(int roomNumber) {
 
 		assert(currentCameraIdx <= 40);
 
-		if ((uint)oldCameraIdx == currentCameraIdx) {
+		if (static_cast<uint>(oldCameraIdx) == currentCameraIdx) {
 			newNumCamera = i;
 			// newAbsCamera = currentCameraIdx;
 		}
@@ -156,9 +156,9 @@ void loadRoom(int roomNumber) {
 	// reajust world coordinates
 	if (oldCameraIdx != -1) // if a camera was selected before loading room
 	{
-		int var_E = (g_engine->_engine->roomDataTable[roomNumber].worldX - cameraVar0) * 10;
-		int var_C = (g_engine->_engine->roomDataTable[roomNumber].worldY - cameraVar1) * 10;
-		int var_A = (g_engine->_engine->roomDataTable[roomNumber].worldZ - cameraVar2) * 10;
+		const int var_E = (g_engine->_engine->roomDataTable[roomNumber].worldX - cameraVar0) * 10;
+		const int var_C = (g_engine->_engine->roomDataTable[roomNumber].worldY - cameraVar1) * 10;
+		const int var_A = (g_engine->_engine->roomDataTable[roomNumber].worldZ - cameraVar2) * 10;
 
 		for (i = 0; i < NUM_MAX_OBJECT; i++) {
 			if (g_engine->_engine->objectTable[i].indexInWorld != -1) {

@@ -71,7 +71,7 @@ void aitd3Start(int saveSlot) {
 	}
 
 	while (!::Engine::shouldQuit()) {
-		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
+		const int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 
 		switch (startupMenuResult) {
 		case -1: // timeout

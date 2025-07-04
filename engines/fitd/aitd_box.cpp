@@ -52,12 +52,12 @@ void afficheSprite(int left, int top, int index, byte *gfxData) {
 	}
 }
 
-void affSpfI(int left, int top, int index, byte *gfxData) {
+void affSpfI(int x, int y, int param, byte *gfx) {
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	byte *outPtr = g_engine->_engine->logicalScreen + top * 320 + left;
-	const byte *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
+	byte *outPtr = g_engine->_engine->logicalScreen + y * 320 + x;
+	const byte *inPtr = gfx + READ_LE_U16(param * 2 + gfx); // alignment unsafe
 
 	inPtr += 4;
 

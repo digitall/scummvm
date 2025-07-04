@@ -26,7 +26,6 @@
 #include "fitd/hqr.h"
 #include "fitd/engine.h"
 #include "fitd/music.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -683,7 +682,7 @@ static int musicStart() {
 
 static int musicLoad(void *ptr) {
 
-	uint8 *musicPtr = (uint8 *)ptr;
+	uint8 *musicPtr = static_cast<uint8 *>(ptr);
 
 	channelTable = channelTableMelodic;
 
@@ -967,9 +966,9 @@ static void applyMusicCommandToOPL(ChannelTable2Element *element2, ChannelTableE
 
 static int musicFade(void *param) {
 
-	int cx = ((int *)param)[0];
-	int si = ((int *)param)[1];
-	const int dx = ((int *)param)[2];
+	int cx = static_cast<int *>(param)[0];
+	int si = static_cast<int *>(param)[1];
+	const int dx = static_cast<int *>(param)[2];
 
 	int bp = si;
 

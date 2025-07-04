@@ -459,27 +459,27 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVX1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVX1 = (int16)g_engine->_engine->objectTable[i].zv.ZVX1;
+		g_engine->_engine->objectTable[i].zv.ZVX1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVX2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVX2 = (int16)g_engine->_engine->objectTable[i].zv.ZVX2;
+		g_engine->_engine->objectTable[i].zv.ZVX2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVY1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVY1 = (int16)g_engine->_engine->objectTable[i].zv.ZVY1;
+		g_engine->_engine->objectTable[i].zv.ZVY1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVY2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVY2 = (int16)g_engine->_engine->objectTable[i].zv.ZVY2;
+		g_engine->_engine->objectTable[i].zv.ZVY2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVZ1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVZ1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVZ1 = (int16)g_engine->_engine->objectTable[i].zv.ZVZ1;
+		g_engine->_engine->objectTable[i].zv.ZVZ1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVZ2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVZ2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVZ2 = (int16)g_engine->_engine->objectTable[i].zv.ZVZ2;
+		g_engine->_engine->objectTable[i].zv.ZVZ2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ2);
 
 		assert(sizeof(g_engine->_engine->objectTable[i].screenXMin) == 2);
 		g_engine->_engine->objectTable[i].screenXMin = in->readSint16LE();
@@ -876,27 +876,27 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVX1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVX1 = (int16)g_engine->_engine->objectTable[i].zv.ZVX1;
+		g_engine->_engine->objectTable[i].zv.ZVX1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVX2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVX2 = (int16)g_engine->_engine->objectTable[i].zv.ZVX2;
+		g_engine->_engine->objectTable[i].zv.ZVX2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVY1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVY1 = (int16)g_engine->_engine->objectTable[i].zv.ZVY1;
+		g_engine->_engine->objectTable[i].zv.ZVY1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVY2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVY2 = (int16)g_engine->_engine->objectTable[i].zv.ZVY2;
+		g_engine->_engine->objectTable[i].zv.ZVY2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVZ1) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVZ1 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVZ1 = (int16)g_engine->_engine->objectTable[i].zv.ZVZ1;
+		g_engine->_engine->objectTable[i].zv.ZVZ1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVZ2) == 2);
 		g_engine->_engine->objectTable[i].zv.ZVZ2 = in->readSint16LE();
-		g_engine->_engine->objectTable[i].zv.ZVZ2 = (int16)g_engine->_engine->objectTable[i].zv.ZVZ2;
+		g_engine->_engine->objectTable[i].zv.ZVZ2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ2);
 
 		assert(sizeof(g_engine->_engine->objectTable[i].screenXMin) == 2);
 		g_engine->_engine->objectTable[i].screenXMin = in->readSint16LE();
@@ -1304,11 +1304,11 @@ static int saveAitd1(Common::WriteStream *out, const Common::String &desc) {
 
 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVX1);
-		g_engine->_engine->objectTable[i].zv.ZVX1 = (int16)g_engine->_engine->objectTable[i].zv.ZVX1;
+		g_engine->_engine->objectTable[i].zv.ZVX1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVX2);
-		g_engine->_engine->objectTable[i].zv.ZVX2 = (int16)g_engine->_engine->objectTable[i].zv.ZVX2;
+		g_engine->_engine->objectTable[i].zv.ZVX2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVY1);
@@ -1582,12 +1582,12 @@ static int saveJack(Common::WriteStream *out, const Common::String &desc) {
 		out->writeSint16LE(g_engine->_engine->objectTable[i].bodyNum);
 		out->writeUint16LE(g_engine->_engine->objectTable[i]._flags);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].dynFlags);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVX1);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVX2);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVY1);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVY2);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVZ1);
-		out->writeSint16LE((int16)g_engine->_engine->objectTable[i].zv.ZVZ2);
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX1));
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX2));
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY1));
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVY2));
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ1));
+		out->writeSint16LE(static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVZ2));
 		out->writeSint16LE(g_engine->_engine->objectTable[i].screenXMin);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].screenYMin);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].screenXMax);
@@ -1875,11 +1875,11 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String &desc) {
 
 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVX1);
-		g_engine->_engine->objectTable[i].zv.ZVX1 = (int16)g_engine->_engine->objectTable[i].zv.ZVX1;
+		g_engine->_engine->objectTable[i].zv.ZVX1 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX1);
 
 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVX2);
-		g_engine->_engine->objectTable[i].zv.ZVX2 = (int16)g_engine->_engine->objectTable[i].zv.ZVX2;
+		g_engine->_engine->objectTable[i].zv.ZVX2 = static_cast<int16>(g_engine->_engine->objectTable[i].zv.ZVX2);
 
 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
 		out->writeSint16LE(g_engine->_engine->objectTable[i].zv.ZVY1);

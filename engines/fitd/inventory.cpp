@@ -249,7 +249,7 @@ void processInventory() {
 			if (antiBounce < 1) {
 				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick != 0 || g_engine->_engine->localJoyD == 0xC) {
 					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
-					gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+					gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
 					lastSelectedObjectIdx = -1;
 					selectedActions = 0;
@@ -366,7 +366,7 @@ void processInventory() {
 			}
 		}
 
-		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		// osystem_flip(NULL);
 	}
 

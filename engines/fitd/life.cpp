@@ -199,9 +199,9 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	currentActorPtr->room = room;
 
 	if (g_engine->_engine->currentRoom != room) {
-		currentActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[room].worldX) * 10);
-		currentActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[room].worldY) * 10);
-		currentActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[room].worldZ) * 10);
+		currentActorPtr->worldX -= static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[room].worldX) * 10);
+		currentActorPtr->worldY += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[room].worldY) * 10);
+		currentActorPtr->worldZ += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[room].worldZ) * 10);
 	}
 
 	currentActorPtr->alpha = alpha;
@@ -498,9 +498,9 @@ static void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
 		}
 	} else {
 		if (g_engine->_engine->currentRoom != newRoomLocal) {
-			g_engine->_engine->currentProcessedActorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[newRoomLocal].worldX) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[newRoomLocal].worldY) * 10);
-			g_engine->_engine->currentProcessedActorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[newRoomLocal].worldZ) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldX -= static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[newRoomLocal].worldX) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldY += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[newRoomLocal].worldY) * 10);
+			g_engine->_engine->currentProcessedActorPtr->worldZ += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[newRoomLocal].worldZ) * 10);
 		}
 
 		//    FlagGenereActiveList = 1;
@@ -702,7 +702,6 @@ static void unpackSequenceFrame(byte *source, byte *dest) {
 
 static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
-	const int var_4 = 1;
 	int quitPlayback = 0;
 	int nextFrame = 1;
 	byte localPalette[0x300];
@@ -737,6 +736,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
 			if (!currentFrameId) // first frame
 			{
+				const int var_4 = 1;
 				memcpy(localPalette, g_engine->_engine->logicalScreen, 0x300); // copy palette
 				memcpy(g_engine->_engine->aux, g_engine->_engine->logicalScreen + 0x300, 64000);
 				nextFrame = READ_LE_U16(g_engine->_engine->logicalScreen + 64768);
@@ -765,7 +765,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
 				if (frameSize < 64000) // g_engine->_engine->key frame
 				{
-					unpackSequenceFrame((byte *)g_engine->_engine->logicalScreen + 4, (byte *)g_engine->_engine->aux);
+					unpackSequenceFrame(g_engine->_engine->logicalScreen + 4, g_engine->_engine->aux);
 				} else // delta frame
 				{
 					fastCopyScreen(g_engine->_engine->logicalScreen, g_engine->_engine->aux);
@@ -773,7 +773,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 			}
 
 			for (int sequenceParamIdx = 0; sequenceParamIdx < numSequenceParam; sequenceParamIdx++) {
-				if (sequenceParams[sequenceParamIdx].frame == (uint)currentFrameId) {
+				if (sequenceParams[sequenceParamIdx].frame == static_cast<uint>(currentFrameId)) {
 					playSound(sequenceParams[sequenceParamIdx].sample);
 				}
 			}
@@ -781,7 +781,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 			// TODO: here, timming management
 			// TODO: fade management
 
-			gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+			gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 
 			osystem_drawBackground();
 
@@ -909,7 +909,7 @@ static void affCbm(byte *p1, byte *p2) {
 
 static void endSequence() {
 	pakLoad("CAMERA06.PAK", 7, g_engine->_engine->aux);
-	gfx_copyBlockPhys((byte *)g_engine->_engine->aux, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 	osystem_drawBackground();
 	osystem_updateScreen();
 
@@ -920,10 +920,10 @@ static void endSequence() {
 	byte pal2[256 * 3];
 	for (int i = 0; i < 256; ++i) {
 		process_events();
-		copyPalette((byte *)g_engine->_engine->aux + 2, pal2);
+		copyPalette(g_engine->_engine->aux + 2, pal2);
 		setFadePalette(currentGamePalette, pal2, i);
 	}
-	gfx_copyBlockPhys((byte *)g_engine->_engine->aux2, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->aux2, 0, 0, 320, 200);
 	osystem_drawBackground();
 	osystem_updateScreen();
 
@@ -932,8 +932,8 @@ static void endSequence() {
 			process_events();
 			fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
-			affCbm((byte *)g_engine->_engine->aux, (byte *)g_engine->_engine->logicalScreen);
-			gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
+			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
 			osystem_updateScreen();
 		}
@@ -943,8 +943,8 @@ static void endSequence() {
 			process_events();
 			fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
-			affCbm((byte *)g_engine->_engine->aux, (byte *)g_engine->_engine->logicalScreen);
-			gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
+			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
 			osystem_updateScreen();
 		}
@@ -954,8 +954,8 @@ static void endSequence() {
 			process_events();
 			fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
-			affCbm((byte *)g_engine->_engine->aux, (byte *)g_engine->_engine->logicalScreen);
-			gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
+			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 			osystem_drawBackground();
 			osystem_updateScreen();
 		}
@@ -966,7 +966,7 @@ static void endSequence() {
 		setFadePalette(pal2, pal1, i);
 	}
 	memset(g_engine->_engine->logicalScreen, 0, 320 * 200);
-	gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 	osystem_drawBackground();
 	osystem_updateScreen();
 	paletteFill(pal2, 255, 255, 0);
@@ -995,9 +995,6 @@ void processLife(int lifeNum, bool callFoundLife) {
 	while (!exitLife) {
 		int lifeTempVar1;
 		int lifeTempVar2;
-		int lifeTempVar6;
-		int lifeTempVar7;
-		int lifeTempVar8;
 		int16 currentOpcode;
 
 		var_6 = -1;
@@ -1211,6 +1208,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 				}
 			}
 		} else {
+			int lifeTempVar7;
+			int lifeTempVar6;
 			int lifeTempVar4;
 			int lifeTempVar3;
 			int lifeTempVar5;
@@ -2028,6 +2027,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_READ_ON_PICTURE: // TODO
 			{
+				int lifeTempVar8;
 				// appendFormated("LM_READ_ON_PICTURE ");
 				lifeTempVar1 = *(int16 *)g_engine->_engine->currentLifePtr;
 				g_engine->_engine->currentLifePtr += 2;
@@ -2051,7 +2051,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				fadeOutPhys(32, 0);
 				pakLoad("ITD_RESS.PAK", lifeTempVar1, g_engine->_engine->aux);
 				byte lpalette[0x300];
-				copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
+				copyPalette(g_engine->_engine->aux + 64000, lpalette);
 				convertPaletteIfRequired(lpalette);
 				copyPalette(lpalette, currentGamePalette);
 				gfx_setPalette(lpalette);
@@ -2360,7 +2360,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				if (g_engine->getGameId() > GID_AITD1) {
 					fadeOutPhys(0x10, 0);
 					byte lpalette[0x300];
-					copyPalette((byte *)g_engine->_engine->aux + 64000, lpalette);
+					copyPalette(g_engine->_engine->aux + 64000, lpalette);
 					convertPaletteIfRequired(lpalette);
 					copyPalette(lpalette, currentGamePalette);
 					gfx_setPalette(lpalette);
@@ -2383,7 +2383,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 					time = evalChrono(&chrono);
 
-					if (time > (uint)delay)
+					if (time > static_cast<uint>(delay))
 						break;
 				} while (!g_engine->_engine->key && !g_engine->_engine->click);
 

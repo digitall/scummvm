@@ -60,9 +60,9 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->worldZ = actorPtr->roomZ = z;
 
 	if (room != g_engine->_engine->currentRoom) {
-		actorPtr->worldX -= (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[actorPtr->room].worldX) * 10);
-		actorPtr->worldY += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[actorPtr->room].worldY) * 10);
-		actorPtr->worldZ += (int16)((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[actorPtr->room].worldZ) * 10);
+		actorPtr->worldX -= static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldX - g_engine->_engine->roomDataTable[actorPtr->room].worldX) * 10);
+		actorPtr->worldY += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldY - g_engine->_engine->roomDataTable[actorPtr->room].worldY) * 10);
+		actorPtr->worldZ += static_cast<int16>((g_engine->_engine->roomDataTable[g_engine->_engine->currentRoom].worldZ - g_engine->_engine->roomDataTable[actorPtr->room].worldZ) * 10);
 	}
 
 	actorPtr->alpha = alpha;
@@ -203,7 +203,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 		bool bFound = false;
 
 		for (uint hardColIdx = 0; hardColIdx < g_engine->_engine->roomDataTable[room].numHardCol; hardColIdx++) {
-			if (g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].type == 9 && g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx) {
+			if (g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].type == 9 && g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].parameter == static_cast<uint32>(hardZvIdx)) {
 				copyZv(&g_engine->_engine->roomDataTable[room].hardColTable[hardColIdx].zv, zvPtr);
 
 				x = 0;

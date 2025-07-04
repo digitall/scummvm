@@ -28,7 +28,6 @@
 #include "fitd/pak.h"
 #include "fitd/sequence.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 // ITD_RESS mapping
@@ -46,7 +45,7 @@ void jackReadBook(int index, int type) {
 	switch (type) {
 	case 1: // READ_BOOK
 	{
-		byte *pImage = (byte *)pakLoad("ITD_RESS.PAK", JACK_LIVRE);
+		byte *pImage = pakLoad("ITD_RESS.PAK", JACK_LIVRE);
 		memcpy(g_engine->_engine->aux, pImage, 320 * 200);
 		byte *lpalette = pImage + 320 * 200;
 		convertPaletteIfRequired(lpalette);

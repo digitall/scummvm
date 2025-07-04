@@ -31,7 +31,7 @@ namespace Common {
 template<>
 struct Hash<void *> {
 	uint operator()(void *s) const {
-		uint64 u = (uint64)s;
+		const uint64 u = (uint64)s;
 		return ((u >> 32) & 0xFFFFFFFF) ^ (u & 0xFFFFFFFF);
 	}
 };

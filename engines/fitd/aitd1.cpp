@@ -260,7 +260,7 @@ int choosePerso() {
 			firstTime = 0;
 		}
 
-		while ((g_engine->_engine->localKey = g_engine->_engine->key) != 28 && g_engine->_engine->click == 0) // process input
+		while ((!::Engine::shouldQuit() && (g_engine->_engine->localKey = g_engine->_engine->key) != 28) && g_engine->_engine->click == 0) // process input
 		{
 			process_events();
 			osystem_drawBackground();
@@ -271,7 +271,7 @@ int choosePerso() {
 				fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 				affBigCadre(80, 100, 160, 200);
 				copyBoxAuxLog(10, 10, 149, 190);
-				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 				while (g_engine->_engine->joyD != 0) {
 					process_events();
@@ -284,7 +284,7 @@ int choosePerso() {
 				fastCopyScreen(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 				affBigCadre(240, 100, 160, 200);
 				copyBoxAuxLog(170, 10, 309, 190);
-				gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 				while (g_engine->_engine->joyD != 0) {
 					process_events();
@@ -345,7 +345,7 @@ void aitd1Start(int saveSlot) {
 	}
 
 	while (!::Engine::shouldQuit()) {
-		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
+		const int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 		switch (startupMenuResult) {
 		case -1: // timeout
 		{

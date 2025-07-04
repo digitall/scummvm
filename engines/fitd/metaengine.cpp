@@ -37,13 +37,13 @@
 
 class FitdMetaEngine final : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
-	const char *getName() const final;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const final;
-	bool hasFeature(MetaEngineFeature f) const final;
-	Common::Array<Common::Keymap *> initKeymaps(const char *target) const final;
-	void registerDefaultSettings(const Common::String &) const final;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const final;
-	void getSavegameThumbnail(Graphics::Surface &thumb) final;
+	const char *getName() const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const override;
+	bool hasFeature(MetaEngineFeature f) const override;
+	Common::Array<Common::Keymap *> initKeymaps(const char *target) const override;
+	void registerDefaultSettings(const Common::String &) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	void getSavegameThumbnail(Graphics::Surface &thumb) override;
 };
 
 const char *FitdMetaEngine::getName() const {
@@ -83,7 +83,7 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 	for (int i = 0; actions[i].name; i++) {
 		Common::Action *act = new Common::Action(actions[i].name, _(actions[i].desc));
 		act->setCustomEngineActionEvent(actions[i].action);
-		char *strToken = strtok(actions[i].inputs, "|");
+		const char *strToken = strtok(actions[i].inputs, "|");
 		while (strToken) {
 			act->addDefaultInputMapping(strToken);
 			strToken = strtok(nullptr, "|");
@@ -162,8 +162,8 @@ void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
 	Graphics::ManagedSurface screen;
 	screen.create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 	screen.setPalette(Fitd::currentGamePalette, 0, 256);
-	Fitd::scaleDownImage(320, 200, 0, 0, Fitd::g_engine->_engine->aux2, (byte *)screen.getBasePtr(0, 0), 320);
-	Common::ScopedPtr<Graphics::ManagedSurface> scaledScreen(screen.scale(kThumbnailWidth, kThumbnailHeight2));
+	Fitd::scaleDownImage(320, 200, 0, 0, Fitd::g_engine->_engine->aux2, static_cast<byte *>(screen.getBasePtr(0, 0)), 320);
+	const Common::ScopedPtr<Graphics::ManagedSurface> scaledScreen(screen.scale(kThumbnailWidth, kThumbnailHeight2));
 	thumb.copyFrom(*scaledScreen);
 	screen.free();
 	scaledScreen->free();

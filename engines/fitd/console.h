@@ -27,7 +27,7 @@
 
 namespace Fitd {
 
-class Console : public GUI::Debugger {
+class Console final : public GUI::Debugger {
 private:
 	bool Cmd_test(int argc, const char **argv);
 public:

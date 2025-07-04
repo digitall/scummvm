@@ -28,7 +28,6 @@
 #include "fitd/sequence.h"
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -92,7 +91,7 @@ int processStartupMenu() {
 	if (g_engine->getGameId() == GID_AITD3) {
 		pakLoad("ITD_RESS.PAK", 47, g_engine->_engine->aux);
 		byte lpalette[768];
-		copyPalette((byte *)g_engine->_engine->aux, lpalette);
+		copyPalette(g_engine->_engine->aux, lpalette);
 		convertPaletteIfRequired(lpalette);
 		copyPalette(lpalette, currentGamePalette);
 		gfx_setPalette(lpalette);
@@ -101,7 +100,7 @@ int processStartupMenu() {
 
 	osystem_startFrame();
 	// osystem_stopFrame();
-	gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 	osystem_flip(nullptr);
 	fadeInPhys(16, 0);
@@ -113,7 +112,7 @@ int processStartupMenu() {
 			selectedEntry = 2;
 		}
 
-		gfx_copyBlockPhys((byte *)g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 
 		if (selectedEntry != -1 || evalChrono(&chrono) > 0x10000) {

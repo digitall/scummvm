@@ -26,7 +26,7 @@
 namespace Fitd {
 
 void Body::sync() {
-	const uint8 *ptr = (uint8 *)m_raw;
+	const uint8 *ptr = static_cast<uint8 *>(m_raw);
 
 	ptr += 2;                        // skip the flag
 	ptr += 12;                       // skip the ZV

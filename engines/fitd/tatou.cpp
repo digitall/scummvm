@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/tatou.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
@@ -29,8 +30,6 @@
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/life.h"
-#include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -92,13 +91,13 @@ void playRepeatedSound(int num) {
 	if (g_engine->_engine->lastSample == num)
 		return;
 
-	int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
+	const int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
 	if (g_engine->_engine->lastPriority < priorities[num]) {
 		g_engine->_engine->lastSample = num;
 		g_engine->_engine->lastPriority = priorities[num];
 		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
 
-		byte *samplePtr = (byte *)HQR_Get(g_engine->_engine->listSamp, num);
+		const byte *samplePtr = HQR_Get(g_engine->_engine->listSamp, num);
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
@@ -111,12 +110,12 @@ void playSound(int num) {
 	if (num == -1)
 		return;
 
-	int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
+	const int16 *priorities = (int16 *)g_engine->_engine->ptrPrioritySample;
 	if (g_engine->_engine->lastPriority < priorities[num]) {
 		g_engine->_engine->lastSample = num;
 		g_engine->_engine->lastPriority = priorities[num];
 		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
-		byte *samplePtr = (byte *)HQR_Get(g_engine->_engine->listSamp, num);
+		const byte *samplePtr = HQR_Get(g_engine->_engine->listSamp, num);
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
@@ -125,12 +124,12 @@ void playSound(int num) {
 }
 
 void makeBlackPalette() {
-	byte pal[256 * 3] = {};
+	const byte pal[256 * 3] = {};
 	gfx_setPalette(pal);
 }
 
 void paletteFill(void *palette, byte r, byte g, byte b) {
-	byte *paletteLocal = (byte *)palette;
+	byte *paletteLocal = static_cast<byte *>(palette);
 	int offset = 0;
 
 	r <<= 1;

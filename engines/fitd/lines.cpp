@@ -178,7 +178,7 @@ void line(int x1, int y1, int x2, int y2, byte c) {
 		return;
 	}
 
-	const float k = (float)(y2 - y1) / (float)(x2 - x1);
+	const float k = static_cast<float>(y2 - y1) / static_cast<float>(x2 - x1);
 
 	if (k >= 0 && k <= 1) {
 		bsubline_1(x1, y1, x2, y2, c);

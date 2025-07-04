@@ -32,16 +32,15 @@ static int sortCompareFunction(const void *param1, const void *param2) {
 	int distance2 = 0;
 	ZVStruct localZv1;
 	ZVStruct localZv2;
-	int flag = 0;
 
-	assert(*(const int *)param1 >= 0 && *(const int *)param1 < NUM_MAX_OBJECT);
-	assert(*(const int *)param2 >= 0 && *(const int *)param2 < NUM_MAX_OBJECT);
+	assert(*static_cast<const int *>(param1) >= 0 && *static_cast<const int *>(param1) < NUM_MAX_OBJECT);
+	assert(*static_cast<const int *>(param2) >= 0 && *static_cast<const int *>(param2) < NUM_MAX_OBJECT);
 
-	Object *actor1Ptr = &g_engine->_engine->objectTable[*(const int *)param1];
-	Object *actor2Ptr = &g_engine->_engine->objectTable[*(const int *)param2];
+	const Object *actor1Ptr = &g_engine->_engine->objectTable[*static_cast<const int *>(param1)];
+	const Object *actor2Ptr = &g_engine->_engine->objectTable[*static_cast<const int *>(param2)];
 
-	ZVStruct *actor1ZvPtr = &actor1Ptr->zv;
-	ZVStruct *actor2ZvPtr = &actor2Ptr->zv;
+	const ZVStruct *actor1ZvPtr = &actor1Ptr->zv;
+	const ZVStruct *actor2ZvPtr = &actor2Ptr->zv;
 
 	if (actor1Ptr->room != g_engine->_engine->currentRoom) {
 		copyZv(actor1ZvPtr, &localZv1);
@@ -55,11 +54,12 @@ static int sortCompareFunction(const void *param1, const void *param2) {
 		actor2ZvPtr = &localZv2;
 	}
 
-	int y1 = ((actor1ZvPtr->ZVY1 + actor1ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
-	int y2 = ((actor2ZvPtr->ZVY1 + actor2ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
+	const int y1 = ((actor1ZvPtr->ZVY1 + actor1ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
+	const int y2 = ((actor2ZvPtr->ZVY1 + actor2ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
 
 	if (y1 == y2 || g_engine->getGameId() >= GID_JACK) // both y in the same range
 	{
+		int flag = 0;
 		if (
 			(actor1ZvPtr->ZVX1 > actor2ZvPtr->ZVX1 && actor1ZvPtr->ZVX1 < actor2ZvPtr->ZVX2) ||
 			(actor1ZvPtr->ZVX2 > actor2ZvPtr->ZVX1 && actor1ZvPtr->ZVX2 < actor2ZvPtr->ZVX2) ||

@@ -64,7 +64,7 @@ bool FitdEngine::hasFeature(EngineFeature f) const {
 		   f == kSupportsSavingDuringRuntime ||
 		   f == kSupportsReturnToLauncher ||
 		   f == kSupportsChangingOptionsDuringRuntime;
-};
+}
 
 bool FitdEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
