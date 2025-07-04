@@ -11,7 +11,6 @@ MODULE_OBJS = \
 	anim_action.o \
 	costable.o \
 	common.o \
-	console.o \
 	eval_var.o \
 	file_access.o \
 	fitd.o \

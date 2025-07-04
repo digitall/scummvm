@@ -32,7 +32,6 @@
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
-#include "fitd/console.h"
 #include "fitd/debugtools.h"
 #include "fitd/engine.h"
 #include "fitd/file_access.h"
@@ -3148,9 +3147,6 @@ void runGame() {
 	default:
 		break;
 	}
-
-	// Set the engine's debugger console
-	g_engine->setDebugger(new Console());
 
 	setupScreen();
 
