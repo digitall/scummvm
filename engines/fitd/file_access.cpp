@@ -22,25 +22,24 @@
 #include "common/file.h"
 #include "common/textconsole.h"
 #include "fitd/engine.h"
-#include "fitd/fitd.h"
 #include "fitd/file_access.h"
+#include "fitd/fitd.h"
 #include "fitd/pak.h"
 
 namespace Fitd {
 
-byte *loadFromItd(const char *name) {
+int loadFromItd(const char *name, void *data, int size) {
 	Common::File f;
 	if (!f.open(name)) {
 		error("Fitd::loadFromItd: can't open %s", name);
 	}
 	g_engine->_engine->fileSize = f.size();
-	byte *ptr = static_cast<byte *>(malloc(g_engine->_engine->fileSize));
-	if (!ptr) {
-		error("Failed to allocate memory for %s", name);
+	if (size < g_engine->_engine->fileSize) {
+		error("Not enough memory for %s, expecting %d bytes, got %d bytes", name, g_engine->_engine->fileSize, size);
 	}
-	f.read(ptr, g_engine->_engine->fileSize);
+	f.read(data, g_engine->_engine->fileSize);
 	f.close();
-	return ptr;
+	return g_engine->_engine->fileSize;
 }
 
 byte *checkLoadMallocPak(const char *name, int index) {

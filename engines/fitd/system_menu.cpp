@@ -297,7 +297,6 @@ bool showLoadMenu(int menuChoice) {
 	Common::String desc;
 	const int selectedSlot = chooseSavegame(menuChoice, false, desc);
 	// fadeOutPhys(8, 0);
-	//  freeAll();
 	if (selectedSlot != -1 && g_engine->loadGameState(selectedSlot).getCode() == Common::kNoError) {
 		return true;
 	}

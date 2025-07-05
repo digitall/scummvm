@@ -26,6 +26,9 @@
 #include "common/hashmap.h"
 #include "common/scummsys.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
+#include "fitd/font.h"
+#include "fitd/hqr.h"
 #include "fitd/room.h"
 
 namespace Common {
@@ -52,6 +55,22 @@ public:
 		cameraBufferPtr = cameraBuffer;
 		cameraBuffer2Ptr = cameraBuffer2;
 		cameraBuffer3Ptr = cameraBuffer3;
+		logicalScreen = logicalScreenBuffer;
+
+		listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
+		listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
+		hqMemory = HQR_Init(10000, 50);
+	}
+
+	~Engine() {
+		HQR_Free(listSamp);
+		HQR_Free(listMus);
+		HQR_Free(hqMemory);
+		HQR_Free(listLife);
+		HQR_Free(listTrack);
+		HQR_Free(listBody);
+		HQR_Free(listAnim);
+		HQR_Free(listMatrix);
 	}
 
 	Common::HashMap<void *, byte *> bodyBufferMap;
@@ -67,6 +86,11 @@ public:
 	HqrEntry *hqMemory = nullptr;
 	HqrEntry *listMus = nullptr;
 	HqrEntry *listSamp = nullptr;
+	HqrEntry *listBody = nullptr;
+	HqrEntry *listAnim = nullptr;
+	HqrEntry *listLife = nullptr;
+	HqrEntry *listTrack = nullptr;
+	HqrEntry *listMatrix = nullptr;
 
 	int videoMode = 0;
 	int musicConfigured = 0;
@@ -74,22 +98,21 @@ public:
 	int soundToggle = 0;
 	int detailToggle = 0;
 
-	byte *aux = nullptr;
-	byte *aux2 = nullptr;
+	byte aux[65068] = {};
+	byte aux2[65068] = {};
+	byte logicalScreenBuffer[64800] = {};
+	byte *logicalScreen = nullptr;
 
 	int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
-
-	byte *logicalScreen = nullptr;
 
 	int unkScreenVar2 = 0;
 
 	int16 cVars[70];
 	uint8 cVarsSize = 0;
 
-	byte *ptrPrioritySample = nullptr;
+	byte ptrPrioritySample[247] = {};
 
 	byte *ptrFont = nullptr;
-
 	byte *ptrCadre = nullptr;
 
 	uint timer = 0;
@@ -132,15 +155,9 @@ public:
 
 	int fileSize = 0;
 
-	HqrEntry *listBody = nullptr;
-	HqrEntry *listAnim = nullptr;
-	HqrEntry *listLife = nullptr;
-	HqrEntry *listTrack = nullptr;
-	HqrEntry *listMatrix = nullptr;
-
 	int16 maxObjects = 0;
 
-	int16 *vars = nullptr;
+	int16 vars[482] = {};
 
 	int varSize = 0;
 
@@ -296,6 +313,7 @@ public:
 	int clipBottom = 199;
 
 	ScopedPtr pAITD2InventorySprite;
+	TextEntryStruct tabTextes[NUM_MAX_TEXT_ENTRY] = {};
 };
 } // namespace Fitd
 

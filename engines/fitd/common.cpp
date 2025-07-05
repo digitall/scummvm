@@ -260,24 +260,6 @@ void executeFoundLife(int objIdx) {
 	}
 }
 
-void freeAll() {
-	HQR_Free(g_engine->_engine->listSamp);
-	HQR_Free(g_engine->_engine->listMus);
-	HQR_Free(g_engine->_engine->hqMemory);
-	HQR_Free(g_engine->_engine->listLife);
-	HQR_Free(g_engine->_engine->listTrack);
-	HQR_Free(g_engine->_engine->listBody);
-	HQR_Free(g_engine->_engine->listAnim);
-	if (g_engine->getGameId() != GID_AITD1) {
-		HQR_Free(g_engine->_engine->listMatrix);
-	}
-
-	free(tabTextes);
-	free(g_engine->_engine->ptrPrioritySample);
-	free(g_engine->_engine->aux);
-	free(g_engine->_engine->aux2);
-}
-
 static void drawGradient(int x1, int x2) {
 	int right = x1 + (x2 - x1) / 2;
 	int left = x1 + 1;
@@ -752,8 +734,7 @@ void initEngine() {
 	}
 	f.close();
 
-	g_engine->_engine->vars = (int16 *)loadFromItd("VARS.ITD");
-	g_engine->_engine->varSize = g_engine->_engine->fileSize;
+	g_engine->_engine->varSize = loadFromItd("VARS.ITD", g_engine->_engine->vars, sizeof(g_engine->_engine->vars));
 
 	int16 choosePersoBackup = 0;
 	if (g_engine->getGameId() == GID_AITD1) {
@@ -777,6 +758,11 @@ void initEngine() {
 		g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 	}
 
+	HQR_Free(g_engine->_engine->listLife);
+	HQR_Free(g_engine->_engine->listTrack);
+	HQR_Free(g_engine->_engine->listBody);
+	HQR_Free(g_engine->_engine->listAnim);
+
 	g_engine->_engine->listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
 	g_engine->_engine->listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
 
@@ -787,6 +773,7 @@ void initEngine() {
 		g_engine->_engine->listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
 		g_engine->_engine->listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
 
+		HQR_Free(g_engine->_engine->listMatrix);
 		g_engine->_engine->listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
 	}
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -2949,8 +2936,6 @@ static int drawTextOverlay() {
 }
 
 static void setupScreen() {
-	g_engine->_engine->logicalScreen = static_cast<byte *>(malloc(64800));
-
 	// screenBufferSize = 64800;
 
 	// unkScreenVar2 = 3;
@@ -2977,14 +2962,6 @@ static void loadPalette() {
 static void allocTextes() {
 	int currentIndex;
 
-	tabTextes = static_cast<TextEntryStruct *>(malloc(NUM_MAX_TEXT_ENTRY * sizeof(TextEntryStruct))); // 2000 = 250 * 8
-
-	assert(tabTextes);
-
-	if (!tabTextes) {
-		error("TabTextes");
-	}
-
 	const Common::String lang(ConfMan.get("language"));
 	for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
 		if (lang == languageShortNameTable[i] && Common::File::exists(languageNameTable[i])) {
@@ -3002,9 +2979,9 @@ static void allocTextes() {
 	const int textLength = pakGetPakSize(g_engine->_engine->languageNameString, 0);
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
-		tabTextes[currentIndex].index = -1;
-		tabTextes[currentIndex].textPtr = nullptr;
-		tabTextes[currentIndex].width = 0;
+		g_engine->_engine->tabTextes[currentIndex].index = -1;
+		g_engine->_engine->tabTextes[currentIndex].textPtr = nullptr;
+		g_engine->_engine->tabTextes[currentIndex].width = 0;
 	}
 
 	byte *currentPosInTextes = g_engine->_engine->systemTextes.get();
@@ -3036,9 +3013,9 @@ static void allocTextes() {
 
 				*(currentPosInTextes - 1) = 0; // add the end of string
 
-				tabTextes[textCounter].index = stringIndex;
-				tabTextes[textCounter].textPtr = (char *)stringPtr;
-				tabTextes[textCounter].width = extGetSizeFont((char *)stringPtr);
+				g_engine->_engine->tabTextes[textCounter].index = stringIndex;
+				g_engine->_engine->tabTextes[textCounter].textPtr = (char *)stringPtr;
+				g_engine->_engine->tabTextes[textCounter].width = extGetSizeFont((char *)stringPtr);
 
 				textCounter++;
 			}
@@ -3087,16 +3064,6 @@ void runGame() {
 	g_engine->_engine->soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
 	g_engine->_engine->detailToggle = 1;
 
-	g_engine->_engine->aux = static_cast<byte *>(malloc(65068));
-	if (!g_engine->_engine->aux) {
-		error("Failed to alloc Aux");
-	}
-
-	g_engine->_engine->aux2 = static_cast<byte *>(malloc(65068));
-	if (!g_engine->_engine->aux2) {
-		error("Failed to alloc Aux2");
-	}
-
 	initCopyBox(g_engine->_engine->aux2, g_engine->_engine->logicalScreen);
 
 	switch (g_engine->getGameId()) {
@@ -3143,7 +3110,7 @@ void runGame() {
 		break;
 	}
 
-	g_engine->_engine->ptrPrioritySample = loadFromItd("PRIORITY.ITD");
+	loadFromItd("PRIORITY.ITD", g_engine->_engine->ptrPrioritySample, sizeof(g_engine->_engine->ptrPrioritySample));
 
 	// read cvars definitions
 	{
@@ -3158,9 +3125,6 @@ void runGame() {
 	}
 
 	allocTextes();
-	g_engine->_engine->listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
-	g_engine->_engine->listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
-	g_engine->_engine->hqMemory = HQR_Init(10000, 50);
 
 	paletteFill(currentGamePalette, 0, 0, 0);
 	loadPalette();
@@ -3198,7 +3162,6 @@ void runGame() {
 	destroyMusicDriver();
 
 	gfx_deinit();
-	freeAll();
 }
 
 } // namespace Fitd

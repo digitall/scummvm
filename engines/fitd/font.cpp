@@ -19,14 +19,13 @@
  *
  */
 
+#include "fitd/font.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/font.h"
 
 namespace Fitd {
 
-TextEntryStruct *tabTextes;
 int fontHeight = 16;
 
 byte *fontVar1 = nullptr;
@@ -52,7 +51,7 @@ void extSetFont(byte *fontData, int color) {
 	const int16 tempDx = READ_LE_S16(fontData); // alignment
 	fontData += 2;
 
-	fontSm1 = *fontData++;         // character height
+	fontSm1 = *fontData++; // character height
 	fontSm2 = *fontData++; // character size
 
 	if (!fontSm2) {
@@ -175,13 +174,11 @@ void renderText(int x, int y, const char *string) {
 }
 
 TextEntryStruct *getTextFromIdx(int index) {
-
 	for (int currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
-		if (tabTextes[currentIndex].index == index) {
-			return &tabTextes[currentIndex];
+		if (g_engine->_engine->tabTextes[currentIndex].index == index) {
+			return &g_engine->_engine->tabTextes[currentIndex];
 		}
 	}
-
 	return nullptr;
 }
 

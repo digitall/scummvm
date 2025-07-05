@@ -149,7 +149,6 @@ extern const char *listAnimSelect[];
 void initEngine();
 void initVars();
 void startGame(int startupEtage, int startupRoom, int allowSystemMenu);
-void freeAll();
 void addActorToBgInscrust(int actorIdx);
 void removeFromBGIncrust(int actorIdx);
 

@@ -26,7 +26,7 @@
 
 namespace Fitd {
 
-byte *loadFromItd(const char *name);
+int loadFromItd(const char *name, void *data, int size);
 byte *checkLoadMallocPak(const char *name, int index);
 
 } // namespace Fitd

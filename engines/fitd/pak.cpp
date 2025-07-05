@@ -100,7 +100,6 @@ byte *pakLoad(const char *fileName, int index) {
 	}
 	default:
 		error("Compression method: %d is not supported", pakInfo.compressionFlag);
-		break;
 	}
 	f.close();
 	return ptr;
