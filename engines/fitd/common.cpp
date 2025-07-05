@@ -200,7 +200,7 @@ void executeFoundLife(int objIdx) {
 	const int currentActorLifeNum = g_engine->_engine->currentLifeNum;
 
 	if (g_engine->_engine->currentLifeNum != -1) {
-		lifeOffset = (g_engine->_engine->currentLifePtr - HQR_Get(g_engine->_engine->listLife, currentActorLifeNum)) / 2;
+		lifeOffset = (g_engine->_engine->currentLifePtr - hqrGet(g_engine->_engine->listLife, currentActorLifeNum)) / 2;
 	}
 
 	int var_2 = 0;
@@ -256,7 +256,7 @@ void executeFoundLife(int objIdx) {
 
 	if (currentActorLifeNum != -1) {
 		g_engine->_engine->currentLifeNum = currentActorLifeNum;
-		g_engine->_engine->currentLifePtr = HQR_Get(g_engine->_engine->listLife, g_engine->_engine->currentLifeNum) + lifeOffset * 2;
+		g_engine->_engine->currentLifePtr = hqrGet(g_engine->_engine->listLife, g_engine->_engine->currentLifeNum) + lifeOffset * 2;
 	}
 }
 
@@ -347,8 +347,8 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 	const int maxStringWidth = endx - startx + 4;
 
-	const int textIndexMalloc = HQ_Malloc(g_engine->_engine->hqMemory, pakGetPakSize(g_engine->_engine->languageNameString, index) + 300);
-	byte *textPtr = HQ_PtrMalloc(g_engine->_engine->hqMemory, textIndexMalloc);
+	const int textIndexMalloc = hqMalloc(g_engine->_engine->hqMemory, pakGetPakSize(g_engine->_engine->languageNameString, index) + 300);
+	byte *textPtr = hqPtrMalloc(g_engine->_engine->hqMemory, textIndexMalloc);
 	if (!textPtr)
 		error("No memory left");
 
@@ -758,23 +758,23 @@ void initEngine() {
 		g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 	}
 
-	HQR_Free(g_engine->_engine->listLife);
-	HQR_Free(g_engine->_engine->listTrack);
-	HQR_Free(g_engine->_engine->listBody);
-	HQR_Free(g_engine->_engine->listAnim);
+	hqrFree(g_engine->_engine->listLife);
+	hqrFree(g_engine->_engine->listTrack);
+	hqrFree(g_engine->_engine->listBody);
+	hqrFree(g_engine->_engine->listAnim);
 
-	g_engine->_engine->listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
-	g_engine->_engine->listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
+	g_engine->_engine->listLife = hqrInitRessource("LISTLIFE.PAK", 65000, 100);
+	g_engine->_engine->listTrack = hqrInitRessource("LISTTRAK.PAK", 20000, 100);
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		g_engine->_engine->listBody = HQR_InitRessource(listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
-		g_engine->_engine->listAnim = HQR_InitRessource(listAnimSelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
+		g_engine->_engine->listBody = hqrInitRessource(listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
+		g_engine->_engine->listAnim = hqrInitRessource(listAnimSelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
 	} else {
-		g_engine->_engine->listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
-		g_engine->_engine->listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
+		g_engine->_engine->listBody = hqrInitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
+		g_engine->_engine->listAnim = hqrInitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
 
-		HQR_Free(g_engine->_engine->listMatrix);
-		g_engine->_engine->listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
+		hqrFree(g_engine->_engine->listMatrix);
+		g_engine->_engine->listMatrix = hqrInitRessource("LISTMAT.PAK", 64000, 5);
 	}
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		g_engine->_engine->objectTable[i].indexInWorld = -1;
@@ -903,7 +903,7 @@ struct maskStruct {
 	uint8 mask[320 * 200];
 };
 
-maskStruct g_maskBuffers[10][10];
+static maskStruct maskBuffers[10][10];
 
 static void loadMask(int cameraIdx) {
 	if (g_engine->getGameId() == GID_TIMEGATE)
@@ -920,7 +920,7 @@ static void loadMask(int cameraIdx) {
 		for (int j = 0; j < pRoomView->numMask; j++) {
 			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
 
-			maskStruct *pDestMask = &g_maskBuffers[i][j];
+			maskStruct *pDestMask = &maskBuffers[i][j];
 
 			memset(pDestMask->mask, 0, 320 * 200);
 
@@ -978,7 +978,7 @@ static void createAITD1Mask() {
 		const int numMask = *(int16 *)data2;
 
 		for (int maskIdx = 0; maskIdx < numMask; maskIdx++) {
-			maskStruct *pDestMask = &g_maskBuffers[viewedRoomIdx][maskIdx];
+			maskStruct *pDestMask = &maskBuffers[viewedRoomIdx][maskIdx];
 			memset(pDestMask->mask, 0, 320 * 200);
 			polyBackBuffer = &pDestMask->mask[0];
 
@@ -1847,7 +1847,7 @@ static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
 static void drawSpecialObject(int actorIdx) {
 	Object *actorPtr = &g_engine->_engine->objectTable[actorIdx];
 
-	byte *flowPtr = HQ_PtrMalloc(g_engine->_engine->hqMemory, actorPtr->FRAME);
+	byte *flowPtr = hqPtrMalloc(g_engine->_engine->hqMemory, actorPtr->FRAME);
 	if (!flowPtr)
 		return;
 
@@ -1933,7 +1933,7 @@ static void drawSpecialObject(int actorIdx) {
 	}
 	case 3: {
 		// muzzle flash
-		flowPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->cVars[getCVarsIdx(BODY_FLAMME)]);
+		flowPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->cVars[getCVarsIdx(BODY_FLAMME)]);
 		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
 		actorPtr->indexInWorld = -1;
 		break;
@@ -2101,7 +2101,7 @@ void mainDraw(int flagFlip) {
 			if (actorPtr->_flags & AF_SPECIAL) {
 				drawSpecialObject(currentDrawActor);
 			} else {
-				byte *bodyPtr = HQR_Get(g_engine->_engine->listBody, actorPtr->bodyNum);
+				byte *bodyPtr = hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum);
 
 				if (g_engine->_engine->hqLoad) {
 					// setAnimObjet(actorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, actorPtr->ANIM), bodyPtr);
@@ -2205,7 +2205,7 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 
 	setCameraTarget(0, 0, 0, 60, g_engine->_engine->statusVar1, 0, zoomFactor);
 
-	affObjet(0, 0, 0, 0, 0, 0, HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx));
+	affObjet(0, 0, 0, 0, 0, 0, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx));
 
 	simpleMessage(160, g_engine->_engine->windowY1, 20, 1);
 	simpleMessage(160, g_engine->_engine->windowY1 + 16, objectName, 1);
@@ -2299,7 +2299,7 @@ void foundObject(int objIdx, int param) {
 	}
 
 	g_engine->_engine->currentFoundBodyIdx = objPtr->foundBody;
-	g_engine->_engine->currentFoundBody = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
+	g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
 
 	setupCameraProjection(160, 100, 128, 300, 298);
 
@@ -2785,7 +2785,7 @@ void throwStoppedAt(int x, int z) {
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
 
-	const uint8 *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
+	const uint8 *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
 
 	giveZVObjet(bodyPtr, &zvLocal);
 

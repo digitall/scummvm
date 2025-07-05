@@ -276,7 +276,7 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 	*cx = static_cast<int16>(Z);
 }
 
-static void TranslateGroupe(int transX, int transY, int transZ, const Group *ptr) {
+static void translateGroupe(int transX, int transY, int transZ, const Group *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
@@ -286,7 +286,7 @@ static void TranslateGroupe(int transX, int transY, int transZ, const Group *ptr
 	}
 }
 
-static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const Group *ptr) {
+static void zoomGroupe(int zoomX, int zoomY, int zoomZ, const Group *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
@@ -299,7 +299,7 @@ static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const Group *ptr) {
 	}
 }
 
-static void InitGroupeRot(int transX, int transY, int transZ) {
+static void initGroupeRot(int transX, int transY, int transZ) {
 	if (transX) {
 		boneRotateXCos = cosTable[transX & 0x3FF];
 		boneRotateXSin = cosTable[(transX + 0x100) & 0x3FF];
@@ -328,7 +328,7 @@ static void InitGroupeRot(int transX, int transY, int transZ) {
 	}
 }
 
-static void RotateList(int16 *pointPtr, int numOfPoint) {
+static void rotateList(int16 *pointPtr, int numOfPoint) {
 	for (int i = 0; i < numOfPoint; i++) {
 		int x = *pointPtr;
 		int y = *(pointPtr + 1);
@@ -364,21 +364,21 @@ static void RotateList(int16 *pointPtr, int numOfPoint) {
 	}
 }
 
-static void RotateGroupeOptimise(const Group *ptr) {
+static void rotateGroupeOptimise(const Group *ptr) {
 	if (ptr->m_numGroup) // if group number is 0
 	{
 		const int baseBone = ptr->m_start;
 		const int numPoints = ptr->m_numVertices;
 
-		RotateList(pointBuffer + baseBone * 3, numPoints);
+		rotateList(pointBuffer + baseBone * 3, numPoints);
 	}
 }
 
-static void RotateGroupe(Group *ptr) {
+static void rotateGroupe(Group *ptr) {
 	const int baseBone = ptr->m_start;
 	const int numPoints = ptr->m_numVertices;
 
-	RotateList(pointBuffer + baseBone * 3, numPoints);
+	rotateList(pointBuffer + baseBone * 3, numPoints);
 
 	const int temp = ptr->m_numGroup; // group number
 
@@ -387,7 +387,7 @@ static void RotateGroupe(Group *ptr) {
 	do {
 		if (ptr->m_orgGroup == temp) // is it on of this group child
 		{
-			RotateGroupe(ptr); // yes, so apply the transformation to him
+			rotateGroupe(ptr); // yes, so apply the transformation to him
 		}
 
 		ptr++;
@@ -418,18 +418,18 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 			switch (pGroup->m_state.m_type) {
 			case 1:
 				if (pGroup->m_state.m_delta[0] || pGroup->m_state.m_delta[1] || pGroup->m_state.m_delta[2]) {
-					TranslateGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
+					translateGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
 				}
 				break;
 			case 2:
 				if (pGroup->m_state.m_delta[0] || pGroup->m_state.m_delta[1] || pGroup->m_state.m_delta[2]) {
-					ZoomGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
+					zoomGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
 				}
 				break;
 			}
 
-			InitGroupeRot(pGroup[0].m_state.m_rotateDelta[0], pGroup[0].m_state.m_rotateDelta[1], pGroup[0].m_state.m_rotateDelta[2]);
-			RotateGroupeOptimise(pGroup);
+			initGroupeRot(pGroup[0].m_state.m_rotateDelta[0], pGroup[0].m_state.m_rotateDelta[1], pGroup[0].m_state.m_rotateDelta[2]);
+			rotateGroupeOptimise(pGroup);
 		}
 	} else {
 		pBody->m_groups[0].m_state.m_delta[0] = alpha;
@@ -446,16 +446,16 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 			if (transX || transY || transZ) {
 				switch (pGroup->m_state.m_type) {
 				case 0: {
-					InitGroupeRot(transX, transY, transZ);
-					RotateGroupe(pGroup);
+					initGroupeRot(transX, transY, transZ);
+					rotateGroupe(pGroup);
 					break;
 				}
 				case 1: {
-					TranslateGroupe(transX, transY, transZ, pGroup);
+					translateGroupe(transX, transY, transZ, pGroup);
 					break;
 				}
 				case 2: {
-					ZoomGroupe(transX, transY, transZ, pGroup);
+					zoomGroupe(transX, transY, transZ, pGroup);
 					break;
 				}
 				}
@@ -495,8 +495,8 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 	}
 
 	if (modelFlags & INFO_OPTIMISE) {
-		InitGroupeRot(alpha, beta, gamma);
-		RotateList(pointBuffer, numOfPoints);
+		initGroupeRot(alpha, beta, gamma);
+		rotateList(pointBuffer, numOfPoints);
 	}
 
 	{

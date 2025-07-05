@@ -35,7 +35,7 @@ namespace Fitd {
 int getPosRelTable[] = {4, 1, 8, 2, 4, 1, 8, 0};
 
 int getMatrix(int param1, int actorIdx, int param2) {
-	byte *matrixPtr = HQR_Get(g_engine->_engine->listMatrix, param1);
+	byte *matrixPtr = hqrGet(g_engine->_engine->listMatrix, param1);
 
 	const int matrixWidth = *matrixPtr++;
 	(void)*matrixPtr++;
@@ -392,7 +392,7 @@ int evalVar(const char *name) {
 				const int temp2 = *(int16 *)g_engine->_engine->currentLifePtr;
 				g_engine->_engine->currentLifePtr += 2;
 
-				return testZvEndAnim(actorPtr, HQR_Get(g_engine->_engine->listAnim, temp1), temp2);
+				return testZvEndAnim(actorPtr, hqrGet(g_engine->_engine->listAnim, temp1), temp2);
 			}
 			case 0x23: // TODO: music
 			{

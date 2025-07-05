@@ -45,7 +45,7 @@ namespace Fitd {
 
 int input5;
 
-void AffOption(int n, int num, int selected) {
+void affOption(int n, int num, int selected) {
 	const int y = g_engine->_engine->windowY1 + (g_engine->_engine->windowY2 - g_engine->_engine->windowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
 
 	if (n == selected) {
@@ -104,7 +104,7 @@ void aitd2DisplayOptions(int selectedStringNumber) {
 	aitd2AffOption(6, 47, selectedStringNumber);
 }
 
-void AffOptionList(int selectedStringNumber) {
+void affOptionList(int selectedStringNumber) {
 	if (g_engine->getGameId() == GID_AITD2) {
 		aitd2DisplayOptions(selectedStringNumber);
 		return;
@@ -128,13 +128,13 @@ void AffOptionList(int selectedStringNumber) {
 
 	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
 
-	AffOption(0, 48, selectedStringNumber);
-	AffOption(1, 45, selectedStringNumber);
-	AffOption(2, 46, selectedStringNumber);
-	AffOption(3, 41 + g_engine->_engine->musicEnabled, selectedStringNumber);
-	AffOption(4, 43 + g_engine->_engine->soundToggle, selectedStringNumber);
-	AffOption(5, 49 + g_engine->_engine->detailToggle, selectedStringNumber);
-	AffOption(6, 47, selectedStringNumber);
+	affOption(0, 48, selectedStringNumber);
+	affOption(1, 45, selectedStringNumber);
+	affOption(2, 46, selectedStringNumber);
+	affOption(3, 41 + g_engine->_engine->musicEnabled, selectedStringNumber);
+	affOption(4, 43 + g_engine->_engine->soundToggle, selectedStringNumber);
+	affOption(5, 49 + g_engine->_engine->detailToggle, selectedStringNumber);
+	affOption(6, 47, selectedStringNumber);
 }
 
 static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, int selectedSlot) {
@@ -332,7 +332,7 @@ void processSystemMenu() {
 	int currentSelectedEntry = 0;
 
 	while (!exitMenu && !::Engine::shouldQuit()) {
-		AffOptionList(currentSelectedEntry);
+		affOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();

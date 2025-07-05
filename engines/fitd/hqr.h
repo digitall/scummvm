@@ -22,6 +22,8 @@
 #ifndef HQR_H
 #define HQR_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
 typedef struct HqrSubEntry
@@ -41,14 +43,14 @@ typedef struct HqrEntry {
 	HqrSubEntry *entries;
 } HqrEntry;
 
-byte *HQR_Get(HqrEntry *hqrPtr, int index);
-int HQ_Malloc(HqrEntry *hqrPtr, int size);
-byte *HQ_PtrMalloc(HqrEntry *hqrPtr, int index);
-void HQ_Name(HqrEntry * ptr, const char * name);
-HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries);
-HqrEntry *HQR_Init(int size, int numEntry);
-void HQR_Reset(HqrEntry *hqrPtr);
-void HQR_Free(HqrEntry *hqrPtr);
+byte *hqrGet(HqrEntry *hqrPtr, int index);
+int hqMalloc(HqrEntry *hqrPtr, int size);
+byte *hqPtrMalloc(HqrEntry *hqrPtr, int index);
+void hqrName(HqrEntry * ptr, const char * name);
+HqrEntry *hqrInitRessource(const char *name, int size, int numEntries);
+HqrEntry *hqrInit(int size, int numEntry);
+void hqrReset(HqrEntry *hqrPtr);
+void hqrFree(HqrEntry *hqrPtr);
 
 struct Body;
 Body *getBodyFromPtr(void *ptr);

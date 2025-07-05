@@ -57,20 +57,20 @@ public:
 		cameraBuffer3Ptr = cameraBuffer3;
 		logicalScreen = logicalScreenBuffer;
 
-		listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
-		listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
-		hqMemory = HQR_Init(10000, 50);
+		listMus = hqrInitRessource("LISTMUS.PAK", 110000, 40);
+		listSamp = hqrInitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
+		hqMemory = hqrInit(10000, 50);
 	}
 
 	~Engine() {
-		HQR_Free(listSamp);
-		HQR_Free(listMus);
-		HQR_Free(hqMemory);
-		HQR_Free(listLife);
-		HQR_Free(listTrack);
-		HQR_Free(listBody);
-		HQR_Free(listAnim);
-		HQR_Free(listMatrix);
+		hqrFree(listSamp);
+		hqrFree(listMus);
+		hqrFree(hqMemory);
+		hqrFree(listLife);
+		hqrFree(listTrack);
+		hqrFree(listBody);
+		hqrFree(listAnim);
+		hqrFree(listMatrix);
 	}
 
 	Common::HashMap<void *, byte *> bodyBufferMap;

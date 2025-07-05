@@ -143,7 +143,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 
 			g_engine->_engine->currentProcessedActorPtr->_flags |= AF_ANIMATED;
 
-			setAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, animNum), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+			setAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, animNum), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
 			g_engine->_engine->currentProcessedActorPtr->animType = animType;
 			g_engine->_engine->currentProcessedActorPtr->animInfo = animInfo;
@@ -172,7 +172,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 			removeFromBGIncrust(g_engine->_engine->currentProcessedActorIdx);
 		}
 
-		setAnimObjet(0, HQR_Get(g_engine->_engine->listAnim, animNum), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		setAnimObjet(0, hqrGet(g_engine->_engine->listAnim, animNum), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
 		g_engine->_engine->currentProcessedActorPtr->newAnim = animNum;
 		g_engine->_engine->currentProcessedActorPtr->newAnimType = animType;
@@ -295,7 +295,7 @@ void updateAnimation() {
 			g_engine->_engine->currentProcessedActorPtr->animNegZ = 0;
 		}
 
-		initBufferAnim(g_engine->_engine->bufferAnim[g_engine->_engine->bufferAnimCounter], HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		initBufferAnim(g_engine->_engine->bufferAnim[g_engine->_engine->bufferAnimCounter], hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
 		g_engine->_engine->bufferAnimCounter++;
 		if (g_engine->_engine->bufferAnimCounter == NB_BUFFER_ANIM)
@@ -310,7 +310,7 @@ void updateAnimation() {
 		g_engine->_engine->currentProcessedActorPtr->END_ANIM = 0;
 		g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 
-		g_engine->_engine->currentProcessedActorPtr->numOfFrames = getNbFramesAnim(HQR_Get(g_engine->_engine->listAnim, newAnim));
+		g_engine->_engine->currentProcessedActorPtr->numOfFrames = getNbFramesAnim(hqrGet(g_engine->_engine->listAnim, newAnim));
 	}
 
 	if (g_engine->_engine->currentProcessedActorPtr->ANIM == -1) // no animation
@@ -350,7 +350,7 @@ void updateAnimation() {
 		oldStepY = g_engine->_engine->currentProcessedActorPtr->stepY;
 		oldStepZ = g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		g_engine->_engine->currentProcessedActorPtr->END_FRAME = setInterAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM), HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		g_engine->_engine->currentProcessedActorPtr->END_FRAME = setInterAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
 
 		walkStep(g_engine->_engine->animStepX, g_engine->_engine->animStepZ, g_engine->_engine->currentProcessedActorPtr->beta);
 
@@ -725,7 +725,7 @@ int16 getNbFramesAnim(byte *animPtr) {
 	return *(int16 *)animPtr;
 }
 
-int16 PatchType(byte **bodyPtr) // local
+static int16 patchType(byte **bodyPtr) // local
 {
 	const int16 temp = *(int16 *)g_engine->_engine->animVar1;
 
@@ -739,7 +739,7 @@ int16 PatchType(byte **bodyPtr) // local
 	return temp;
 }
 
-void PatchInterAngle(byte **bodyPtr, int bp, int bx) // local
+static void patchInterAngle(byte **bodyPtr, int bp, int bx) // local
 {
 	int16 oldRotation = *(int16 *)g_engine->_engine->animVar4;
 
@@ -773,7 +773,7 @@ void PatchInterAngle(byte **bodyPtr, int bp, int bx) // local
 	*bodyPtr += 2;
 }
 
-void PatchInterStep(byte **bodyPtr, int bp, int bx) // local
+static void patchInterStep(byte **bodyPtr, int bp, int bx) // local
 {
 	const int16 cx = *(int16 *)g_engine->_engine->animVar4;
 	g_engine->_engine->animVar4 += 2;
@@ -860,17 +860,17 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 		if (!(flag & INFO_OPTIMISE)) {
 			do {
-				switch (PatchType(&bodyPtr)) {
+				switch (patchType(&bodyPtr)) {
 				case 0: // rotate
-					PatchInterAngle(&bodyPtr, bp, bx);
-					PatchInterAngle(&bodyPtr, bp, bx);
-					PatchInterAngle(&bodyPtr, bp, bx);
+					patchInterAngle(&bodyPtr, bp, bx);
+					patchInterAngle(&bodyPtr, bp, bx);
+					patchInterAngle(&bodyPtr, bp, bx);
 					break;
 				case 1: // translate
 				case 2: // zoom
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
 					break;
 				}
 
@@ -878,7 +878,7 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 			} while (--numOfBonesInAnim);
 		} else {
 			do {
-				switch (PatchType(&bodyPtr)) {
+				switch (patchType(&bodyPtr)) {
 				case 0: {
 					g_engine->_engine->animVar4 += 6;
 					g_engine->_engine->animVar1 += 6;
@@ -887,16 +887,16 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 				}
 				case 1:
 				case 2: {
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
-					PatchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
+					patchInterStep(&bodyPtr, bp, bx);
 					break;
 				}
 				}
 
-				PatchInterAngle(&bodyPtr, bp, bx);
-				PatchInterAngle(&bodyPtr, bp, bx);
-				PatchInterAngle(&bodyPtr, bp, bx);
+				patchInterAngle(&bodyPtr, bp, bx);
+				patchInterAngle(&bodyPtr, bp, bx);
+				patchInterAngle(&bodyPtr, bp, bx);
 
 				g_engine->_engine->animVar4 += 2;
 				g_engine->_engine->animVar1 += 2;

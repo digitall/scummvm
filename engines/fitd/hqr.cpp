@@ -19,19 +19,19 @@
  *
  */
 
+#include "fitd/hqr.h"
 #include "common/array.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/game_time.h"
-#include "fitd/hqr.h"
 #include "fitd/pak.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
 
-HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
+static HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 	// no RE. Original was probably faster
 	for (int i = 0; i < numMax; i++) {
 		if (ptr[i].key == index && ptr[i].ptr) {
@@ -42,7 +42,7 @@ HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 	return nullptr;
 }
 
-HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries) {
+HqrEntry *hqrInitRessource(const char *name, int size, int numEntries) {
 
 	HqrEntry *dest = static_cast<HqrEntry *>(malloc(sizeof(HqrEntry)));
 	if (!dest)
@@ -64,7 +64,7 @@ HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries) {
 	return dest;
 }
 
-int HQ_Malloc(HqrEntry *hqrPtr, int size) {
+int hqMalloc(HqrEntry *hqrPtr, int size) {
 
 	if (hqrPtr->sizeFreeData < size)
 		return -1;
@@ -88,7 +88,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 	return hq_key;
 }
 
-byte *HQ_PtrMalloc(HqrEntry *hqrPtr, int index) {
+byte *hqPtrMalloc(HqrEntry *hqrPtr, int index) {
 
 	if (index < 0)
 		return nullptr;
@@ -103,56 +103,129 @@ byte *HQ_PtrMalloc(HqrEntry *hqrPtr, int index) {
 	return ptr->ptr;
 }
 
-void moveHqrEntry(HqrEntry *hqrPtr, int index) {
-	const int size = hqrPtr->entries[index].size;
+byte *hqrGet(HqrEntry *hqrPtr, int index) {
 
-	free(hqrPtr->entries[index].ptr);
+	if (index < 0)
+		return nullptr;
 
-	hqrPtr->numUsedEntry--;
-	hqrPtr->sizeFreeData += size;
-}
+	HqrSubEntry *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
 
-Animation *createAnimationFromPtr(void *ptr) {
-	const uint8 *animPtr = static_cast<uint8 *>(ptr);
+	if (foundEntry) {
+		foundEntry->lastTimeUsed = g_engine->_engine->timer;
+		g_engine->_engine->hqLoad = 0;
 
-	Animation *pAnimation = new Animation;
+		return foundEntry->ptr;
+	}
 
-	pAnimation->m_raw = ptr;
-	pAnimation->m_numFrames = READ_LE_U16(animPtr);
-	animPtr += 2;
-	pAnimation->m_numGroups = READ_LE_U16(animPtr);
-	animPtr += 2;
+	freezeTime();
+	const int size = pakGetPakSize(hqrPtr->string, index);
 
-	pAnimation->m_frames.resize(pAnimation->m_numFrames);
-	for (int i = 0; i < pAnimation->m_numFrames; i++) {
-		Frame *pFrame = &pAnimation->m_frames[i];
+	if (size == 0)
+		return nullptr;
 
-		pFrame->m_timestamp = READ_LE_U16(animPtr);
-		animPtr += 2;
-		pFrame->m_animStep[0] = READ_LE_S16(animPtr);
-		animPtr += 2;
-		pFrame->m_animStep[1] = READ_LE_S16(animPtr);
-		animPtr += 2;
-		pFrame->m_animStep[2] = READ_LE_S16(animPtr);
-		animPtr += 2;
+	if (size >= hqrPtr->maxFreeData) {
+		error("%s", hqrPtr->string);
+	}
 
-		pFrame->m_groups.resize(pAnimation->m_numGroups);
-		for (int j = 0; j < pAnimation->m_numGroups; j++) {
-			GroupState *pGroup = &pFrame->m_groups[j];
-
-			pGroup->m_type = READ_LE_S16(animPtr);
-			animPtr += 2;
-			pGroup->m_delta[0] = READ_LE_S16(animPtr);
-			animPtr += 2;
-			pGroup->m_delta[1] = READ_LE_S16(animPtr);
-			animPtr += 2;
-			pGroup->m_delta[2] = READ_LE_S16(animPtr);
-			animPtr += 2;
+	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
+		if (hqrPtr->entries[i].ptr == nullptr) {
+			foundEntry = &hqrPtr->entries[i];
+			break;
 		}
 	}
 
-	g_engine->_engine->animations.push_back(pAnimation);
-	return pAnimation;
+	assert(foundEntry);
+
+	g_engine->_engine->hqLoad = 1;
+
+	foundEntry->key = index;
+	foundEntry->lastTimeUsed = g_engine->_engine->timer;
+	foundEntry->size = size;
+	foundEntry->ptr = static_cast<byte *>(malloc(size));
+
+	byte *ptr = foundEntry->ptr;
+
+	pakLoad(hqrPtr->string, index, foundEntry->ptr);
+
+	hqrPtr->numUsedEntry++;
+	hqrPtr->sizeFreeData -= size;
+
+	unfreezeTime();
+
+	return ptr;
+}
+
+HqrEntry *hqrInit(int size, int numEntry) {
+	assert(size > 0);
+	assert(numEntry > 0);
+
+	HqrEntry *dest = (HqrEntry *)malloc(sizeof(HqrEntry));
+	numEntry = 2000;
+
+	if (!dest)
+		return nullptr;
+
+	memcpy(dest->string, "_MEMORY_", 9);
+	dest->sizeFreeData = size;
+	dest->maxFreeData = size;
+	dest->numMaxEntry = numEntry;
+	dest->numUsedEntry = 0;
+	dest->entries = static_cast<HqrSubEntry *>(malloc(numEntry * sizeof(HqrSubEntry)));
+
+	for (int i = 0; i < numEntry; i++) {
+		dest->entries[i].ptr = nullptr;
+	}
+
+	return dest;
+}
+
+void hqrReset(HqrEntry *hqrPtr) {
+	hqrPtr->sizeFreeData = hqrPtr->maxFreeData;
+	hqrPtr->numUsedEntry = 0;
+
+	if (hqrPtr == g_engine->_engine->listBody) {
+		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
+			delete g_engine->_engine->bodies[i];
+		}
+		g_engine->_engine->bodies.resize(0);
+	}
+
+	for (uint i = 0; i < hqrPtr->numMaxEntry; i++) {
+		if (hqrPtr->entries[i].ptr)
+			free(hqrPtr->entries[i].ptr);
+
+		hqrPtr->entries[i].ptr = nullptr;
+	}
+}
+
+void hqrFree(HqrEntry *hqrPtr) {
+	if (!hqrPtr)
+		return;
+
+	if (hqrPtr == g_engine->_engine->listBody) {
+		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
+			delete g_engine->_engine->bodies[i];
+		}
+		g_engine->_engine->bodies.clear();
+	}
+
+	if (hqrPtr == g_engine->_engine->listAnim) {
+		for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
+			delete g_engine->_engine->animations[i];
+		}
+		g_engine->_engine->animations.clear();
+	}
+
+	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
+		if (hqrPtr->entries[i].ptr)
+			free(hqrPtr->entries[i].ptr);
+	}
+
+	free(hqrPtr);
+}
+
+void hqrName(HqrEntry *ptr, const char *name) {
+	memcpy(ptr->string, name, strlen(name));
 }
 
 static Body *createBodyFromPtr(void *ptr) {
@@ -378,128 +451,6 @@ static Body *createBodyFromPtr(void *ptr) {
 	return newBody;
 }
 
-byte *HQR_Get(HqrEntry *hqrPtr, int index) {
-
-	if (index < 0)
-		return nullptr;
-
-	HqrSubEntry *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
-
-	if (foundEntry) {
-		foundEntry->lastTimeUsed = g_engine->_engine->timer;
-		g_engine->_engine->hqLoad = 0;
-
-		return foundEntry->ptr;
-	}
-
-	freezeTime();
-	const int size = pakGetPakSize(hqrPtr->string, index);
-
-	if (size == 0)
-		return nullptr;
-
-	if (size >= hqrPtr->maxFreeData) {
-		error("%s", hqrPtr->string);
-	}
-
-	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
-		if (hqrPtr->entries[i].ptr == nullptr) {
-			foundEntry = &hqrPtr->entries[i];
-			break;
-		}
-	}
-
-	assert(foundEntry);
-
-	g_engine->_engine->hqLoad = 1;
-
-	foundEntry->key = index;
-	foundEntry->lastTimeUsed = g_engine->_engine->timer;
-	foundEntry->size = size;
-	foundEntry->ptr = static_cast<byte *>(malloc(size));
-
-	byte *ptr = foundEntry->ptr;
-
-	pakLoad(hqrPtr->string, index, foundEntry->ptr);
-
-	hqrPtr->numUsedEntry++;
-	hqrPtr->sizeFreeData -= size;
-
-	unfreezeTime();
-
-	return ptr;
-}
-
-HqrEntry *HQR_Init(int size, int numEntry) {
-
-	assert(size > 0);
-	assert(numEntry > 0);
-
-	HqrEntry *dest = (HqrEntry *)malloc(sizeof(HqrEntry));
-	numEntry = 2000;
-
-	if (!dest)
-		return nullptr;
-
-	memcpy(dest->string, "_MEMORY_", 9);
-	dest->sizeFreeData = size;
-	dest->maxFreeData = size;
-	dest->numMaxEntry = numEntry;
-	dest->numUsedEntry = 0;
-	dest->entries = static_cast<HqrSubEntry *>(malloc(numEntry * sizeof(HqrSubEntry)));
-
-	for (int i = 0; i < numEntry; i++) {
-		dest->entries[i].ptr = nullptr;
-	}
-
-	return dest;
-}
-
-void HQR_Reset(HqrEntry *hqrPtr) {
-	hqrPtr->sizeFreeData = hqrPtr->maxFreeData;
-	hqrPtr->numUsedEntry = 0;
-
-	if (hqrPtr == g_engine->_engine->listBody) {
-		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
-			delete g_engine->_engine->bodies[i];
-		}
-		g_engine->_engine->bodies.resize(0);
-	}
-
-	for (uint i = 0; i < hqrPtr->numMaxEntry; i++) {
-		if (hqrPtr->entries[i].ptr)
-			free(hqrPtr->entries[i].ptr);
-
-		hqrPtr->entries[i].ptr = nullptr;
-	}
-}
-
-void HQR_Free(HqrEntry *hqrPtr) {
-	if (!hqrPtr)
-		return;
-
-	if (hqrPtr == g_engine->_engine->listBody) {
-		for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
-			delete g_engine->_engine->bodies[i];
-		}
-		g_engine->_engine->bodies.clear();
-	}
-
-	if (hqrPtr == g_engine->_engine->listAnim) {
-		for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
-			delete g_engine->_engine->animations[i];
-		}
-		g_engine->_engine->animations.clear();
-	}
-
-	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
-		if (hqrPtr->entries[i].ptr)
-			free(hqrPtr->entries[i].ptr);
-	}
-
-	delete hqrPtr;
-}
-
 Body *getBodyFromPtr(void *ptr) {
 	for (uint i = 0; i < g_engine->_engine->bodies.size(); i++) {
 		if (g_engine->_engine->bodies[i]->m_raw == ptr) {
@@ -508,10 +459,6 @@ Body *getBodyFromPtr(void *ptr) {
 	}
 
 	return createBodyFromPtr(ptr);
-}
-
-void HQ_Name(HqrEntry *ptr, const char *name) {
-	memcpy(ptr->string, name, strlen(name));
 }
 
 } // namespace Fitd

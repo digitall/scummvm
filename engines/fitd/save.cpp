@@ -235,10 +235,10 @@ static int loadJack(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = HQR_Get(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -658,10 +658,10 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = HQR_Get(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -854,8 +854,8 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 	in->read(g_engine->_engine->vars, g_engine->_engine->varSize);
 
-	HQ_Name(g_engine->_engine->listBody, listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]]);
-	HQ_Name(g_engine->_engine->listAnim, listAnimSelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]]);
+	hqrName(g_engine->_engine->listBody, listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]]);
+	hqrName(g_engine->_engine->listAnim, listAnimSelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]]);
 
 	in->seek(16, SEEK_SET);
 	const uint offsetToActors = in->readUint32BE();
@@ -1075,10 +1075,10 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = HQR_Get(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}

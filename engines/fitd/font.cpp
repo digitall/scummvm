@@ -28,21 +28,21 @@ namespace Fitd {
 
 int fontHeight = 16;
 
-byte *fontVar1 = nullptr;
-int16 fontSm1 = 0;
-int16 fontSm2 = 0x1234;
-byte *fontVar4 = nullptr;
-byte *fontVar5 = nullptr;
-int16 currentFontColor = 0;
-int16 g_fontInterWordSpace = 2;
-int16 g_fontInterLetterSpace = 1;
-int16 fontSm3 = 18;
-int16 fontVar6 = 0;
-int16 fontSm7 = 0x1234;
-int16 fontSm8 = 0x1234;
-int16 fontSm9 = 0x80;
+static byte *fontVar1 = nullptr;
+static int16 fontSm1 = 0;
+static int16 fontSm2 = 0x1234;
+static byte *fontVar4 = nullptr;
+static byte *fontVar5 = nullptr;
+static int16 currentFontColor = 0;
+static int16 fontInterWordSpace = 2;
+static int16 fontInterLetterSpace = 1;
+static int16 fontSm3 = 18;
+static int16 fontVar6 = 0;
+static int16 fontSm7 = 0x1234;
+static int16 fontSm8 = 0x1234;
+static int16 fontSm9 = 0x80;
 
-byte flagTable[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
+static byte flagTable[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 void extSetFont(byte *fontData, int color) {
 
@@ -75,8 +75,8 @@ void extSetFont(byte *fontData, int color) {
 }
 
 void setFontSpace(int interWordSpace, int interLetterSpace) {
-	g_fontInterWordSpace = interWordSpace;
-	g_fontInterLetterSpace = interLetterSpace;
+	fontInterWordSpace = interWordSpace;
+	fontInterLetterSpace = interLetterSpace;
 }
 
 int extGetSizeFont(const char *string) {
@@ -93,10 +93,10 @@ int extGetSizeFont(const char *string) {
 		data &= 0xF;
 
 		if (!data) {
-			width += g_fontInterWordSpace;
+			width += fontInterWordSpace;
 		}
 
-		width += g_fontInterLetterSpace;
+		width += fontInterLetterSpace;
 		width += data;
 	}
 
@@ -166,10 +166,10 @@ void renderText(int x, int y, const char *string) {
 			fontVar6 += data & 0xF;
 		} else // space character
 		{
-			fontVar6 += g_fontInterWordSpace;
+			fontVar6 += fontInterWordSpace;
 		}
 
-		fontVar6 += g_fontInterLetterSpace;
+		fontVar6 += fontInterLetterSpace;
 	}
 }
 

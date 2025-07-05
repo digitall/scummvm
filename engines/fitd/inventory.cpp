@@ -49,7 +49,7 @@ int statusBottom;
 int numInventoryActions;
 int16 inventoryActionTable[5];
 
-int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
+static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 	int y;
 	const int var_6 = startIdx;
 	int var_8 = 0;
@@ -248,7 +248,7 @@ void processInventory() {
 		if (modeSelect == 0) {
 			if (antiBounce < 1) {
 				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick != 0 || g_engine->_engine->localJoyD == 0xC) {
-					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
+					drawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
 					gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
 					lastSelectedObjectIdx = -1;
@@ -287,11 +287,11 @@ void processInventory() {
 			}
 
 			if (lastSelectedObjectIdx != selectedObjectIdx) {
-				selectedWorldObjectIdx = DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 15);
+				selectedWorldObjectIdx = drawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 15);
 
 				g_engine->_engine->currentFoundBodyIdx = g_engine->_engine->worldObjets[selectedWorldObjectIdx].foundBody;
 
-				g_engine->_engine->currentFoundBody = HQR_Get(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
+				g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
 
 				const int var_C = g_engine->_engine->worldObjets[selectedWorldObjectIdx].flags2;
 

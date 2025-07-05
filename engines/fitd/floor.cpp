@@ -19,22 +19,21 @@
  *
  */
 
+#include "fitd/floor.h"
 #include "common/file.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
-#include "fitd/floor.h"
 #include "fitd/hqr.h"
 #include "fitd/pak.h"
 
 namespace Fitd {
 
 uint32 g_currentFloorRoomRawDataSize = 0;
-uint32 g_currentFloorCameraRawDataSize;
-uint32 g_currentFloorNumCamera = 0;
 
 void loadFloor(int floorNumber) {
+	uint32 currentFloorCameraRawDataSize;
 	int expectedNumberOfRoom;
 	int expectedNumberOfCamera;
 
@@ -45,8 +44,8 @@ void loadFloor(int floorNumber) {
 
 	// stopSounds();
 
-	HQR_Reset(g_engine->_engine->listBody);
-	HQR_Reset(g_engine->_engine->listAnim);
+	hqrReset(g_engine->_engine->listBody);
+	hqrReset(g_engine->_engine->listAnim);
 
 	g_engine->_engine->currentFloor = floorNumber;
 
@@ -54,7 +53,7 @@ void loadFloor(int floorNumber) {
 		Common::String floorFileName(Common::String::format("ETAGE%02d.pak", floorNumber));
 
 		g_currentFloorRoomRawDataSize = pakGetPakSize(floorFileName.c_str(), 0);
-		g_currentFloorCameraRawDataSize = pakGetPakSize(floorFileName.c_str(), 1);
+		currentFloorCameraRawDataSize = pakGetPakSize(floorFileName.c_str(), 1);
 
 		g_engine->_engine->currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
 		g_engine->_engine->currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
@@ -74,7 +73,7 @@ void loadFloor(int floorNumber) {
 
 	for (int i = 0; i < expectedNumberOfRoom; i++) {
 		uint32 j;
-		uint8 *roomData=nullptr;
+		uint8 *roomData = nullptr;
 		uint8 *hardColData;
 		uint8 *sceZoneData;
 		if (g_currentFloorRoomRawDataSize == 0) {
@@ -194,7 +193,7 @@ void loadFloor(int floorNumber) {
 	}
 
 	g_engine->_engine->currentFloorCameraData.clear();
-    g_engine->_engine->currentFloorCameraData.resize(expectedNumberOfCamera);
+	g_engine->_engine->currentFloorCameraData.resize(expectedNumberOfCamera);
 
 	assert(expectedNumberOfCamera < 40);
 
@@ -215,13 +214,13 @@ void loadFloor(int floorNumber) {
 			}
 
 			offset = 0;
-			g_currentFloorCameraRawDataSize = 1;
+			currentFloorCameraRawDataSize = 1;
 		} else {
 			offset = READ_LE_U32(g_engine->_engine->currentFloorCameraRawData + i * 4);
 		}
 
 		// load cameras
-		if (offset < g_currentFloorCameraRawDataSize) {
+		if (offset < currentFloorCameraRawDataSize) {
 			int k;
 			byte *backupDataPtr;
 
@@ -285,7 +284,7 @@ void loadFloor(int floorNumber) {
 
 					for (int l = 0; l < pCurrentCameraViewedRoom->numMask; l++) {
 						pCurrentCameraViewedRoom->masks.emplace_back();
-						CameraMask* pCurrentCameraMask = &pCurrentCameraViewedRoom->masks.back();
+						CameraMask *pCurrentCameraMask = &pCurrentCameraViewedRoom->masks.back();
 
 						// for this overlay zone, how many
 						pCurrentCameraMask->numTestRect = READ_LE_U16(pMaskData);
@@ -295,7 +294,7 @@ void loadFloor(int floorNumber) {
 
 						for (int j = 0; j < pCurrentCameraMask->numTestRect; j++) {
 							pCurrentCameraMask->rectTests.emplace_back();
-							RectTest* pCurrentRectTest = &pCurrentCameraMask->rectTests.back();
+							RectTest *pCurrentRectTest = &pCurrentCameraMask->rectTests.back();
 
 							pCurrentRectTest->zoneX1 = READ_LE_S16(pMaskData);
 							pCurrentRectTest->zoneZ1 = READ_LE_S16(pMaskData + 2);

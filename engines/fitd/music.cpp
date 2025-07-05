@@ -77,7 +77,7 @@ struct MusicUpdater final : Common::Functor0<void> {
 // 5: Dead Opus Posthumous 69 Nr 1
 // 6: Ending
 // 7: intro sequence
-static const int AITD1MusicToTrackMapping[18] = {
+static const int aitd1MusicToTrackMapping[18] = {
 	-1, // 00: ?
 	-1, // 01: ?
 	7,  // 02: intro sequence
@@ -98,7 +98,7 @@ static const int AITD1MusicToTrackMapping[18] = {
 	4,  // 17: Dance of Death
 };
 
-static const int AITD2MusicToTrackMapping[21] = {
+static const int aitd2MusicToTrackMapping[21] = {
 	21,
 	9,
 	7,
@@ -122,7 +122,7 @@ static const int AITD2MusicToTrackMapping[21] = {
 	22};
 
 static const int musicVolume = 0x7F;
-static char OPLinitialized = 0;
+static char oplInitialized = 0;
 static OPL::OPL *_opl;
 static byte regBDConf = 0xC0;
 static uint8 musicParam1 = 0;
@@ -1042,7 +1042,7 @@ static int musicFade(void *param) {
 }
 
 static void callMusicUpdate() {
-	if (OPLinitialized) {
+	if (oplInitialized) {
 		if (generalVolume & 0xFF) {
 			return;
 		}
@@ -1070,7 +1070,7 @@ int initMusicDriver() {
 	_opl = OPL::Config::create();
 	if (_opl) {
 		_opl->init();
-		OPLinitialized = 1;
+		oplInitialized = 1;
 	}
 
 	for (int i = 0; i < 11; i++) {
@@ -1108,13 +1108,13 @@ void playMusic(int musicNumber) {
 	int trackNumber = musicNumber;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		if (musicNumber < 0 || musicNumber >= 18 || AITD1MusicToTrackMapping[musicNumber] == -1) {
+		if (musicNumber < 0 || musicNumber >= 18 || aitd1MusicToTrackMapping[musicNumber] == -1) {
 			debug("playMusic(%d) not implemented", musicNumber);
 			return;
 		}
-		trackNumber = AITD1MusicToTrackMapping[musicNumber];
+		trackNumber = aitd1MusicToTrackMapping[musicNumber];
 	} else if (g_engine->getGameId() == GID_AITD2) {
-		trackNumber = AITD2MusicToTrackMapping[musicNumber];
+		trackNumber = aitd2MusicToTrackMapping[musicNumber];
 	}
 
 	// if (musicEnabled)
@@ -1125,7 +1125,7 @@ void playMusic(int musicNumber) {
 			if (trackNumber >= 0) {
 				fadeMusic(0, 0, 0x40);
 
-				byte *musicPtr = HQR_Get(g_engine->_engine->listMus, trackNumber);
+				byte *musicPtr = hqrGet(g_engine->_engine->listMus, trackNumber);
 
 				if (musicPtr) {
 					musicLoad(musicPtr);

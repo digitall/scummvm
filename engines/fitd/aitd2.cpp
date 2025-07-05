@@ -35,8 +35,8 @@
 #include "fitd/tatou.h"
 
 namespace Fitd {
-static int TabXSprite[3] = {127, 118, 124};
-static int TabYSprite[3] = {136, 104, 131};
+static int tabXSprite[3] = {127, 118, 124};
+static int tabYSprite[3] = {136, 104, 131};
 
 // ITD_RESS mapping
 #define AITD2_CADRE_SPF 0
@@ -282,7 +282,7 @@ void aitd2DrawInventory() {
 void aitd2RedrawInventorySprite() {
 	const int inventoryType = g_engine->_engine->cVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
-	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, g_engine->_engine->pAITD2InventorySprite.get());
+	affSpfI(tabXSprite[inventoryType], tabYSprite[inventoryType], inventoryType, g_engine->_engine->pAITD2InventorySprite.get());
 }
 
 void aitd2ReadBook(int index, int type) {
