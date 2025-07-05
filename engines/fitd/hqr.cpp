@@ -20,13 +20,12 @@
  */
 
 #include "common/array.h"
-#include "engines/engine.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/hqr.h"
 #include "fitd/game_time.h"
+#include "fitd/hqr.h"
 #include "fitd/pak.h"
 #include "fitd/vars.h"
 
@@ -45,15 +44,13 @@ HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 
 HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries) {
 
-	HqrEntry *dest = new HqrEntry;
-
+	HqrEntry *dest = static_cast<HqrEntry *>(malloc(sizeof(HqrEntry)));
 	if (!dest)
 		return nullptr;
 
 	numEntries = 2000;
 
-	dest->string = name;
-
+	memcpy(dest->string, name, strlen(name) + 1);
 	dest->sizeFreeData = size;
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntries;
@@ -396,13 +393,13 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 	}
 
 	freezeTime();
-	const int size = pakGetPakSize(hqrPtr->string.c_str(), index);
+	const int size = pakGetPakSize(hqrPtr->string, index);
 
 	if (size == 0)
 		return nullptr;
 
 	if (size >= hqrPtr->maxFreeData) {
-		error("%s", hqrPtr->string.c_str());
+		error("%s", hqrPtr->string);
 	}
 
 	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
@@ -423,7 +420,7 @@ byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	byte *ptr = foundEntry->ptr;
 
-	pakLoad(hqrPtr->string.c_str(), index, foundEntry->ptr);
+	pakLoad(hqrPtr->string, index, foundEntry->ptr);
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;
@@ -438,26 +435,13 @@ HqrEntry *HQR_Init(int size, int numEntry) {
 	assert(size > 0);
 	assert(numEntry > 0);
 
-	HqrEntry *dest = new HqrEntry;
-
+	HqrEntry *dest = (HqrEntry *)malloc(sizeof(HqrEntry));
 	numEntry = 2000;
-
-	assert(dest);
 
 	if (!dest)
 		return nullptr;
 
-	const char *dest2 = static_cast<char *>(malloc(size));
-
-	assert(dest2);
-
-	if (!dest2) {
-		delete dest;
-		return nullptr;
-	}
-
-	dest->string = "_MEMORY_";
-
+	memcpy(dest->string, "_MEMORY_", 9);
 	dest->sizeFreeData = size;
 	dest->maxFreeData = size;
 	dest->numMaxEntry = numEntry;
@@ -536,8 +520,8 @@ Animation *getAnimationFromPtr(void *ptr) {
 	return createAnimationFromPtr(ptr);
 }
 
-void HQ_Name(HqrEntry * ptr, const char * name) {
-	ptr->string = name;
+void HQ_Name(HqrEntry *ptr, const char *name) {
+	memcpy(ptr->string, name, strlen(name));
 }
 
 } // namespace Fitd

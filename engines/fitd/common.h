@@ -22,6 +22,7 @@
 #ifndef FITD_COMMON_H
 #define FITD_COMMON_H
 
+#include "common/ptr.h"
 #include "common/scummsys.h"
 
 namespace Fitd {
@@ -109,6 +110,15 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 #define NUM_MAX_MESSAGE 5
 
 #define NUM_MAX_TEXT_ENTRY 1000
+
+template<typename T>
+struct AllocDeleter {
+	void operator()(T *object) {
+		free(object);
+	}
+};
+
+typedef Common::ScopedPtr<byte, AllocDeleter<byte> > ScopedPtr;
 
 // Endian safe read functions
 inline uint16 READ_LE_U16(const void *p) {

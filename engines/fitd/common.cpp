@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/common.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
@@ -31,7 +32,6 @@
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
-#include "fitd/common.h"
 #include "fitd/debugtools.h"
 #include "fitd/engine.h"
 #include "fitd/file_access.h"
@@ -367,7 +367,8 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 	const int textIndexMalloc = HQ_Malloc(g_engine->_engine->hqMemory, pakGetPakSize(g_engine->_engine->languageNameString, index) + 300);
 	byte *textPtr = HQ_PtrMalloc(g_engine->_engine->hqMemory, textIndexMalloc);
-	if (!textPtr) error("No memory left");
+	if (!textPtr)
+		error("No memory left");
 
 	if (!pakLoad(g_engine->_engine->languageNameString, index, textPtr)) {
 		error("Failed to load pak %s", g_engine->_engine->languageNameString);
@@ -986,15 +987,11 @@ static void loadMask(int cameraIdx) {
 
 	const Common::String name = Common::String::format("MASK%02d.PAK", g_engine->_engine->currentFloor);
 
-	if (g_engine->_engine->maskPtr) {
-		free(g_engine->_engine->maskPtr);
-	}
-
-	g_engine->_engine->maskPtr = pakLoad(name.c_str(), cameraIdx);
+	ScopedPtr pMask(pakLoad(name.c_str(), cameraIdx));
 
 	for (int i = 0; i < cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; i++) {
 		const CameraViewedRoom *pRoomView = &cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[i];
-		const byte *pViewedRoomMask = g_engine->_engine->maskPtr + READ_LE_U32(g_engine->_engine->maskPtr + i * 4);
+		const byte *pViewedRoomMask = pMask.get() + READ_LE_U32(pMask.get() + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
 			const byte *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
@@ -1022,8 +1019,6 @@ static void loadMask(int cameraIdx) {
 			for (int k = 0; k < pDestMask->deltaY; k++) {
 				const uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
 				pMaskData += 2;
-
-				// byte *pSourceBuffer = (byte *)g_engine->_engine->aux;
 
 				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
@@ -3067,7 +3062,7 @@ static void allocTextes() {
 		assert(0);
 	}
 
-	g_engine->_engine->systemTextes = (char*)checkLoadMallocPak(g_engine->_engine->languageNameString, 0);
+	g_engine->_engine->systemTextes.reset(checkLoadMallocPak(g_engine->_engine->languageNameString, 0));
 	const int textLength = pakGetPakSize(g_engine->_engine->languageNameString, 0);
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
@@ -3076,11 +3071,11 @@ static void allocTextes() {
 		tabTextes[currentIndex].width = 0;
 	}
 
-	char *currentPosInTextes = g_engine->_engine->systemTextes;
+	byte *currentPosInTextes = g_engine->_engine->systemTextes.get();
 
 	int textCounter = 0;
 
-	while (currentPosInTextes < g_engine->_engine->systemTextes + textLength) {
+	while (currentPosInTextes < g_engine->_engine->systemTextes.get() + textLength) {
 		currentIndex = *currentPosInTextes++;
 
 		if (currentIndex == 26)
@@ -3097,17 +3092,17 @@ static void allocTextes() {
 
 			if (currentIndex == ':') // start of string
 			{
-				char *stringPtr = currentPosInTextes;
+				byte *stringPtr = currentPosInTextes;
 
 				do {
 					currentPosInTextes++;
-				} while (static_cast<byte>(*(currentPosInTextes - 1)) >= ' '); // detect the end of the string
+				} while (*(currentPosInTextes - 1) >= ' '); // detect the end of the string
 
 				*(currentPosInTextes - 1) = 0; // add the end of string
 
 				tabTextes[textCounter].index = stringIndex;
-				tabTextes[textCounter].textPtr = stringPtr;
-				tabTextes[textCounter].width = extGetSizeFont(stringPtr);
+				tabTextes[textCounter].textPtr = (char *)stringPtr;
+				tabTextes[textCounter].width = extGetSizeFont((char *)stringPtr);
 
 				textCounter++;
 			}

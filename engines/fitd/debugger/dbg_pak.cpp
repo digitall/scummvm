@@ -26,6 +26,7 @@
 #include "common/file.h"
 #include "common/fs.h"
 #include "common/system.h"
+#include "fitd/common.h"
 #include "fitd/pak.h"
 #include "graphics/managed_surface.h"
 #include "graphics/pixelformat.h"
@@ -93,16 +94,14 @@ static void refreshPAK(const char *name) {
 static void selectRes(int resIndex) {
 	// it should be an image
 	if (_state->infos[resIndex].uncompressedSize == 64000) {
-		byte *pal = pakLoad("ITD_RESS.PAK", 3);
-		byte *selectedResData = pakLoad(_state->member.c_str(), resIndex);
+		ScopedPtr pal(pakLoad("ITD_RESS.PAK", 3));
+		ScopedPtr selectedResData(pakLoad(_state->member.c_str(), resIndex));
 		const Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
 		Graphics::ManagedSurface *s = new Graphics::ManagedSurface(320, 200, format);
-		s->setPalette(pal, 0, 256);
+		s->setPalette(pal.get(), 0, 256);
 		byte *dst = static_cast<byte *>(s->getBasePtr(0, 0));
-		memcpy(dst, selectedResData, 64000);
-		_state->selectedTexture = g_system->getImGuiTexture(*s, pal, 256);
-		free(pal);
-		free(selectedResData);
+		memcpy(dst, selectedResData.get(), 64000);
+		_state->selectedTexture = g_system->getImGuiTexture(*s, pal.get(), 256);
 		delete s;
 	}
 }

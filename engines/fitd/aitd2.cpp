@@ -35,7 +35,6 @@
 #include "fitd/tatou.h"
 
 namespace Fitd {
-static byte *pAITD2InventorySprite = nullptr;
 static int TabXSprite[3] = {127, 118, 124};
 static int TabYSprite[3] = {136, 104, 131};
 
@@ -208,8 +207,8 @@ LifeMacro aitd2LifeMacroTable[] =
 
 void aitd2Start(int saveSlot) {
 	fontHeight = 14;
-	pAITD2InventorySprite = pakLoad("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE);
-	assert(pAITD2InventorySprite);
+	g_engine->_engine->pAITD2InventorySprite.reset(pakLoad("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE));
+	assert(g_engine->_engine->pAITD2InventorySprite);
 
 	if (saveSlot == -1) {
 		startGame(8, 0, 0); // intro
@@ -283,7 +282,7 @@ void aitd2DrawInventory() {
 void aitd2RedrawInventorySprite() {
 	const int inventoryType = g_engine->_engine->cVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
-	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, pAITD2InventorySprite);
+	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, g_engine->_engine->pAITD2InventorySprite.get());
 }
 
 void aitd2ReadBook(int index, int type) {

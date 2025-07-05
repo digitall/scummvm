@@ -66,9 +66,9 @@ int make3dTatou() {
 	byte paletteBackup[768];
 	uint localChrono;
 
-	byte *tatou2d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG);
-	byte *tatou3d = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO);
-	byte *tatouPal = checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_PAL);
+	ScopedPtr tatou2d(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG));
+	ScopedPtr tatou3d(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO));
+	ScopedPtr tatouPal(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_PAL));
 
 	int time = 8920;
 	int rotation = 256;
@@ -81,8 +81,8 @@ int make3dTatou() {
 
 	gfx_setPalette(currentGamePalette);
 
-	copyPalette(tatouPal, currentGamePalette);
-	fastCopyScreen(tatou2d + 770, frontBuffer);
+	copyPalette(tatouPal.get(), currentGamePalette);
+	fastCopyScreen(tatou2d.get() + 770, frontBuffer);
 	fastCopyScreen(frontBuffer, g_engine->_engine->aux2);
 
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
@@ -121,17 +121,16 @@ int make3dTatou() {
 
 			setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
 
-
 			// blitScreenTatou();
 			gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
 			process_events();
 
-			copyPalette(tatouPal, currentGamePalette);
+			copyPalette(tatouPal.get(), currentGamePalette);
 			gfx_setPalette(currentGamePalette);
 			gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
-			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
+			affObjet(0, 0, 0, 0, 0, 0, tatou3d.get());
 
 			while (!::Engine::shouldQuit() && g_engine->_engine->key == 0 && g_engine->_engine->click == 0 && g_engine->_engine->joyD == 0) // boucle de rotation du tatou
 			{
@@ -149,7 +148,7 @@ int make3dTatou() {
 
 				setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
 
-				affObjet(0, 0, 0, 0, 0, 0, tatou3d);
+				affObjet(0, 0, 0, 0, 0, 0, tatou3d.get());
 
 				// blitScreenTatou();
 
@@ -159,10 +158,6 @@ int make3dTatou() {
 			break;
 		}
 	} while (!::Engine::shouldQuit());
-
-	free(tatouPal);
-	free(tatou3d);
-	free(tatou2d);
 
 	if (g_engine->_engine->key || g_engine->_engine->click || g_engine->_engine->joyD) {
 		while (g_engine->_engine->key) {

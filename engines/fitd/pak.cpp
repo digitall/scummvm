@@ -20,12 +20,13 @@
  */
 
 #include "fitd/pak.h"
-#include "fitd/unpack.h"
-#include "common/file.h"
 #include "common/debug.h"
+#include "common/file.h"
+#include "fitd/common.h"
+#include "fitd/unpack.h"
 
 namespace Fitd {
-typedef struct PakInfoStruct // warning: allignment unsafe
+typedef struct PakInfoStruct // warning: alignment unsafe
 {
 	int32 discSize;
 	int32 uncompressedSize;
@@ -42,19 +43,18 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 	pPakInfo->offset = f.readSint16LE();
 }
 
-uint pakGetNumFiles(const char* name)
-{
-    Common::File f;
-    f.open(name);
+uint pakGetNumFiles(const char *name) {
+	Common::File f;
+	f.open(name);
 
-    f.seek(4,SEEK_CUR);
-    const uint32 fileOffset = f.readUint32LE();
-// #ifdef MACOSX
-//     fileOffset = READ_LE_U32(&fileOffset);
-// #endif
-    f.close();
+	f.seek(4, SEEK_CUR);
+	const uint32 fileOffset = f.readUint32LE();
+	// #ifdef MACOSX
+	//     fileOffset = READ_LE_U32(&fileOffset);
+	// #endif
+	f.close();
 
-    return fileOffset / 4 - 2;
+	return fileOffset / 4 - 2;
 }
 
 byte *pakLoad(const char *fileName, int index) {
@@ -76,8 +76,8 @@ byte *pakLoad(const char *fileName, int index) {
 	readPakInfo(&pakInfo, f);
 	if (pakInfo.offset) {
 		char nameBuffer[256] = "";
-		f.read(nameBuffer,pakInfo.offset);
-		debug("Loading %s", nameBuffer+2);
+		f.read(nameBuffer, pakInfo.offset);
+		debug("Loading %s", nameBuffer + 2);
 	}
 
 	byte *ptr = nullptr;
@@ -88,54 +88,33 @@ byte *pakLoad(const char *fileName, int index) {
 		break;
 	}
 	case 1: {
-		byte *compressedDataPtr = static_cast<byte *>(malloc(pakInfo.discSize));
-		f.read(compressedDataPtr, pakInfo.discSize);
+		ScopedPtr compressedDataPtr(static_cast<byte *>(malloc(pakInfo.discSize)));
+		f.read(compressedDataPtr.get(), pakInfo.discSize);
 		ptr = static_cast<byte *>(malloc(pakInfo.uncompressedSize));
-
-		PAK_explode(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
-
-		free(compressedDataPtr);
-		break;
-	}
-	case 4: {
-		byte *compressedDataPtr = static_cast<byte *>(malloc(pakInfo.discSize));
-		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = static_cast<byte *>(malloc(pakInfo.uncompressedSize));
-
-		PAK_deflate(compressedDataPtr, ptr, pakInfo.discSize, pakInfo.uncompressedSize);
-
-		free(compressedDataPtr);
+		PAK_explode(compressedDataPtr.get(), ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
 		break;
 	}
 	default:
-		assert(false);
+		error("Compression method: %d is not supported", pakInfo.compressionFlag);
 		break;
 	}
 	f.close();
 	return ptr;
 }
 
-int pakLoad(const char* name, int index, byte* ptr)
-{
-
-	byte *lptr = pakLoad(name, index);
-
-    memcpy(ptr,lptr,pakGetPakSize(name,index));
-
-    free(lptr);
-
-    return 1;
+int pakLoad(const char *name, int index, byte *ptr) {
+	ScopedPtr lptr(pakLoad(name, index));
+	memcpy(ptr, lptr.get(), pakGetPakSize(name, index));
+	return 1;
 }
 
-int pakGetPakSize(const char* name, int index)
-{
+int pakGetPakSize(const char *name, int index) {
 	pakInfoStruct pakInfo;
-    int32 size=0;
+	int32 size = 0;
 
 	Common::File f;
 	f.open(name);
-
-	f.seek((index+1)*4, SEEK_SET);
+	f.seek((index + 1) * 4, SEEK_SET);
 
 	const int32 fileOffset = f.readSint32LE();
 	f.seek(fileOffset, SEEK_SET);
@@ -145,22 +124,19 @@ int pakGetPakSize(const char* name, int index)
 
 	f.seek(pakInfo.offset, SEEK_CUR);
 
-	if(pakInfo.compressionFlag == 0) // uncompressed
-	{
+	if (pakInfo.compressionFlag == 0) {
+		// uncompressed
 		size = pakInfo.discSize;
-	}
-	else if(pakInfo.compressionFlag == 1) // compressed
-	{
+	} else if (pakInfo.compressionFlag == 1) {
+		// compressed
 		size = pakInfo.uncompressedSize;
-	}
-	else if(pakInfo.compressionFlag == 4)
-	{
+	} else if (pakInfo.compressionFlag == 4) {
 		size = pakInfo.uncompressedSize;
 	}
 
 	f.close();
 
-return size;
+	return size;
 }
 
-}
+} // namespace Fitd

@@ -25,6 +25,7 @@
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
+#include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/life.h"
 #include "fitd/main_loop.h"
@@ -32,7 +33,6 @@
 #include "fitd/startup_menu.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
-#include "fitd/game_time.h"
 
 namespace Fitd {
 
@@ -148,20 +148,20 @@ LifeMacro aitd1LifeMacroTable[] =
 
 static void makeSlideshow() {
 	byte backupPalette[768];
-	byte *image = nullptr;
+	ScopedPtr image;
 	uint chrono = 0;
 	copyPalette(currentGamePalette, backupPalette);
 	flushScreen();
 	for (int i = 0; i < 15; i++) {
 		if (i == 0) {
-			image = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
+			image.reset(pakLoad("ITD_RESS.PAK", AITD1_TITRE));
 		} else {
-			image = pakLoad("PRESENT.PAK", i);
+			image.reset(pakLoad("PRESENT.PAK", i));
 		}
 		paletteFill(currentGamePalette, 0, 0, 0);
 		gfx_setPalette(currentGamePalette);
-		copyPalette(image + 2, currentGamePalette);
-		fastCopyScreen(image + 770, frontBuffer);
+		copyPalette(image.get() + 2, currentGamePalette);
+		fastCopyScreen(image.get() + 770, frontBuffer);
 		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 		fadeInPhys(8, 0);
 		startChrono(&chrono);
@@ -171,22 +171,22 @@ static void makeSlideshow() {
 		}
 
 		fadeOutPhys(16, 0);
-		free(image);
 	}
 	copyPalette(backupPalette, currentGamePalette);
 }
 
 static int makeIntroScreens() {
-	uint chrono;
+	{
+		ScopedPtr data(pakLoad("ITD_RESS.PAK", AITD1_TITRE));
+		fastCopyScreen(data.get() + 770, frontBuffer);
+	}
 
-	byte *data = pakLoad("ITD_RESS.PAK", AITD1_TITRE);
-	fastCopyScreen(data + 770, frontBuffer);
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
 	memcpy(g_engine->_engine->logicalScreen, frontBuffer, 320 * 200);
 	osystem_flip(nullptr);
-	free(data);
 	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, g_engine->_engine->aux);
+	uint chrono;
 	startChrono(&chrono);
 
 	osystem_drawBackground();

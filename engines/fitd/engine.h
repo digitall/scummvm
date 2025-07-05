@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/hashmap.h"
 #include "common/scummsys.h"
+#include "fitd/common.h"
 #include "fitd/room.h"
 
 namespace Common {
@@ -99,7 +100,7 @@ public:
 	int windowX2 = 0;
 	int windowY2 = 0;
 
-	char *systemTextes = nullptr;
+	ScopedPtr systemTextes;
 
 	byte joyD = 0;
 	byte click = 0;
@@ -294,7 +295,7 @@ public:
 	int clipRight = 319;
 	int clipBottom = 199;
 
-	byte *maskPtr = nullptr;
+	ScopedPtr pAITD2InventorySprite;
 };
 } // namespace Fitd
 

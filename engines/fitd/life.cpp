@@ -992,7 +992,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 	g_engine->_engine->currentLifePtr = HQR_Get(g_engine->_engine->listLife, lifeNum);
 	assert(g_engine->_engine->currentLifePtr);
 
-	while (!exitLife) {
+	while (!::Engine::shouldQuit() && !exitLife) {
 		int lifeTempVar1;
 		int lifeTempVar2;
 		int16 currentOpcode;

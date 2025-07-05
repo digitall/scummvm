@@ -29,13 +29,8 @@
 	1.0  05 Oct 04  C. Voila        First release
 */
 
-#include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define _WINDOWS
-#include "zlib.h"
 
 #include "fitd/unpack.h"
 
@@ -558,26 +553,6 @@ int PAK_explode(byte *srcBuffer, byte *dstBuffer, uint compressedSize, uint unco
 
 	PAK_huft_free(&G, td);
 	PAK_huft_free(&G, tl);
-
-	return 0;
-}
-
-// --------------------------------------------------------------
-// ZLIB wrapper to deflate
-// --------------------------------------------------------------
-
-int PAK_deflate(byte *srcBuffer, byte *dstBuffer, uint compressedSize, uint uncompressedSize) {
-	z_stream G;
-	G.next_in = srcBuffer;
-	G.avail_in = compressedSize;
-	G.next_out = dstBuffer;
-	G.avail_out = uncompressedSize;
-	G.zalloc = (alloc_func)nullptr;
-	G.zfree = (free_func)nullptr;
-
-	inflateInit2(&G, -15);
-	inflate(&G, Z_SYNC_FLUSH);
-	inflateEnd(&G);
 
 	return 0;
 }

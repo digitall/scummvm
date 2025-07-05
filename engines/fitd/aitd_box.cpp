@@ -70,7 +70,7 @@ void affSpfI(int x, int y, int param, byte *gfx) {
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			const char color = *inPtr++;
+			const byte color = *inPtr++;
 			if (color) {
 				*outPtr = color;
 			}

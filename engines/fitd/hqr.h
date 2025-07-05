@@ -22,8 +22,6 @@
 #ifndef HQR_H
 #define HQR_H
 
-#include "common/str.h"
-
 namespace Fitd {
 
 typedef struct HqrSubEntry
@@ -35,7 +33,7 @@ typedef struct HqrSubEntry
 } HqrSubEntry;
 
 typedef struct HqrEntry {
-	Common::String string;
+	char string[14];
 	uint16 maxFreeData;
 	uint16 sizeFreeData;
 	uint16 numMaxEntry;
