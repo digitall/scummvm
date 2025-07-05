@@ -704,20 +704,12 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 }
 
 void initEngine() {
-	uint8 *pObjectData;
 	Common::File f;
-	int choosePersoBackup = 0;
+	if (!f.open("OBJETS.ITD")) {
+		error("Fitd::initEngine: can't open OBJETS.ITD");
+	}
 
-	f.open("OBJETS.ITD");
-	const uint64 objectDataSize = f.size();
-
-	uint8 *pObjectDataBackup = pObjectData = static_cast<uint8 *>(malloc(objectDataSize));
-	assert(pObjectData);
-	f.read(pObjectData, objectDataSize);
-	f.close();
-
-	g_engine->_engine->maxObjects = READ_LE_U16(pObjectData);
-	pObjectData += 2;
+	g_engine->_engine->maxObjects = f.readSint16LE();
 
 	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
 		g_engine->_engine->worldObjets.resize(300);
@@ -726,111 +718,58 @@ void initEngine() {
 	}
 
 	for (int i = 0; i < g_engine->_engine->maxObjects; i++) {
-		g_engine->_engine->worldObjets[i].objIndex = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].body = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].flags = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].typeZV = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].foundBody = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].foundName = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].flags2 = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].foundLife = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].x = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].y = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].z = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].alpha = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].beta = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].gamma = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].stage = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].room = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].lifeMode = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].life = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].floorLife = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].anim = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].frame = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].animType = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].animInfo = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].trackMode = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].trackNumber = READ_LE_U16(pObjectData);
-		pObjectData += 2;
-
-		g_engine->_engine->worldObjets[i].positionInTrack = READ_LE_U16(pObjectData);
-		pObjectData += 2;
+		g_engine->_engine->worldObjets[i].objIndex = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].body = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].flags = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].typeZV = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].foundBody = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].foundName = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].flags2 = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].foundLife = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].x = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].y = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].z = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].alpha = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].beta = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].gamma = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].stage = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].room = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].lifeMode = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].life = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].floorLife = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].anim = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].frame = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].animType = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].animInfo = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].trackMode = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].trackNumber = f.readUint16LE();
+		g_engine->_engine->worldObjets[i].positionInTrack = f.readUint16LE();
 
 		if (g_engine->getGameId() >= GID_JACK) {
-			g_engine->_engine->worldObjets[i].mark = READ_LE_U16(pObjectData);
-			pObjectData += 2;
+			g_engine->_engine->worldObjets[i].mark = f.readUint16LE();
 		}
 		g_engine->_engine->worldObjets[i].flags |= 0x20;
 	}
-
-	free(pObjectDataBackup);
+	f.close();
 
 	g_engine->_engine->vars = (int16 *)loadFromItd("VARS.ITD");
-
 	g_engine->_engine->varSize = g_engine->_engine->fileSize;
 
+	int16 choosePersoBackup = 0;
 	if (g_engine->getGameId() == GID_AITD1) {
 		choosePersoBackup = g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
 	}
 
-	f.open("DEFINES.ITD");
+	if (!f.open("DEFINES.ITD")) {
+		error("Fitd::initEngine: can't open DEFINES.ITD");
+	}
 
 	///////////////////////////////////////////////
-	{
-		f.read(&g_engine->_engine->cVars[0], g_engine->_engine->cVarsSize * 2);
-		f.close();
+	f.read(&g_engine->_engine->cVars[0], g_engine->_engine->cVarsSize * 2);
+	f.close();
 
-		for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
-			g_engine->_engine->cVars[i] = (g_engine->_engine->cVars[i] & 0xFF) << 8 | (g_engine->_engine->cVars[i] & 0xFF00) >> 8;
-		}
+	for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
+		g_engine->_engine->cVars[i] = (g_engine->_engine->cVars[i] & 0xFF) << 8 | (g_engine->_engine->cVars[i] & 0xFF00) >> 8;
 	}
 	//////////////////////////////////////////////
 
@@ -840,8 +779,6 @@ void initEngine() {
 
 	g_engine->_engine->listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
 	g_engine->_engine->listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
-
-	// TODO: missing dos memory check here
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		g_engine->_engine->listBody = HQR_InitRessource(listBodySelect[g_engine->_engine->cVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
