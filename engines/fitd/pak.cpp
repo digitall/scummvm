@@ -45,7 +45,9 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 
 uint pakGetNumFiles(const char *name) {
 	Common::File f;
-	f.open(name);
+	if (!f.open(name)) {
+		error("Fitd::pakGetNumFiles: can't open %s", name);
+	}
 
 	f.seek(4, SEEK_CUR);
 	const uint32 fileOffset = f.readUint32LE();
@@ -59,7 +61,9 @@ uint pakGetNumFiles(const char *name) {
 
 byte *pakLoad(const char *fileName, int index) {
 	Common::File f;
-	f.open(fileName);
+	if (!f.open(fileName)) {
+		error("Fitd::pakLoad: can't open %s", fileName);
+	}
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
 	const uint32 numFiles = fileOffset / 4 - 2;
@@ -113,7 +117,9 @@ int pakGetPakSize(const char *name, int index) {
 	int32 size = 0;
 
 	Common::File f;
-	f.open(name);
+	if (!f.open(name)) {
+		error("Fitd::pakGetPakSize: can't open %s", name);
+	}
 	f.seek((index + 1) * 4, SEEK_SET);
 
 	const int32 fileOffset = f.readSint32LE();

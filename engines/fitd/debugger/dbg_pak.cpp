@@ -71,7 +71,9 @@ static void refreshPAK(const char *name) {
 	_state->infos.clear();
 
 	Common::File f;
-	f.open(name);
+	if (!f.open(name)) {
+		error("Fitd::refreshPAK: can't open %s", name);
+	}
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
 	const uint32 numFiles = fileOffset / 4 - 2;

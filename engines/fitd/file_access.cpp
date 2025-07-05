@@ -29,15 +29,14 @@
 namespace Fitd {
 
 byte *loadFromItd(const char *name) {
-
 	Common::File f;
-	f.open(name);
+	if (!f.open(name)) {
+		error("Fitd::loadFromItd: can't open %s", name);
+	}
 	g_engine->_engine->fileSize = f.size();
 	byte *ptr = static_cast<byte *>(malloc(g_engine->_engine->fileSize));
-
 	if (!ptr) {
-		error("Failed to load %s", name);
-		return nullptr;
+		error("Failed to allocate memory for %s", name);
 	}
 	f.read(ptr, g_engine->_engine->fileSize);
 	f.close();

@@ -2987,8 +2987,7 @@ static void allocTextes() {
 
 	const Common::String lang(ConfMan.get("language"));
 	for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
-		Common::File f;
-		if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
+		if (lang == languageShortNameTable[i] && Common::File::exists(languageNameTable[i])) {
 			g_engine->_engine->languageNameString = languageNameTable[i];
 			break;
 		}
@@ -3149,7 +3148,9 @@ void runGame() {
 	// read cvars definitions
 	{
 		Common::File f;
-		f.open("DEFINES.ITD");
+		if (!f.open("DEFINES.ITD")) {
+			error("Fitd::runGame: can't open DEFINES.ITD");
+		}
 		for (int i = 0; i < g_engine->_engine->cVarsSize; i++) {
 			g_engine->_engine->cVars[i] = f.readSint16BE();
 		}
