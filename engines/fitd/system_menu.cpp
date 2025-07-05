@@ -158,11 +158,11 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 			affBigCadre(70, y, 120, 70);
 			setClip(0, 0, 319, 199);
 			const Graphics::Surface *s = saveStateList[i].getThumbnail();
-			Graphics::Surface *d;
+			Common::ScopedPtr<Graphics::Surface> d;
 			if (s) {
-				d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), nullptr, 256, currentGamePalette, 256);
+				d.reset(s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), nullptr, 256, currentGamePalette, 256));
 			} else {
-				d = new Graphics::Surface();
+				d.reset(new Graphics::Surface());
 				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
 			}
 			scaleDownImage(d->w, d->h, 30, y - 20, static_cast<const byte *>(d->getBasePtr(0, 0)));

@@ -48,7 +48,7 @@ typedef struct CameraZonePoint {
 typedef struct CameraZoneEntry {
 	uint16 numPoints;
 
-	CameraZonePoint *pointTable;
+	Common::Array<CameraZonePoint> pointTable;
 } CameraZoneEntry;
 
 struct RectTest {

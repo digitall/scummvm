@@ -53,9 +53,6 @@ void HQR_Free(HqrEntry *hqrPtr);
 struct Body;
 Body *getBodyFromPtr(void *ptr);
 
-struct Animation;
-Animation *getAnimationFromPtr(void *ptr);
-
 } // namespace Fitd
 
 #endif

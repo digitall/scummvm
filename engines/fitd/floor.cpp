@@ -329,7 +329,7 @@ void loadFloor(int floorNumber) {
 						pCurrentCameraViewedRoom->coverZones[j].numPoints = numPoints = READ_LE_U16(pZoneData);
 						pZoneData += 2;
 
-						pCurrentCameraViewedRoom->coverZones[j].pointTable = static_cast<CameraZonePoint *>(malloc(sizeof(CameraZonePoint) * (numPoints + 1)));
+						pCurrentCameraViewedRoom->coverZones[j].pointTable.resize(numPoints + 1);
 
 						for (pointIdx = 0; pointIdx < pCurrentCameraViewedRoom->coverZones[j].numPoints; pointIdx++) {
 							pCurrentCameraViewedRoom->coverZones[j].pointTable[pointIdx].x = READ_LE_U16(pZoneData);

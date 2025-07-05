@@ -510,16 +510,6 @@ Body *getBodyFromPtr(void *ptr) {
 	return createBodyFromPtr(ptr);
 }
 
-Animation *getAnimationFromPtr(void *ptr) {
-	for (uint i = 0; i < g_engine->_engine->animations.size(); i++) {
-		if (g_engine->_engine->animations[i]->m_raw == ptr) {
-			return g_engine->_engine->animations[i];
-		}
-	}
-
-	return createAnimationFromPtr(ptr);
-}
-
 void HQ_Name(HqrEntry *ptr, const char *name) {
 	memcpy(ptr->string, name, strlen(name));
 }
