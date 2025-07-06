@@ -33,7 +33,7 @@ namespace Fitd {
 uint32 g_currentFloorRoomRawDataSize = 0;
 
 void loadFloor(int floorNumber) {
-	uint32 currentFloorCameraRawDataSize;
+	uint32 currentFloorCameraRawDataSize = 0;
 	int expectedNumberOfRoom;
 	int expectedNumberOfCamera;
 
