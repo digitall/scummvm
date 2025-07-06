@@ -35,7 +35,7 @@ static int shakeTime = 4;
 
 static void clearScreenTatou() {
 	for (int i = 0; i < 45120; i++) {
-		frontBuffer[i] = 0;
+		g_engine->_engine->frontBuffer[i] = 0;
 	}
 }
 
@@ -75,17 +75,17 @@ int make3dTatou() {
 
 	setupCameraProjection(160, 100, 128, 500, 490);
 
-	copyPalette(currentGamePalette, paletteBackup);
+	copyPalette(g_engine->_engine->currentGamePalette, paletteBackup);
 
-	paletteFill(currentGamePalette, 0, 0, 0);
+	paletteFill(g_engine->_engine->currentGamePalette, 0, 0, 0);
 
-	gfx_setPalette(currentGamePalette);
+	gfx_setPalette(g_engine->_engine->currentGamePalette);
 
-	copyPalette(tatouPal.get(), currentGamePalette);
-	fastCopyScreen(tatou2d.get() + 770, frontBuffer);
-	fastCopyScreen(frontBuffer, g_engine->_engine->aux2);
+	copyPalette(tatouPal.get(), g_engine->_engine->currentGamePalette);
+	fastCopyScreen(tatou2d.get() + 770, g_engine->_engine->frontBuffer);
+	fastCopyScreen(g_engine->_engine->frontBuffer, g_engine->_engine->aux2);
 
-	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 	fadeInPhys(8, 0);
 
@@ -113,8 +113,8 @@ int make3dTatou() {
 			/*     LastSample = -1;
 			LastPriority = -1;*/
 
-			paletteFill(currentGamePalette, 63, 63, 63);
-			gfx_setPalette(currentGamePalette);
+			paletteFill(g_engine->_engine->currentGamePalette, 63, 63, 63);
+			gfx_setPalette(g_engine->_engine->currentGamePalette);
 			/*  setClipSize(0,0,319,199);*/
 
 			clearScreenTatou();
@@ -122,13 +122,13 @@ int make3dTatou() {
 			setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
 
 			// blitScreenTatou();
-			gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+			gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 			process_events();
 
-			copyPalette(tatouPal.get(), currentGamePalette);
-			gfx_setPalette(currentGamePalette);
-			gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+			copyPalette(tatouPal.get(), g_engine->_engine->currentGamePalette);
+			gfx_setPalette(g_engine->_engine->currentGamePalette);
+			gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 			affObjet(0, 0, 0, 0, 0, 0, tatou3d.get());
 
@@ -165,12 +165,12 @@ int make3dTatou() {
 		}
 
 		fadeOutPhys(32, 0);
-		copyPalette(paletteBackup, currentGamePalette);
+		copyPalette(paletteBackup, g_engine->_engine->currentGamePalette);
 		return 1;
 	}
 
 	fadeOutPhys(16, 0);
-	copyPalette(paletteBackup, currentGamePalette);
+	copyPalette(paletteBackup, g_engine->_engine->currentGamePalette);
 	return 0;
 }
 

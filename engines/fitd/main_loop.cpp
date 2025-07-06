@@ -123,7 +123,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 			g_engine->_engine->action = 0;
 		}
 
-		executeFoundLife(inHandTable[currentInventory]);
+		executeFoundLife(g_engine->_engine->inHandTable[g_engine->_engine->currentInventory]);
 
 		if (g_engine->_engine->changeFloor == 0) {
 			if (g_engine->getGameId() == GID_AITD1) {

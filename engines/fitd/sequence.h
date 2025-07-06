@@ -31,10 +31,6 @@ typedef struct SequenceParam {
 	uint sample;
 } SequenceParam;
 
-extern int numSequenceParam;
-
-extern SequenceParam sequenceParams[NUM_MAX_SEQUENCE_PARAM];
-
 void convertPaletteIfRequired(byte *lpalette);
 
 } // namespace Fitd

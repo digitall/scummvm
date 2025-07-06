@@ -20,13 +20,13 @@
  */
 
 #include "common/scummsys.h"
+#include "fitd/engine.h"
+#include "fitd/fitd.h"
 
 namespace Fitd {
 
 #define ENTER
 #define LEAVE
-
-byte *polyBackBuffer = nullptr;
 
 void swapFunc(int *a, int *b) {
 	const int temp = *a;
@@ -40,7 +40,7 @@ void swapFunc(int *a, int *b) {
 
 void pixel(int x, int y, byte c) {
 	if (x >= 0 && x < 320 && y >= 0 && y < 200) {
-		*(polyBackBuffer + y * 320 + x) = c;
+		*(g_engine->_engine->polyBackBuffer + y * 320 + x) = c;
 	}
 }
 

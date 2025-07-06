@@ -27,7 +27,6 @@
 namespace Fitd {
 
 void line(int x1, int y1, int x2, int y2, byte c);
-extern byte *polyBackBuffer;
 
 } // namespace Fitd
 

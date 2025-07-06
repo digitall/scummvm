@@ -150,7 +150,7 @@ static void makeSlideshow() {
 	byte backupPalette[768];
 	ScopedPtr image;
 	uint chrono = 0;
-	copyPalette(currentGamePalette, backupPalette);
+	copyPalette(g_engine->_engine->currentGamePalette, backupPalette);
 	flushScreen();
 	for (int i = 0; i < 15; i++) {
 		if (i == 0) {
@@ -158,11 +158,11 @@ static void makeSlideshow() {
 		} else {
 			image.reset(pakLoad("PRESENT.PAK", i));
 		}
-		paletteFill(currentGamePalette, 0, 0, 0);
-		gfx_setPalette(currentGamePalette);
-		copyPalette(image.get() + 2, currentGamePalette);
-		fastCopyScreen(image.get() + 770, frontBuffer);
-		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+		paletteFill(g_engine->_engine->currentGamePalette, 0, 0, 0);
+		gfx_setPalette(g_engine->_engine->currentGamePalette);
+		copyPalette(image.get() + 2, g_engine->_engine->currentGamePalette);
+		fastCopyScreen(image.get() + 770, g_engine->_engine->frontBuffer);
+		gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 		fadeInPhys(8, 0);
 		startChrono(&chrono);
 
@@ -172,18 +172,18 @@ static void makeSlideshow() {
 
 		fadeOutPhys(16, 0);
 	}
-	copyPalette(backupPalette, currentGamePalette);
+	copyPalette(backupPalette, g_engine->_engine->currentGamePalette);
 }
 
 static int makeIntroScreens() {
 	{
 		ScopedPtr data(pakLoad("ITD_RESS.PAK", AITD1_TITRE));
-		fastCopyScreen(data.get() + 770, frontBuffer);
+		fastCopyScreen(data.get() + 770, g_engine->_engine->frontBuffer);
 	}
 
-	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+	gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
-	memcpy(g_engine->_engine->logicalScreen, frontBuffer, 320 * 200);
+	memcpy(g_engine->_engine->logicalScreen, g_engine->_engine->frontBuffer, 320 * 200);
 	osystem_flip(nullptr);
 	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, g_engine->_engine->aux);
 	uint chrono;
@@ -247,8 +247,8 @@ int choosePerso() {
 			copyBoxAuxLog(170, 10, 309, 190);
 		}
 
-		fastCopyScreen(g_engine->_engine->logicalScreen, frontBuffer);
-		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+		fastCopyScreen(g_engine->_engine->logicalScreen, g_engine->_engine->frontBuffer);
+		gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 		if (firstTime != 0) {
 			fadeInPhys(0x40, 0);
@@ -303,7 +303,7 @@ int choosePerso() {
 
 		switch (choice) {
 		case 0: {
-			fastCopyScreen(frontBuffer, g_engine->_engine->logicalScreen);
+			fastCopyScreen(g_engine->_engine->frontBuffer, g_engine->_engine->logicalScreen);
 			setClip(0, 0, 319, 199);
 			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, g_engine->_engine->aux);
 			copyBoxAuxLog(160, 0, 319, 199);
@@ -313,7 +313,7 @@ int choosePerso() {
 			break;
 		}
 		case 1: {
-			fastCopyScreen(frontBuffer, g_engine->_engine->logicalScreen);
+			fastCopyScreen(g_engine->_engine->frontBuffer, g_engine->_engine->logicalScreen);
 			setClip(0, 0, 319, 199);
 			pakLoad("ITD_RESS.PAK", AITD1_FOND_INTRO, g_engine->_engine->aux);
 			copyBoxAuxLog(0, 0, 159, 199);
@@ -337,8 +337,8 @@ int choosePerso() {
 }
 
 void aitd1Start(int saveSlot) {
-	fontHeight = 16;
-	gfx_setPalette(currentGamePalette);
+	g_engine->_engine->fontHeight = 16;
+	gfx_setPalette(g_engine->_engine->currentGamePalette);
 
 	if (saveSlot == -1 && !make3dTatou() && !::Engine::shouldQuit()) {
 		makeIntroScreens();

@@ -31,6 +31,10 @@
 #include "fitd/hqr.h"
 #include "fitd/room.h"
 
+#define NUM_MAX_POINT_IN_POINT_BUFFER 800
+#define INVENTORY_SIZE 50
+#define NUM_MAX_INVENTORY 2
+
 namespace Common {
 template<>
 struct Hash<void *> {
@@ -314,6 +318,31 @@ public:
 
 	ScopedPtr pAITD2InventorySprite;
 	TextEntryStruct tabTextes[NUM_MAX_TEXT_ENTRY] = {};
+
+	uint32 currentFloorRoomRawDataSize = 0;
+
+	int fontHeight = 0;
+
+	byte frontBuffer[320 * 200] = {};
+	byte currentGamePalette[256 * 3] = {};
+
+	CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM] = {};
+	CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM] = {};
+
+	int numOfPoints = 0;
+	int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3] = {};
+
+	byte *polyBackBuffer = nullptr;
+
+	int16 currentInventory = 0;
+	int16 numObjInInventoryTable[NUM_MAX_INVENTORY] = {};
+	int16 inHandTable[NUM_MAX_INVENTORY] = {};
+	int16 inventoryTable[NUM_MAX_INVENTORY][INVENTORY_SIZE] = {};
+
+	int BBox3D1 = 0;
+	int BBox3D2 = 0;
+	int BBox3D3 = 0;
+	int BBox3D4 = 0;
 };
 } // namespace Fitd
 

@@ -42,9 +42,6 @@ etageVar1 -> table for camera data
 
 */
 
-CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
-CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
-
 RoomDef *getRoomData(int roomNumber) {
 	return (RoomDef *)(g_engine->_engine->currentFloorRoomRawData + READ_LE_U32(g_engine->_engine->currentFloorRoomRawData + roomNumber * 4));
 }
@@ -56,7 +53,7 @@ int getNumberOfRoom() {
 		const int numMax = READ_LE_U32(g_engine->_engine->currentFloorRoomRawData) / 4;
 
 		for (int i = 0; i < numMax; i++) {
-			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_engine->_engine->currentFloorRoomRawData + i * 4)) {
+			if (g_engine->_engine->currentFloorRoomRawDataSize >= READ_LE_U32(g_engine->_engine->currentFloorRoomRawData + i * 4)) {
 				j++;
 			} else {
 				return j;
@@ -137,20 +134,20 @@ void loadRoom(int roomNumber) {
 			g_engine->_engine->roomPtrCamera[i] = g_engine->_engine->currentFloorCameraRawData + READ_LE_U32(g_engine->_engine->currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 
-		cameraDataTable[i] = &g_engine->_engine->currentFloorCameraData[currentCameraIdx];
+		g_engine->_engine->cameraDataTable[i] = &g_engine->_engine->currentFloorCameraData[currentCameraIdx];
 
-		currentCameraIdx = cameraDataTable[i]->numViewedRooms;
+		currentCameraIdx = g_engine->_engine->cameraDataTable[i]->numViewedRooms;
 
 		// scan for the zone data related to the current room
 		uint j;
 		for (j = 0; j < currentCameraIdx; j++) {
-			if (cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom)
+			if (g_engine->_engine->cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom)
 				break;
 		}
 
-		assert(cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom);
-		if (cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom)
-			currentCameraZoneList[i] = &cameraDataTable[i]->viewedRoomTable[j];
+		assert(g_engine->_engine->cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom);
+		if (g_engine->_engine->cameraDataTable[i]->viewedRoomTable[j].viewedRoomIdx == g_engine->_engine->currentRoom)
+			g_engine->_engine->currentCameraZoneList[i] = &g_engine->_engine->cameraDataTable[i]->viewedRoomTable[j];
 	}
 
 	// reajust world coordinates

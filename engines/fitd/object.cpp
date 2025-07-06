@@ -137,22 +137,22 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 
 			//			computeScreenBox(actorPtr->field_22 + actorPtr->field_5A, actorPtr->field_24 + actorPtr->field_5C, actorPtr->anim + actorPtr->field_5E, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, bodyPtr);
 
-			if (BBox3D1 < 0)
-				BBox3D1 = 0;
+			if (g_engine->_engine->BBox3D1 < 0)
+				g_engine->_engine->BBox3D1 = 0;
 
-			if (BBox3D3 > 319)
-				BBox3D3 = 319;
+			if (g_engine->_engine->BBox3D3 > 319)
+				g_engine->_engine->BBox3D3 = 319;
 
-			if (BBox3D2 < 0)
-				BBox3D2 = 0;
+			if (g_engine->_engine->BBox3D2 < 0)
+				g_engine->_engine->BBox3D2 = 0;
 
-			if (BBox3D4 > 199)
-				BBox3D4 = 199;
+			if (g_engine->_engine->BBox3D4 > 199)
+				g_engine->_engine->BBox3D4 = 199;
 
-			actorPtr->screenXMin = BBox3D1;
-			actorPtr->screenYMin = BBox3D2;
-			actorPtr->screenXMax = BBox3D3;
-			actorPtr->screenYMax = BBox3D4;
+			actorPtr->screenXMin = g_engine->_engine->BBox3D1;
+			actorPtr->screenYMin = g_engine->_engine->BBox3D2;
+			actorPtr->screenXMax = g_engine->_engine->BBox3D3;
+			actorPtr->screenYMax = g_engine->_engine->BBox3D4;
 		} else {
 			if (!(actorPtr->_flags & AF_DRAWABLE)) {
 				actorPtr->_flags &= ~AF_ANIMATED; // do not animate an object that is invisible

@@ -37,7 +37,7 @@ namespace Fitd {
 #define JACK_IM_EXT_JACK 3
 
 void jackStart(int saveSlot) {
-	fontHeight = 16; // TODO: check
+	g_engine->_engine->fontHeight = 16; // TODO: check
 	startGame(16, 1, 1);
 }
 
@@ -49,7 +49,7 @@ void jackReadBook(int index, int type) {
 		memcpy(g_engine->_engine->aux, pImage.get(), 320 * 200);
 		byte *lpalette = pImage.get() + 320 * 200;
 		convertPaletteIfRequired(lpalette);
-		copyPalette(lpalette, currentGamePalette);
+		copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 		gfx_setPalette(lpalette);
 		g_engine->_engine->turnPageFlag = 1;
 		lire(index, 60, 10, 245, 190, 0, 124, 124);

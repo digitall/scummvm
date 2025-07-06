@@ -26,7 +26,6 @@
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
-#include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
 #include "fitd/music.h"
@@ -76,7 +75,7 @@ static int loadJack(Common::SeekableReadStream *in) {
 	const uint32 varsOffset = in->readUint32BE();
 
 	in->seek(palOffset, SEEK_SET);
-	in->read(currentGamePalette, 768);
+	in->read(g_engine->_engine->currentGamePalette, 768);
 
 	in->seek(roomOffset, SEEK_SET);
 	g_engine->_engine->currentRoom = in->readSint16LE();
@@ -120,12 +119,12 @@ static int loadJack(Common::SeekableReadStream *in) {
 		g_engine->_engine->cVars[i] = in->readSint16LE();
 	}
 
-	inHandTable[0] = in->readSint16LE();
+	g_engine->_engine->inHandTable[0] = in->readSint16LE();
 	in->readSint16LE(); // TODO: what is this ? always -1 ?
-	numObjInInventoryTable[0] = in->readSint32LE();
+	g_engine->_engine->numObjInInventoryTable[0] = in->readSint32LE();
 
 	for (int i = 0; i < INVENTORY_SIZE; i++) {
-		inventoryTable[0][i] = in->readSint16LE();
+		g_engine->_engine->inventoryTable[0][i] = in->readSint16LE();
 	}
 
 	g_engine->_engine->statusScreenAllowed = in->readSint16LE();
@@ -379,15 +378,15 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	}
 
 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
-		assert(sizeof(inHandTable[inventoryId]) == 2);
-		inHandTable[inventoryId] = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->inHandTable[inventoryId]) == 2);
+		g_engine->_engine->inHandTable[inventoryId] = in->readSint16LE();
 
-		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
-		numObjInInventoryTable[inventoryId] = in->readSint16LE();
+		assert(sizeof(g_engine->_engine->numObjInInventoryTable[inventoryId]) == 2);
+		g_engine->_engine->numObjInInventoryTable[inventoryId] = in->readSint16LE();
 
 		for (i = 0; i < INVENTORY_SIZE; i++) {
-			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
-			inventoryTable[inventoryId][i] = in->readSint16LE();
+			assert(sizeof(g_engine->_engine->inventoryTable[inventoryId][i]) == 2);
+			g_engine->_engine->inventoryTable[inventoryId][i] = in->readSint16LE();
 		}
 	}
 
@@ -803,11 +802,11 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 		g_engine->_engine->cVars[i] = in->readSint16LE();
 	}
 
-	inHandTable[0] = in->readSint16LE();
-	numObjInInventoryTable[0] = in->readSint16LE();
+	g_engine->_engine->inHandTable[0] = in->readSint16LE();
+	g_engine->_engine->numObjInInventoryTable[0] = in->readSint16LE();
 
 	for (int i = 0; i < AITD1_INVENTORY_SIZE; i++) {
-		inventoryTable[0][i] = in->readSint16LE();
+		g_engine->_engine->inventoryTable[0][i] = in->readSint16LE();
 	}
 
 	assert(sizeof(g_engine->_engine->statusScreenAllowed) == 2);
@@ -1246,15 +1245,15 @@ static int saveAitd1(Common::WriteStream *out, const Common::String &desc) {
 
 	const int maxInventory = 1;
 	for (int inventoryId = 0; inventoryId < maxInventory; inventoryId++) {
-		assert(sizeof(inHandTable[inventoryId]) == 2);
-		out->writeSint16LE(inHandTable[inventoryId]);
+		assert(sizeof(g_engine->_engine->inHandTable[inventoryId]) == 2);
+		out->writeSint16LE(g_engine->_engine->inHandTable[inventoryId]);
 
-		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
-		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
+		assert(sizeof(g_engine->_engine->numObjInInventoryTable[inventoryId]) == 2);
+		out->writeSint16LE(g_engine->_engine->numObjInInventoryTable[inventoryId]);
 
 		for (uint i = 0; i < AITD1_INVENTORY_SIZE; i++) {
-			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
-			out->writeSint16LE(inventoryTable[inventoryId][i]);
+			assert(sizeof(g_engine->_engine->inventoryTable[inventoryId][i]) == 2);
+			out->writeSint16LE(g_engine->_engine->inventoryTable[inventoryId][i]);
 		}
 	}
 
@@ -1511,7 +1510,7 @@ static int saveJack(Common::WriteStream *out, const Common::String &desc) {
 	scaleDownImage(320, 200, 0, 0, g_engine->_engine->aux2, img, 80);
 	out->write(img, 4000);
 
-	out->write(currentGamePalette, 768);
+	out->write(g_engine->_engine->currentGamePalette, 768);
 
 	memset(img, 0, 32);
 	memcpy(img, desc.c_str(), desc.size());
@@ -1558,11 +1557,11 @@ static int saveJack(Common::WriteStream *out, const Common::String &desc) {
 		out->writeSint16LE(g_engine->_engine->cVars[i]);
 	}
 
-	out->writeSint16LE(inHandTable[0]);
+	out->writeSint16LE(g_engine->_engine->inHandTable[0]);
 	out->writeSint16LE(-1); // ?
-	out->writeSint32LE(numObjInInventoryTable[0]);
+	out->writeSint32LE(g_engine->_engine->numObjInInventoryTable[0]);
 	for (uint i = 0; i < INVENTORY_SIZE; i++) {
-		out->writeSint16LE(inventoryTable[0][i]);
+		out->writeSint16LE(g_engine->_engine->inventoryTable[0][i]);
 	}
 
 	out->writeSint16LE(g_engine->_engine->statusScreenAllowed);
@@ -1812,15 +1811,15 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String &desc) {
 	}
 
 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
-		assert(sizeof(inHandTable[inventoryId]) == 2);
-		out->writeSint16LE(inHandTable[inventoryId]);
+		assert(sizeof(g_engine->_engine->inHandTable[inventoryId]) == 2);
+		out->writeSint16LE(g_engine->_engine->inHandTable[inventoryId]);
 
-		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
-		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
+		assert(sizeof(g_engine->_engine->numObjInInventoryTable[inventoryId]) == 2);
+		out->writeSint16LE(g_engine->_engine->numObjInInventoryTable[inventoryId]);
 
 		for (uint i = 0; i < INVENTORY_SIZE; i++) {
-			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
-			out->writeSint16LE(inventoryTable[inventoryId][i]);
+			assert(sizeof(g_engine->_engine->inventoryTable[inventoryId][i]) == 2);
+			out->writeSint16LE(g_engine->_engine->inventoryTable[inventoryId][i]);
 		}
 	}
 

@@ -30,8 +30,6 @@
 
 namespace Fitd {
 
-uint32 g_currentFloorRoomRawDataSize = 0;
-
 void loadFloor(int floorNumber) {
 	uint32 currentFloorCameraRawDataSize = 0;
 	int expectedNumberOfRoom;
@@ -52,7 +50,7 @@ void loadFloor(int floorNumber) {
 	if (g_engine->getGameId() <= GID_AITD3) {
 		Common::String floorFileName(Common::String::format("ETAGE%02d.pak", floorNumber));
 
-		g_currentFloorRoomRawDataSize = pakGetPakSize(floorFileName.c_str(), 0);
+		g_engine->_engine->currentFloorRoomRawDataSize = pakGetPakSize(floorFileName.c_str(), 0);
 		currentFloorCameraRawDataSize = pakGetPakSize(floorFileName.c_str(), 1);
 
 		g_engine->_engine->currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
@@ -76,7 +74,7 @@ void loadFloor(int floorNumber) {
 		uint8 *roomData = nullptr;
 		uint8 *hardColData;
 		uint8 *sceZoneData;
-		if (g_currentFloorRoomRawDataSize == 0) {
+		if (g_engine->_engine->currentFloorRoomRawDataSize == 0) {
 			if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", floorNumber).c_str())) {
 				roomData = checkLoadMallocPak(Common::String::format("ETAGE%02d", floorNumber).c_str(), i);
 			} else if (Common::File::exists(Common::String::format("SAL%02d.PAK", floorNumber).c_str())) {

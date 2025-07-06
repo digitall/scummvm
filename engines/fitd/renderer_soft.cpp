@@ -956,7 +956,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 
 static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {
 	byte *pDestLine = static_cast<uint8 *>(g_engine->_screen->getBasePtr(0, 0));
-	polyBackBuffer = pDestLine;
+	g_engine->_engine->polyBackBuffer = pDestLine;
 	line(x1, y1, x2, y2, color);
 }
 
@@ -1050,7 +1050,7 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 	}
 
 	for (int i = top; i < bottom; i++) {
-		const byte *in = static_cast<const byte *>(&frontBuffer[0]) + left + i * 320;
+		const byte *in = static_cast<const byte *>(&g_engine->_engine->frontBuffer[0]) + left + i * 320;
 		byte *out2 = dst + left + i * 320;
 
 		for (int j = left; j < right; j++) {

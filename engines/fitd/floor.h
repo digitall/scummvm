@@ -22,11 +22,7 @@
  #ifndef _FITD_FLOOR_H_
  #define _FITD_FLOOR_H_
 
- #include "common/scummsys.h"
-
 namespace Fitd {
-
-extern uint32 g_currentFloorRoomRawDataSize;
 
 void loadFloor(int floorNumber);
 }

@@ -508,7 +508,7 @@ static void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
 }
 
 void setupRealZv(ZVStruct *zvPtr) {
-	const int16 *ptr = pointBuffer;
+	const int16 *ptr = g_engine->_engine->pointBuffer;
 
 	zvPtr->ZVX1 = 32000;
 	zvPtr->ZVY1 = 32000;
@@ -517,7 +517,7 @@ void setupRealZv(ZVStruct *zvPtr) {
 	zvPtr->ZVY2 = -32000;
 	zvPtr->ZVZ2 = -32000;
 
-	for (int i = 0; i < numOfPoints; i++) {
+	for (int i = 0; i < g_engine->_engine->numOfPoints; i++) {
 		if (zvPtr->ZVX1 > *ptr) {
 			zvPtr->ZVX1 = *ptr;
 		} else {
@@ -756,7 +756,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 					} */
 
 					gfx_setPalette(localPalette);
-					copyPalette(localPalette, currentGamePalette);
+					copyPalette(localPalette, g_engine->_engine->currentGamePalette);
 				}
 			} else // not first frame
 			{
@@ -778,7 +778,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 				}
 			}
 
-			// TODO: here, timming management
+			// TODO: here, timing management
 			// TODO: fade management
 
 			gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
@@ -921,7 +921,7 @@ static void endSequence() {
 	for (int i = 0; i < 256; ++i) {
 		process_events();
 		copyPalette(g_engine->_engine->aux + 2, pal2);
-		setFadePalette(currentGamePalette, pal2, i);
+		setFadePalette(g_engine->_engine->currentGamePalette, pal2, i);
 	}
 	gfx_copyBlockPhys(g_engine->_engine->aux2, 0, 0, 320, 200);
 	osystem_drawBackground();
@@ -1882,10 +1882,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 			{
 				// appendFormated("LM_IN_HAND ");
 				if (g_engine->getGameId() <= GID_JACK) {
-					inHandTable[currentInventory] = *(int16 *)g_engine->_engine->currentLifePtr;
+					g_engine->_engine->inHandTable[g_engine->_engine->currentInventory] = *(int16 *)g_engine->_engine->currentLifePtr;
 					g_engine->_engine->currentLifePtr += 2;
 				} else {
-					inHandTable[currentInventory] = evalVar();
+					g_engine->_engine->inHandTable[g_engine->_engine->currentInventory] = evalVar();
 				}
 				break;
 			}
@@ -2053,7 +2053,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				byte lpalette[0x300];
 				copyPalette(g_engine->_engine->aux + 64000, lpalette);
 				convertPaletteIfRequired(lpalette);
-				copyPalette(lpalette, currentGamePalette);
+				copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 				gfx_setPalette(lpalette);
 				g_engine->_engine->turnPageFlag = false;
 				lire(lifeTempVar2 + 1, lifeTempVar3, lifeTempVar4, lifeTempVar5, lifeTempVar6, 0, lifeTempVar7, lifeTempVar8);
@@ -2362,12 +2362,12 @@ void processLife(int lifeNum, bool callFoundLife) {
 					byte lpalette[0x300];
 					copyPalette(g_engine->_engine->aux + 64000, lpalette);
 					convertPaletteIfRequired(lpalette);
-					copyPalette(lpalette, currentGamePalette);
+					copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 					gfx_setPalette(lpalette);
 				}
 
-				fastCopyScreen(g_engine->_engine->aux, frontBuffer);
-				gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+				fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->frontBuffer);
+				gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 				osystem_drawBackground();
 
 				uint chrono;

@@ -51,7 +51,7 @@ void fadeInPhys(int step, int start) {
 		for (int i = 256; i >= 0; i -= 16) {
 			process_events();
 			paletteFill(localPalette, 0xFF, 0, 0);
-			fadeLevelDestPal(currentGamePalette, localPalette, i);
+			fadeLevelDestPal(g_engine->_engine->currentGamePalette, localPalette, i);
 			gfx_setPalette(localPalette);
 			gfx_refreshFrontTextureBuffer();
 			osystem_drawBackground();
@@ -59,7 +59,7 @@ void fadeInPhys(int step, int start) {
 	} else {
 		for (int i = 0; i < 256; i += step) {
 			process_events();
-			computePalette(currentGamePalette, localPalette, i);
+			computePalette(g_engine->_engine->currentGamePalette, localPalette, i);
 			gfx_setPalette(localPalette);
 			gfx_refreshFrontTextureBuffer();
 			osystem_drawBackground();
@@ -78,7 +78,7 @@ void fadeOutPhys(int var1, int var2) {
 
 	for (int i = 256; i >= 0; i -= var1) {
 		process_events();
-		computePalette(currentGamePalette, localPalette, i);
+		computePalette(g_engine->_engine->currentGamePalette, localPalette, i);
 		gfx_setPalette(localPalette);
 		gfx_refreshFrontTextureBuffer();
 		osystem_drawBackground();

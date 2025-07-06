@@ -112,9 +112,6 @@ typedef struct RoomData {
 	Common::Array<uint16> cameraIdxTable;
 } RoomData;
 
-extern CameraData *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
-extern CameraViewedRoom *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
-
 RoomDef *getRoomData(int roomNumber);
 void loadRoom(int roomNumber);
 int getNumberOfRoom();

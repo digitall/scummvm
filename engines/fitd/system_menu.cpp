@@ -77,7 +77,7 @@ static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, co
 }
 
 void aitd2AffOption(int n, int num, int selected) {
-	const int y = 34 + n * fontHeight;
+	const int y = 34 + n * g_engine->_engine->fontHeight;
 	if (n == selected) {
 		selectedMessage(160, y, num, 1, MENU_COUL);
 	} else {
@@ -90,7 +90,7 @@ void aitd2DisplayOptions(int selectedStringNumber) {
 	byte lpalette[0x300];
 	copyPalette(g_engine->_engine->logicalScreen + 64000, lpalette);
 	convertPaletteIfRequired(lpalette);
-	copyPalette(lpalette, currentGamePalette);
+	copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 	gfx_setPalette(lpalette);
 
 	setClip(g_engine->_engine->windowX1, g_engine->_engine->windowY1, g_engine->_engine->windowX2, g_engine->_engine->windowY2);
@@ -160,7 +160,7 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 			const Graphics::Surface *s = saveStateList[i].getThumbnail();
 			Common::ScopedPtr<Graphics::Surface> d;
 			if (s) {
-				d.reset(s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), nullptr, 256, currentGamePalette, 256));
+				d.reset(s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), nullptr, 256, g_engine->_engine->currentGamePalette, 256));
 			} else {
 				d.reset(new Graphics::Surface());
 				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());

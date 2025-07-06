@@ -36,18 +36,13 @@
 
 namespace Fitd {
 
-int16 currentInventory = 0;
-int16 numObjInInventoryTable[NUM_MAX_INVENTORY];
-int16 inHandTable[NUM_MAX_INVENTORY];
-int16 inventoryTable[NUM_MAX_INVENTORY][INVENTORY_SIZE];
-
 int statusLeft;
 int statusTop;
 int statusRight;
 int statusBottom;
 
-int numInventoryActions;
-int16 inventoryActionTable[5];
+static int numInventoryActions;
+static int16 inventoryActionTable[5];
 
 static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 	int y;
@@ -69,10 +64,10 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 		y = 28;
 	}
 	for (int i = 0; i < 5; i++) {
-		if (startIdx >= numObjInInventoryTable[currentInventory])
+		if (startIdx >= g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory])
 			break;
 
-		const int currentObj = inventoryTable[currentInventory][startIdx];
+		const int currentObj = g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][startIdx];
 
 		const WorldObject *objPtr = &g_engine->_engine->worldObjets[currentObj];
 
@@ -92,7 +87,7 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 			simpleMessage(160, y, objPtr->foundName, 4);
 		}
 
-		y += fontHeight;
+		y += g_engine->_engine->fontHeight;
 		startIdx++;
 	}
 
@@ -100,14 +95,14 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 		affSpfI(298, 10, 10, g_engine->_engine->ptrCadre);
 	}
 
-	if (var_6 + 5 < numObjInInventoryTable[currentInventory]) {
+	if (var_6 + 5 < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]) {
 		affSpfI(298, 74, 9, g_engine->_engine->ptrCadre);
 	}
 
 	return var_8;
 }
 
-void renderInventoryObject(int arg) {
+static void renderInventoryObject(int arg) {
 	setClip(statusLeft, statusTop, statusRight, statusBottom);
 	fillBox(statusLeft, statusTop, statusRight, statusBottom, 0);
 
@@ -132,7 +127,7 @@ void renderInventoryObject(int arg) {
 
 }
 
-void drawInventoryActions(int arg) {
+static void drawInventoryActions(int arg) {
 	int y = 0;
 
 	if (g_engine->getGameId() <= GID_JACK) {
@@ -147,7 +142,7 @@ void drawInventoryActions(int arg) {
 		g_engine->_engine->windowX2 = 288;
 		g_engine->_engine->windowY2 = 170;
 
-		y = 139 - numInventoryActions * fontHeight / 2;
+		y = 139 - numInventoryActions * g_engine->_engine->fontHeight / 2;
 	}
 
 	for (int i = 0; i < numInventoryActions; i++) {
@@ -162,7 +157,7 @@ void drawInventoryActions(int arg) {
 			simpleMessage(240, y, inventoryActionTable[i], 4);
 		}
 
-		y += fontHeight;
+		y += g_engine->_engine->fontHeight;
 	}
 
 	switch (g_engine->getGameId()) {
@@ -182,7 +177,7 @@ void processInventory() {
 	int selectedWorldObjectIdx = 0;
 	int selectedActions = 0;
 
-	if (!numObjInInventoryTable[currentInventory])
+	if (!g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory])
 		return;
 
 	int firstObjectDisplayedIdx = 0;
@@ -260,7 +255,7 @@ void processInventory() {
 					selectedObjectIdx--;
 				}
 
-				if (g_engine->_engine->localJoyD & 2 && selectedObjectIdx < numObjInInventoryTable[currentInventory] - 1) {
+				if (g_engine->_engine->localJoyD & 2 && selectedObjectIdx < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory] - 1) {
 					selectedObjectIdx++;
 				}
 
@@ -316,7 +311,7 @@ void processInventory() {
 		{
 			if (antiBounce < 1) {
 				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) {
-					selectedObjectIdx = inventoryTable[currentInventory][selectedObjectIdx];
+					selectedObjectIdx = g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][selectedObjectIdx];
 					g_engine->_engine->action = 1 << (inventoryActionTable[selectedActions] - 23);
 					choice = 1;
 					exitMenu = 1;

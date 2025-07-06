@@ -32,8 +32,6 @@ typedef struct TextEntryStruct {
 	int16 width;
 } TextEntryStruct;
 
-extern int fontHeight;
-
 void extSetFont(byte *fontData, int color);
 void setFontSpace(int interWordSpace, int interLetterSpace);
 int extGetSizeFont(const char *string);

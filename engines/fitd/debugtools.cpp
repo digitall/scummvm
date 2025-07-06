@@ -47,7 +47,7 @@ static void drawCamera() {
 	if (ImGui::Begin("Camera", &_state->showCamera)) {
 		ImGui::Text("timer: %u", g_engine->_engine->timer);
 
-		CameraData *pCamera = cameraDataTable[g_engine->_engine->currentCamera];
+		CameraData *pCamera = g_engine->_engine->cameraDataTable[g_engine->_engine->currentCamera];
 		if (pCamera) {
 			ImGui::BeginGroup();
 			ImGui::PushID("Position");

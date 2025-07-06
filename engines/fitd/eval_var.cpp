@@ -348,7 +348,7 @@ int evalVar(const char *name) {
 				return actorPtr->gamma;
 			}
 			case 0x19: {
-				return inHandTable[currentInventory];
+				return g_engine->_engine->inHandTable[g_engine->_engine->currentInventory];
 			}
 			case 0x1A: {
 				return actorPtr->hitForce;
@@ -661,13 +661,13 @@ int evalVar2(const char *name) {
 			return actorPtr->gamma;
 		}
 		case 0x19: {
-			return inHandTable[currentInventory];
+			return g_engine->_engine->inHandTable[g_engine->_engine->currentInventory];
 		}
 		case 0x1A: {
 			return actorPtr->hitForce;
 		}
 		case 0x1B: {
-			return cameraDataTable[g_engine->_engine->currentCamera] - &g_engine->_engine->currentFloorCameraData[0];
+			return g_engine->_engine->cameraDataTable[g_engine->_engine->currentCamera] - &g_engine->_engine->currentFloorCameraData[0];
 		}
 		case 0x1C: {
 			const int temp = *(int16 *)g_engine->_engine->currentLifePtr;

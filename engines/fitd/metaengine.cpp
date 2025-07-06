@@ -32,7 +32,6 @@
 #include "fitd/detection.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/gfx.h"
 #include "fitd/system_menu.h"
 
 class FitdMetaEngine final : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
@@ -127,7 +126,7 @@ SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int s
 			f->seek(descriptionOffset, SEEK_SET);
 			savegameDesc = f->readString();
 
-			memcpy(palette, Fitd::currentGamePalette, 768);
+			memcpy(palette, Fitd::g_engine->_engine->currentGamePalette, 768);
 		} else {
 			const uint32 thumbOffset = f->readUint32BE(); // offset to thumbnail
 			const uint32 palOffset = f->readUint32BE();   // offset to palette
@@ -161,7 +160,7 @@ SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int s
 void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
 	Graphics::ManagedSurface screen;
 	screen.create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
-	screen.setPalette(Fitd::currentGamePalette, 0, 256);
+	screen.setPalette(Fitd::g_engine->_engine->currentGamePalette, 0, 256);
 	Fitd::scaleDownImage(320, 200, 0, 0, Fitd::g_engine->_engine->aux2, static_cast<byte *>(screen.getBasePtr(0, 0)), 320);
 	const Common::ScopedPtr<Graphics::ManagedSurface> scaledScreen(screen.scale(kThumbnailWidth, kThumbnailHeight2));
 	thumb.copyFrom(*scaledScreen);

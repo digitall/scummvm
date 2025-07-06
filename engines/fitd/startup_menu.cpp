@@ -40,13 +40,13 @@ void aitd2DrawStartupMenu(int selectedEntry) {
 	while (currentTextNum < 3) {
 		if (currentTextNum == selectedEntry) // highlight selected entry
 		{
-			fillBox(17, currentY, 303, currentY + fontHeight, 100);
+			fillBox(17, currentY, 303, currentY + g_engine->_engine->fontHeight, 100);
 			selectedMessage(160, currentY + 1, currentTextNum + 11, 15, 4);
 		} else {
 			simpleMessage(160, currentY, currentTextNum + 11, 4);
 		}
 
-		currentY += fontHeight; // next line
+		currentY += g_engine->_engine->fontHeight; // next line
 		currentTextNum++;       // next text
 	}
 }
@@ -93,7 +93,7 @@ int processStartupMenu() {
 		byte lpalette[768];
 		copyPalette(g_engine->_engine->aux, lpalette);
 		convertPaletteIfRequired(lpalette);
-		copyPalette(lpalette, currentGamePalette);
+		copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 		gfx_setPalette(lpalette);
 	}
 	drawStartupMenu(0);

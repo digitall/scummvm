@@ -206,7 +206,7 @@ LifeMacro aitd2LifeMacroTable[] =
 };
 
 void aitd2Start(int saveSlot) {
-	fontHeight = 14;
+	g_engine->_engine->fontHeight = 14;
 	g_engine->_engine->pAITD2InventorySprite.reset(pakLoad("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE));
 	assert(g_engine->_engine->pAITD2InventorySprite);
 
@@ -293,7 +293,7 @@ void aitd2ReadBook(int index, int type) {
 		byte lpalette[0x300];
 		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
-		copyPalette(lpalette, currentGamePalette);
+		copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 		gfx_setPalette(lpalette);
 		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 0;
@@ -306,7 +306,7 @@ void aitd2ReadBook(int index, int type) {
 		byte lpalette[0x300];
 		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
-		copyPalette(lpalette, currentGamePalette);
+		copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 		gfx_setPalette(lpalette);
 		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 1;
@@ -319,7 +319,7 @@ void aitd2ReadBook(int index, int type) {
 		byte lpalette[0x300];
 		copyPalette(g_engine->_engine->aux + 64000, lpalette);
 		convertPaletteIfRequired(lpalette);
-		copyPalette(lpalette, currentGamePalette);
+		copyPalette(lpalette, g_engine->_engine->currentGamePalette);
 		gfx_setPalette(lpalette);
 		gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 		g_engine->_engine->turnPageFlag = 0;

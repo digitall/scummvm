@@ -42,23 +42,20 @@ namespace Fitd {
 #define NUM_MAX_PRIM_ENTRY 500
 #define NUM_MAX_BONES 50
 
-int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
+static int numOfBones;
 
-int numOfPoints;
-int numOfBones;
+static int16 cameraSpaceBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
 
-int16 cameraSpaceBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
+static bool boneRotateX;
+static bool boneRotateY;
+static bool boneRotateZ;
 
-bool boneRotateX;
-bool boneRotateY;
-bool boneRotateZ;
-
-int boneRotateXCos;
-int boneRotateXSin;
-int boneRotateYCos;
-int boneRotateYSin;
-int boneRotateZCos;
-int boneRotateZSin;
+static int boneRotateXCos;
+static int boneRotateXSin;
+static int boneRotateYCos;
+static int boneRotateYSin;
+static int boneRotateZCos;
+static int boneRotateZSin;
 
 typedef struct RendererPoint {
 	int16 X;
@@ -76,42 +73,35 @@ typedef struct PrimEntry {
 	float depth;
 } PrimEntry;
 
-PrimEntry primTable[NUM_MAX_PRIM_ENTRY];
+static PrimEntry primTable[NUM_MAX_PRIM_ENTRY];
 
-bool noModelRotation;
+static bool noModelRotation;
 
-int modelCosAlpha;
-int modelSinAlpha;
-int modelCosBeta;
-int modelSinBeta;
-int modelCosGamma;
-int modelSinGamma;
+static int modelCosAlpha;
+static int modelSinAlpha;
+static int modelCosBeta;
+static int modelSinBeta;
+static int modelCosGamma;
+static int modelSinGamma;
 
-uint32 positionInPrimEntry = 0;
+static uint32 positionInPrimEntry = 0;
 
-int renderVar1 = 0;
+static int renderVar1 = 0;
 
-int numOfPrimitiveToRender = 0;
+static int numOfPrimitiveToRender = 0;
 
-char renderBuffer[3261];
+static char renderBuffer[3261];
 
-char *renderVar2 = nullptr;
+static char *renderVar2 = nullptr;
 
-int modelFlags = 0;
+static int modelFlags = 0;
 
-char primBuffer[30000];
+static char primBuffer[30000];
 
-int BBox3D1 = 0;
-int BBox3D2 = 0;
-int BBox3D3 = 0;
-int BBox3D4 = 0;
-
-int renderX;
-int renderY;
-int renderZ;
-Renderer renderer;
-byte frontBuffer[320 * 200];
-byte currentGamePalette[256 * 3];
+static int renderX;
+static int renderY;
+static int renderZ;
+static Renderer renderer;
 
 void gfx_init() {
 	const Common::RenderMode configRenderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
@@ -277,7 +267,7 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 }
 
 static void translateGroupe(int transX, int transY, int transZ, const Group *ptr) {
-	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
+	int16 *ptrSource = &g_engine->_engine->pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
 		*ptrSource++ += transX;
@@ -287,7 +277,7 @@ static void translateGroupe(int transX, int transY, int transZ, const Group *ptr
 }
 
 static void zoomGroupe(int zoomX, int zoomY, int zoomZ, const Group *ptr) {
-	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
+	int16 *ptrSource = &g_engine->_engine->pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
 		*ptrSource = *ptrSource * (zoomX + 256) / 256;
@@ -370,7 +360,7 @@ static void rotateGroupeOptimise(const Group *ptr) {
 		const int baseBone = ptr->m_start;
 		const int numPoints = ptr->m_numVertices;
 
-		rotateList(pointBuffer + baseBone * 3, numPoints);
+		rotateList(g_engine->_engine->pointBuffer + baseBone * 3, numPoints);
 	}
 }
 
@@ -378,7 +368,7 @@ static void rotateGroupe(Group *ptr) {
 	const int baseBone = ptr->m_start;
 	const int numPoints = ptr->m_numVertices;
 
-	rotateList(pointBuffer + baseBone * 3, numPoints);
+	rotateList(g_engine->_engine->pointBuffer + baseBone * 3, numPoints);
 
 	const int temp = ptr->m_numGroup; // group number
 
@@ -402,12 +392,12 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 	assert(pBody->m_vertices.size() < NUM_MAX_POINT_IN_POINT_BUFFER);
 
 	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
-		pointBuffer[i * 3 + 0] = pBody->m_vertices[i].x;
-		pointBuffer[i * 3 + 1] = pBody->m_vertices[i].y;
-		pointBuffer[i * 3 + 2] = pBody->m_vertices[i].z;
+		g_engine->_engine->pointBuffer[i * 3 + 0] = pBody->m_vertices[i].x;
+		g_engine->_engine->pointBuffer[i * 3 + 1] = pBody->m_vertices[i].y;
+		g_engine->_engine->pointBuffer[i * 3 + 2] = pBody->m_vertices[i].z;
 	}
 
-	numOfPoints = pBody->m_vertices.size();
+	g_engine->_engine->numOfPoints = pBody->m_vertices.size();
 	numOfBones = pBody->m_groupOrder.size();
 	assert(numOfBones < NUM_MAX_BONES);
 
@@ -478,8 +468,8 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 		assert(point1 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
 		assert(point2 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
 
-		const int16 *ptr1 = &pointBuffer[point1];
-		int16 *ptr2 = &pointBuffer[point2];
+		const int16 *ptr1 = &g_engine->_engine->pointBuffer[point1];
+		int16 *ptr2 = &g_engine->_engine->pointBuffer[point2];
 
 		const int number = pGroup->m_numVertices;
 
@@ -496,15 +486,15 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 
 	if (modelFlags & INFO_OPTIMISE) {
 		initGroupeRot(alpha, beta, gamma);
-		rotateList(pointBuffer, numOfPoints);
+		rotateList(g_engine->_engine->pointBuffer, g_engine->_engine->numOfPoints);
 	}
 
 	{
-		char *ptr = (char *)pointBuffer;
+		byte *ptr = (byte *)g_engine->_engine->pointBuffer;
 		int16 *outPtr = cameraSpaceBuffer;
-		int k = numOfPoints;
+		int k = g_engine->_engine->numOfPoints;
 
-		for (int i = 0; i < numOfPoints; i++) {
+		for (int i = 0; i < g_engine->_engine->numOfPoints; i++) {
 			int16 X = *(int16 *)ptr;
 			int16 Y = *(int16 *)(ptr + 2);
 			int16 Z = *(int16 *)(ptr + 4);
@@ -530,7 +520,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 			}
 		}
 
-		ptr = (char *)cameraSpaceBuffer;
+		ptr = (byte *)cameraSpaceBuffer;
 		int16 *outPtr2 = g_engine->_engine->renderPointList;
 
 		do {
@@ -554,21 +544,21 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 
 				*outPtr2++ = transformedX;
 
-				if (transformedX < BBox3D1)
-					BBox3D1 = static_cast<int>(transformedX);
+				if (transformedX < g_engine->_engine->BBox3D1)
+					g_engine->_engine->BBox3D1 = static_cast<int>(transformedX);
 
-				if (transformedX > BBox3D3)
-					BBox3D3 = static_cast<int>(transformedX);
+				if (transformedX > g_engine->_engine->BBox3D3)
+					g_engine->_engine->BBox3D3 = static_cast<int>(transformedX);
 
 				const int16 transformedY = Y * g_engine->_engine->cameraFovY / Z + g_engine->_engine->cameraCenterY;
 
 				*outPtr2++ = transformedY;
 
-				if (transformedY < BBox3D2)
-					BBox3D2 = static_cast<int>(transformedY);
+				if (transformedY < g_engine->_engine->BBox3D2)
+					g_engine->_engine->BBox3D2 = static_cast<int>(transformedY);
 
-				if (transformedY > BBox3D4)
-					BBox3D4 = static_cast<int>(transformedY);
+				if (transformedY > g_engine->_engine->BBox3D4)
+					g_engine->_engine->BBox3D4 = static_cast<int>(transformedY);
 
 				*outPtr2++ = Z;
 			}
@@ -664,21 +654,21 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 
 			*outPtr++ = transformedX;
 
-			if (transformedX < BBox3D1)
-				BBox3D1 = static_cast<int>(transformedX);
+			if (transformedX < g_engine->_engine->BBox3D1)
+				g_engine->_engine->BBox3D1 = static_cast<int>(transformedX);
 
-			if (transformedX > BBox3D3)
-				BBox3D3 = static_cast<int>(transformedX);
+			if (transformedX > g_engine->_engine->BBox3D3)
+				g_engine->_engine->BBox3D3 = static_cast<int>(transformedX);
 
 			const int16 transformedY = Y * g_engine->_engine->cameraFovY / Z + g_engine->_engine->cameraCenterY;
 
 			*outPtr++ = transformedY;
 
-			if (transformedY < BBox3D2)
-				BBox3D2 = static_cast<int>(transformedY);
+			if (transformedY < g_engine->_engine->BBox3D2)
+				g_engine->_engine->BBox3D2 = static_cast<int>(transformedY);
 
-			if (transformedY > BBox3D4)
-				BBox3D4 = static_cast<int>(transformedY);
+			if (transformedY > g_engine->_engine->BBox3D4)
+				g_engine->_engine->BBox3D4 = static_cast<int>(transformedY);
 
 			*outPtr++ = Z;
 
@@ -799,11 +789,11 @@ static void processPrim_Point(PrimType primType, Primitive *ptr, char **out) {
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte *bodyPtr) {
 	Body *pBody = getBodyFromPtr(bodyPtr);
 
-	BBox3D1 = 0x7FFF;
-	BBox3D2 = 0x7FFF;
+	g_engine->_engine->BBox3D1 = 0x7FFF;
+	g_engine->_engine->BBox3D2 = 0x7FFF;
 
-	BBox3D3 = -0x7FFF;
-	BBox3D4 = -0x7FFF;
+	g_engine->_engine->BBox3D3 = -0x7FFF;
+	g_engine->_engine->BBox3D4 = -0x7FFF;
 
 	renderVar1 = 0;
 
@@ -918,11 +908,11 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	positionInPrimEntry = 0;
 	//
 
-	BBox3D1 = 0x7FFF;
-	BBox3D2 = 0x7FFF;
+	g_engine->_engine->BBox3D1 = 0x7FFF;
+	g_engine->_engine->BBox3D2 = 0x7FFF;
 
-	BBox3D3 = -0x7FFF;
-	BBox3D4 = -0x7FFF;
+	g_engine->_engine->BBox3D3 = -0x7FFF;
+	g_engine->_engine->BBox3D4 = -0x7FFF;
 
 	renderVar1 = 0;
 
@@ -939,37 +929,37 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	if (modelFlags & INFO_ANIM) {
 		pBody->sync();
 		if (!animNuage(x, y, z, alpha, beta, gamma, pBody)) {
-			BBox3D3 = -32000;
-			BBox3D4 = -32000;
-			BBox3D1 = 32000;
-			BBox3D2 = 32000;
+			g_engine->_engine->BBox3D3 = -32000;
+			g_engine->_engine->BBox3D4 = -32000;
+			g_engine->_engine->BBox3D1 = 32000;
+			g_engine->_engine->BBox3D2 = 32000;
 			return 2;
 		}
 	} else if (!(modelFlags & INFO_TORTUE)) {
 		if (!rotateNuage(x, y, z, alpha, beta, gamma, pBody)) {
-			BBox3D3 = -32000;
-			BBox3D4 = -32000;
-			BBox3D1 = 32000;
-			BBox3D2 = 32000;
+			g_engine->_engine->BBox3D3 = -32000;
+			g_engine->_engine->BBox3D4 = -32000;
+			g_engine->_engine->BBox3D1 = 32000;
+			g_engine->_engine->BBox3D2 = 32000;
 			return 2;
 		}
 	} else {
 		debug("unsupported model type prerenderFlag4 in renderer !\n");
 
-		BBox3D3 = -32000;
-		BBox3D4 = -32000;
-		BBox3D1 = 32000;
-		BBox3D2 = 32000;
+		g_engine->_engine->BBox3D3 = -32000;
+		g_engine->_engine->BBox3D4 = -32000;
+		g_engine->_engine->BBox3D1 = 32000;
+		g_engine->_engine->BBox3D2 = 32000;
 		return 2;
 	}
 
 	const int numPrim = pBody->m_primitives.size();
 
 	if (!numPrim) {
-		BBox3D3 = -32000;
-		BBox3D4 = -32000;
-		BBox3D1 = 32000;
-		BBox3D2 = 32000;
+		g_engine->_engine->BBox3D3 = -32000;
+		g_engine->_engine->BBox3D4 = -32000;
+		g_engine->_engine->BBox3D1 = 32000;
+		g_engine->_engine->BBox3D2 = 32000;
 		return 2;
 	}
 
@@ -1010,10 +1000,10 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	}
 
 	if (!numOfPrimitiveToRender) {
-		BBox3D3 = -32000;
-		BBox3D4 = -32000;
-		BBox3D1 = 32000;
-		BBox3D2 = 32000;
+		g_engine->_engine->BBox3D3 = -32000;
+		g_engine->_engine->BBox3D4 = -32000;
+		g_engine->_engine->BBox3D1 = 32000;
+		g_engine->_engine->BBox3D2 = 32000;
 		return 1; // model ok, but out of screen
 	}
 

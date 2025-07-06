@@ -27,10 +27,8 @@
 namespace Graphics {
 struct Surface;
 }
-namespace Fitd {
 
-extern byte currentGamePalette[256 * 3];
-extern byte frontBuffer[320 * 200];
+namespace Fitd {
 
 void gfx_init();
 void gfx_deinit();
@@ -70,17 +68,6 @@ void osystem_updateScreen();
 
 void copyBoxLogPhys(int x0, int y0, int x1, int y1);
 void copyBlock(byte *in, byte *out, int left, int top, int right, int bottom);
-
-extern int BBox3D1;
-extern int BBox3D2;
-extern int BBox3D3;
-extern int BBox3D4;
-
-extern int numOfPoints;
-
-#define NUM_MAX_POINT_IN_POINT_BUFFER 800
-
-extern int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
 } // namespace Fitd
 
 #endif

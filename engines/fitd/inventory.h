@@ -22,18 +22,9 @@
 #ifndef FITD_INVENTORY_H
 #define FITD_INVENTORY_H
 
-#include "common/scummsys.h"
-
 #define AITD1_INVENTORY_SIZE 30
-#define INVENTORY_SIZE 50
-#define NUM_MAX_INVENTORY 2
 
 namespace Fitd {
-
-extern int16 currentInventory;
-extern int16 numObjInInventoryTable[NUM_MAX_INVENTORY];
-extern int16 inHandTable[NUM_MAX_INVENTORY];
-extern int16 inventoryTable[NUM_MAX_INVENTORY][INVENTORY_SIZE];
 
 extern int statusLeft;
 extern int statusTop;
