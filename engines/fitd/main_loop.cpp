@@ -279,7 +279,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 	}
 
 	g_engine->_engine->flagRotPal = 0;
-	//  shakingState = 0;
+	g_engine->_engine->shakeVar1 = 0;
 
 	//  stopShaking();
 	//  stopSounds();

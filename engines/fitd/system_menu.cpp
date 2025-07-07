@@ -366,7 +366,6 @@ void processSystemMenu() {
 						if (showLoadMenu(46)) {
 							g_engine->_engine->flagInitView = 2;
 							unfreezeTime();
-							restoreAmbiance();
 							return;
 						}
 						break;

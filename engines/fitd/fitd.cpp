@@ -27,6 +27,7 @@
 #include "fitd/detection.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
+#include "fitd/life.h"
 #include "fitd/save.h"
 
 namespace Fitd {
@@ -80,6 +81,14 @@ Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
 Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
 	// Default to returning an error when not implemented
 	return saveGame(stream, _saveDesc) == 1 ? Common::kNoError : Common::kWritingFailed;
+}
+
+Common::Error FitdEngine::loadGameState(int slot) {
+	Common::Error result = Engine::loadGameState(slot);
+	if (result.getCode() == Common::kNoError) {
+		restoreAmbiance();
+	}
+	return result;
 }
 
 Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {

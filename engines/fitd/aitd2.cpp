@@ -230,7 +230,6 @@ void aitd2Start(int saveSlot) {
 		case 1: // continue
 		{
 			if (g_engine->loadGameState(saveSlot != -1 ? saveSlot : 1).getCode() == Common::kNoError) {
-				restoreAmbiance();
 
 				g_engine->_engine->flagInitView = 2;
 

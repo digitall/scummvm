@@ -2275,7 +2275,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				if (g_engine->_engine->flagRotPal) {
 					setWaterHeight(-600);
 				} else {
-					setWaterHeight(1000);
+					setWaterHeight(10000);
 				}
 
 				break;

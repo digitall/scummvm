@@ -126,7 +126,9 @@ SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int s
 			f->seek(descriptionOffset, SEEK_SET);
 			savegameDesc = f->readString();
 
-			memcpy(palette, Fitd::g_engine->_engine->currentGamePalette, 768);
+			if (Fitd::g_engine) {
+				memcpy(palette, Fitd::g_engine->_engine->currentGamePalette, 768);
+			}
 		} else {
 			const uint32 thumbOffset = f->readUint32BE(); // offset to thumbnail
 			const uint32 palOffset = f->readUint32BE();   // offset to palette

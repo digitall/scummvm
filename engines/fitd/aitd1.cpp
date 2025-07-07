@@ -393,8 +393,6 @@ void aitd1Start(int saveSlot) {
 			} else if (g_engine->loadGameState(saveSlot).getCode() == Common::kNoError) {
 				// here, original would quit if protection flag was false
 
-				restoreAmbiance();
-
 				g_engine->_engine->flagInitView = 2;
 
 				setupCamera();

@@ -2286,7 +2286,7 @@ void foundObject(int objIdx, int param) {
 	objPtr->trackNumber = 0;
 
 	freezeTime();
-	setWaterHeight(1000);
+	setWaterHeight(10000);
 
 	int weight = 0;
 	for (int i = 0; i < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]; i++) {

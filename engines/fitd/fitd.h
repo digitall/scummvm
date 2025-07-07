@@ -62,6 +62,7 @@ public:
 	bool canLoadGameStateCurrently(Common::U32String *msg) override;
 	bool canSaveGameStateCurrently(Common::U32String *msg) override;
 	SaveStateList listSaveFiles() const;
+	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) override;
 
 private:
