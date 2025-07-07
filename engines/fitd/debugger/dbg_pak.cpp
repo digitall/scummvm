@@ -120,8 +120,10 @@ void debugPakInit() {
 }
 
 void debugPakCleanup() {
-	delete _state;
-	_state = nullptr;
+	if (_state) {
+		delete _state;
+		_state = nullptr;
+	}
 }
 
 void debugPakDraw() {

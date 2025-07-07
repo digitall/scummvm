@@ -19,12 +19,12 @@
  *
  */
 
+#include "fitd/debugtools.h"
 #include "backends/imgui/imgui.h"
 #include "common/debug.h"
 #include "fitd/debugger/dbg_pak.h"
 #include "fitd/debugger/dbg_utils.h"
 #include "fitd/debugger/dbg_vars.h"
-#include "fitd/debugtools.h"
 #include "fitd/detection.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
@@ -254,7 +254,10 @@ void onImGuiRender() {
 
 void onImGuiCleanup() {
 	debugPakCleanup();
-	delete _state;
-	_state = nullptr;
+
+	if (_state) {
+		delete _state;
+		_state = nullptr;
+	}
 }
 } // namespace Fitd

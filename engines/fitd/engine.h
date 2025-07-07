@@ -51,10 +51,7 @@ struct HqrEntry;
 
 class Engine {
 public:
-	Engine()
-		: bufferAnim{}, cVars{}, textTable{}, objectTable{}, messageTable{},
-		  listBox1{}, listBox2{}, roomPtrCamera{}, currentCameraVisibilityList{},
-		  renderPointList{}, sortedActorTable{}, cameraBuffer4{}, hardColTable{}, hardClip() {
+	Engine() {
 		cameraBufferPtr = cameraBuffer;
 		cameraBuffer2Ptr = cameraBuffer2;
 		cameraBuffer3Ptr = cameraBuffer3;
@@ -106,11 +103,11 @@ public:
 	byte logicalScreenBuffer[64800] = {};
 	byte *logicalScreen = nullptr;
 
-	int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
+	int16 bufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM] = {};
 
 	int unkScreenVar2 = 0;
 
-	int16 cVars[70];
+	int16 cVars[70] = {};
 	uint8 cVarsSize = 0;
 
 	byte ptrPrioritySample[247] = {};
@@ -140,7 +137,7 @@ public:
 
 	const char *languageNameString = nullptr;
 
-	RegularTextEntry textTable[40];
+	RegularTextEntry textTable[40] = {};
 
 	int turnPageFlag = 0;
 
@@ -152,7 +149,7 @@ public:
 	byte *screenSm4 = nullptr;
 	byte *screenSm5 = nullptr;
 
-	Object objectTable[NUM_MAX_OBJECT];
+	Object objectTable[NUM_MAX_OBJECT] = {};
 
 	int16 currentWorldTarget = 0;
 
@@ -161,13 +158,13 @@ public:
 	int16 vars[482] = {};
 	int varSize = 0;
 
-	Message messageTable[5];
+	Message messageTable[5] = {};
 
 	int16 currentMusic = 0;
 	int action = 0;
 
-	Box listBox1[50]; // recheckSize
-	Box listBox2[50];
+	Box listBox1[50] = {}; // recheckSize
+	Box listBox2[50] = {};
 	Box *listPhysBox = nullptr;
 	Box *listLogBox = nullptr;
 
@@ -200,7 +197,7 @@ public:
 	byte *cameraZoneData = nullptr;
 	int numRoomZone = 0;
 	byte *roomZoneData = nullptr;
-	byte *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+	byte *roomPtrCamera[NUM_MAX_CAMERA_IN_ROOM] = {};
 	int startGameVar1 = 0;
 
 	int transformX = 0;
@@ -226,7 +223,7 @@ public:
 	int cameraFovX = 0;
 	int cameraFovY = 0;
 
-	byte currentCameraVisibilityList[30];
+	byte currentCameraVisibilityList[30] = {};
 
 	int actorTurnedToObj = 0;
 
@@ -242,10 +239,10 @@ public:
 	bool cameraBackgroundChanged = false;
 	int flagRedraw = 0;
 
-	int16 renderPointList[6400];
+	int16 renderPointList[6400] = {};
 
 	int numActorInList = 0;
-	int sortedActorTable[NUM_MAX_OBJECT];
+	int sortedActorTable[NUM_MAX_OBJECT] = {};
 
 	int angleCompX = 0;
 	int angleCompZ = 0;
@@ -269,10 +266,10 @@ public:
 
 	int fadeState = 0;
 
-	byte cameraBuffer[256];
-	byte cameraBuffer2[256];
-	byte cameraBuffer3[400];
-	byte cameraBuffer4[400];
+	byte cameraBuffer[256] = {};
+	byte cameraBuffer2[256] = {};
+	byte cameraBuffer3[400] = {};
+	byte cameraBuffer4[400] = {};
 
 	byte *cameraBufferPtr = nullptr;
 	byte *cameraBuffer2Ptr = nullptr;
@@ -294,12 +291,12 @@ public:
 	int16 saveFlagRotPal = 0;
 	int16 waterHeight = 10000;
 
-	HardCol *hardColTable[10];
+	HardCol *hardColTable[10] = {};
 
 	int16 hardColStepX = 0;
 	int16 hardColStepZ = 0;
 
-	ZVStruct hardClip;
+	ZVStruct hardClip = {};
 
 	int hqLoad = 0;
 	int lightX = 4000;

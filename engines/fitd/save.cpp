@@ -235,9 +235,6 @@ static int loadJack(Common::SeekableReadStream *in) {
 }
 
 static int loadSaveOthers(Common::SeekableReadStream *in) {
-	int i;
-	int oldNumMaxObj = 0;
-
 	initEngine();
 	initVars();
 
@@ -254,7 +251,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	g_engine->_engine->currentCameraTargetActor = in->readSint16LE();
 	g_engine->_engine->maxObjects = in->readSint16LE();
 
-	for (i = 0; i < g_engine->_engine->maxObjects; i++) {
+	for (int16 i = 0; i < g_engine->_engine->maxObjects; i++) {
 		g_engine->_engine->worldObjets[i].objIndex = in->readSint16LE();
 		g_engine->_engine->worldObjets[i].body = in->readSint16LE();
 		g_engine->_engine->worldObjets[i].flags = in->readSint16LE();
@@ -283,14 +280,14 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 		g_engine->_engine->worldObjets[i].positionInTrack = in->readSint16LE();
 	}
 
-	for (i = 0; i < g_engine->_engine->cVarsSize; i++) {
+	for (uint8 i = 0; i < g_engine->_engine->cVarsSize; i++) {
 		g_engine->_engine->cVars[i] = in->readSint16LE();
 	}
 
 	g_engine->_engine->inHandTable = in->readSint16LE();
 	g_engine->_engine->numObjInInventoryTable = in->readSint16LE();
 
-	for (i = 0; i < INVENTORY_SIZE; i++) {
+	for (int i = 0; i < INVENTORY_SIZE; i++) {
 		g_engine->_engine->inventoryTable[i] = in->readSint16LE();
 	}
 
@@ -332,7 +329,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	const uint offsetToActors = in->readUint32BE();
 	in->seek(offsetToActors, SEEK_SET);
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		g_engine->_engine->objectTable[i].indexInWorld = in->readSint16LE();
 		g_engine->_engine->objectTable[i].bodyNum = in->readSint16LE();
 		g_engine->_engine->objectTable[i]._flags = in->readUint16LE();
@@ -413,7 +410,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 		g_engine->_engine->objectTable[i].hotPoint.z = in->readSint16LE();
 	}
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
 			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
 
@@ -677,10 +674,7 @@ static int saveAitd1(Common::WriteStream *out, const Common::String &desc) {
 	out->writeSint16LE(g_engine->_engine->currentCameraTargetActor);
 	out->writeSint16LE(g_engine->_engine->maxObjects);
 
-	int oldNumMaxObj = g_engine->_engine->maxObjects;
-	g_engine->_engine->maxObjects = 300; // fix for save engine...
-
-	for (int16 i = 0; i < g_engine->_engine->maxObjects; i++) {
+	for (int16 i = 0; i < 300; i++) {
 		out->writeSint16LE(g_engine->_engine->worldObjets[i].objIndex);
 		out->writeSint16LE(g_engine->_engine->worldObjets[i].body);
 		out->writeSint16LE(g_engine->_engine->worldObjets[i].flags);
@@ -708,8 +702,6 @@ static int saveAitd1(Common::WriteStream *out, const Common::String &desc) {
 		out->writeSint16LE(g_engine->_engine->worldObjets[i].trackNumber);
 		out->writeSint16LE(g_engine->_engine->worldObjets[i].positionInTrack);
 	}
-
-	g_engine->_engine->maxObjects = oldNumMaxObj;
 
 	for (uint i = 0; i < g_engine->_engine->cVarsSize; i++) {
 		out->writeSint16LE(g_engine->_engine->cVars[i]);
@@ -981,9 +973,7 @@ static int saveJack(Common::WriteStream *out, const Common::String &desc) {
 
 int makeSaveOthers(Common::WriteStream *out, const Common::String &desc) {
 	const uint32 var28 = 0;
-	int oldNumMaxObj = 0;
 
-	// Common::String buffer(Common::String::format("SAVE%d.ITD", entry));
 	out->writeUint32LE(var28);
 	out->writeUint32LE(var28);
 
@@ -993,14 +983,6 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String &desc) {
 	uint32 varsOffset = 0;
 	uint32 objsOffset = 0;
 	switch (g_engine->getGameId()) {
-	case GID_AITD1:
-		varsOffset = 19838;
-		objsOffset = 20254;
-		break;
-	case GID_JACK:
-		varsOffset = 2036;
-		objsOffset = 2142;
-		break;
 	case GID_AITD2:
 		varsOffset = 19144;
 		objsOffset = 20110;
