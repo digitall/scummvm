@@ -33,7 +33,6 @@
 
 #define NUM_MAX_POINT_IN_POINT_BUFFER 800
 #define INVENTORY_SIZE 50
-#define NUM_MAX_INVENTORY 2
 
 namespace Common {
 template<>
@@ -157,12 +156,9 @@ public:
 
 	int16 currentWorldTarget = 0;
 
-	int fileSize = 0;
-
 	int16 maxObjects = 0;
 
 	int16 vars[482] = {};
-
 	int varSize = 0;
 
 	Message messageTable[5];
@@ -334,10 +330,9 @@ public:
 
 	byte *polyBackBuffer = nullptr;
 
-	int16 currentInventory = 0;
-	int16 numObjInInventoryTable[NUM_MAX_INVENTORY] = {};
-	int16 inHandTable[NUM_MAX_INVENTORY] = {};
-	int16 inventoryTable[NUM_MAX_INVENTORY][INVENTORY_SIZE] = {};
+	int16 numObjInInventoryTable = {};
+	int16 inHandTable = {};
+	int16 inventoryTable[INVENTORY_SIZE] = {};
 
 	int BBox3D1 = 0;
 	int BBox3D2 = 0;

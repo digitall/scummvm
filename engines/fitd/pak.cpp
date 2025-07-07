@@ -30,8 +30,8 @@ typedef struct PakInfoStruct // warning: alignment unsafe
 {
 	int32 discSize;
 	int32 uncompressedSize;
-	char compressionFlag;
-	char info5;
+	byte compressionFlag;
+	byte info5;
 	int16 offset;
 } pakInfoStruct;
 

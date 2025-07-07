@@ -794,12 +794,8 @@ static void clearMessageList() {
 void initVars() {
 	g_engine->_engine->giveUp = 0;
 
-	g_engine->_engine->currentInventory = 0;
-
-	for (int i = 0; i < NUM_MAX_INVENTORY; i++) {
-		g_engine->_engine->numObjInInventoryTable[i] = 0;
-		g_engine->_engine->inHandTable[i] = -1;
-	}
+	g_engine->_engine->numObjInInventoryTable = 0;
+	g_engine->_engine->inHandTable = -1;
 
 	g_engine->_engine->action = 0;
 
@@ -1682,8 +1678,8 @@ void removeFromBGIncrust(int actorIdx) {
 }
 
 int findObjectInInventory(int objIdx) {
-	for (int i = 0; i < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]; i++) {
-		if (g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][i] == objIdx) {
+	for (int i = 0; i < g_engine->_engine->numObjInInventoryTable; i++) {
+		if (g_engine->_engine->inventoryTable[i] == objIdx) {
 			return i;
 		}
 	}
@@ -1696,8 +1692,8 @@ void deleteInventoryObjet(int objIdx) {
 	if (inventoryIdx == -1)
 		return;
 
-	memmove(&g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][inventoryIdx], &g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
-	g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]--;
+	memmove(&g_engine->_engine->inventoryTable[inventoryIdx], &g_engine->_engine->inventoryTable[inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
+	g_engine->_engine->numObjInInventoryTable--;
 	g_engine->_engine->worldObjets[objIdx].flags2 &= 0x7FFF;
 }
 
@@ -2231,18 +2227,18 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 void take(int objIdx) {
 	WorldObject *objPtr = &g_engine->_engine->worldObjets[objIdx];
 
-	if (g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory] == 0) {
-		g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][0] = objIdx;
+	if (g_engine->_engine->numObjInInventoryTable == 0) {
+		g_engine->_engine->inventoryTable[0] = objIdx;
 	} else {
 
-		for (int i = g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]; i > 0; i--) {
-			g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][i + 1] = g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][i];
+		for (int i = g_engine->_engine->numObjInInventoryTable; i > 0; i--) {
+			g_engine->_engine->inventoryTable[i + 1] = g_engine->_engine->inventoryTable[i];
 		}
 
-		g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][1] = objIdx;
+		g_engine->_engine->inventoryTable[1] = objIdx;
 	}
 
-	g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]++;
+	g_engine->_engine->numObjInInventoryTable++;
 
 	g_engine->_engine->action = 0x800;
 
@@ -2289,11 +2285,11 @@ void foundObject(int objIdx, int param) {
 	setWaterHeight(10000);
 
 	int weight = 0;
-	for (int i = 0; i < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]; i++) {
-		weight += g_engine->_engine->worldObjets[g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][i]].positionInTrack;
+	for (int i = 0; i < g_engine->_engine->numObjInInventoryTable; i++) {
+		weight += g_engine->_engine->worldObjets[g_engine->_engine->inventoryTable[i]].positionInTrack;
 	}
 
-	if (objPtr->positionInTrack + weight > g_engine->_engine->cVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory] + 1 == 30) {
+	if (objPtr->positionInTrack + weight > g_engine->_engine->cVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || g_engine->_engine->numObjInInventoryTable + 1 == 30) {
 		var_6 = 3;
 	}
 

@@ -64,10 +64,10 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 		y = 28;
 	}
 	for (int i = 0; i < 5; i++) {
-		if (startIdx >= g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory])
+		if (startIdx >= g_engine->_engine->numObjInInventoryTable)
 			break;
 
-		const int currentObj = g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][startIdx];
+		const int currentObj = g_engine->_engine->inventoryTable[startIdx];
 
 		const WorldObject *objPtr = &g_engine->_engine->worldObjets[currentObj];
 
@@ -95,7 +95,7 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 		affSpfI(298, 10, 10, g_engine->_engine->ptrCadre);
 	}
 
-	if (var_6 + 5 < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory]) {
+	if (var_6 + 5 < g_engine->_engine->numObjInInventoryTable) {
 		affSpfI(298, 74, 9, g_engine->_engine->ptrCadre);
 	}
 
@@ -177,7 +177,7 @@ void processInventory() {
 	int selectedWorldObjectIdx = 0;
 	int selectedActions = 0;
 
-	if (!g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory])
+	if (!g_engine->_engine->numObjInInventoryTable)
 		return;
 
 	int firstObjectDisplayedIdx = 0;
@@ -255,7 +255,7 @@ void processInventory() {
 					selectedObjectIdx--;
 				}
 
-				if (g_engine->_engine->localJoyD & 2 && selectedObjectIdx < g_engine->_engine->numObjInInventoryTable[g_engine->_engine->currentInventory] - 1) {
+				if (g_engine->_engine->localJoyD & 2 && selectedObjectIdx < g_engine->_engine->numObjInInventoryTable - 1) {
 					selectedObjectIdx++;
 				}
 
@@ -311,7 +311,7 @@ void processInventory() {
 		{
 			if (antiBounce < 1) {
 				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) {
-					selectedObjectIdx = g_engine->_engine->inventoryTable[g_engine->_engine->currentInventory][selectedObjectIdx];
+					selectedObjectIdx = g_engine->_engine->inventoryTable[selectedObjectIdx];
 					g_engine->_engine->action = 1 << (inventoryActionTable[selectedActions] - 23);
 					choice = 1;
 					exitMenu = 1;

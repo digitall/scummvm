@@ -19,10 +19,9 @@
  *
  */
 
+#include "fitd/file_access.h"
 #include "common/file.h"
 #include "common/textconsole.h"
-#include "fitd/engine.h"
-#include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/pak.h"
 
@@ -33,13 +32,13 @@ int loadFromItd(const char *name, void *data, int size) {
 	if (!f.open(name)) {
 		error("Fitd::loadFromItd: can't open %s", name);
 	}
-	g_engine->_engine->fileSize = f.size();
-	if (size < g_engine->_engine->fileSize) {
-		error("Not enough memory for %s, expecting %d bytes, got %d bytes", name, g_engine->_engine->fileSize, size);
+	const int fileSize = f.size();
+	if (size < fileSize) {
+		error("Not enough memory for %s, expecting %d bytes, got %d bytes", name, fileSize, size);
 	}
-	f.read(data, g_engine->_engine->fileSize);
+	f.read(data, fileSize);
 	f.close();
-	return g_engine->_engine->fileSize;
+	return fileSize;
 }
 
 byte *checkLoadMallocPak(const char *name, int index) {

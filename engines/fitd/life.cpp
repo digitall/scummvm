@@ -1882,10 +1882,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 			{
 				// appendFormated("LM_IN_HAND ");
 				if (g_engine->getGameId() <= GID_JACK) {
-					g_engine->_engine->inHandTable[g_engine->_engine->currentInventory] = *(int16 *)g_engine->_engine->currentLifePtr;
+					g_engine->_engine->inHandTable = *(int16 *)g_engine->_engine->currentLifePtr;
 					g_engine->_engine->currentLifePtr += 2;
 				} else {
-					g_engine->_engine->inHandTable[g_engine->_engine->currentInventory] = evalVar();
+					g_engine->_engine->inHandTable = evalVar();
 				}
 				break;
 			}
