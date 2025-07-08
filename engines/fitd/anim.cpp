@@ -398,7 +398,7 @@ void updateAnimation() {
 				HardCol *pHardCol = g_engine->_engine->hardColTable[i];
 
 				if (pHardCol->type == 9) {
-					g_engine->_engine->currentProcessedActorPtr->HARD_COL = static_cast<short>(pHardCol->parameter);
+					g_engine->_engine->currentProcessedActorPtr->HARD_COL = static_cast<int16>(pHardCol->parameter);
 				}
 
 				if (pHardCol->type == 3) {

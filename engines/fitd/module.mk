@@ -29,7 +29,6 @@ MODULE_OBJS = \
 	music.o \
 	object.o \
 	pak.o \
-	polys.o \
 	renderer_opengl.o \
 	renderer_soft.o \
 	room.o \

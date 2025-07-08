@@ -52,9 +52,6 @@ struct HqrEntry;
 class Engine {
 public:
 	Engine() {
-		cameraBufferPtr = cameraBuffer;
-		cameraBuffer2Ptr = cameraBuffer2;
-		cameraBuffer3Ptr = cameraBuffer3;
 		logicalScreen = logicalScreenBuffer;
 
 		listMus = hqrInitRessource("LISTMUS.PAK", 110000, 40);
@@ -265,15 +262,6 @@ public:
 	int16 newFloor = 0;
 
 	int fadeState = 0;
-
-	byte cameraBuffer[256] = {};
-	byte cameraBuffer2[256] = {};
-	byte cameraBuffer3[400] = {};
-	byte cameraBuffer4[400] = {};
-
-	byte *cameraBufferPtr = nullptr;
-	byte *cameraBuffer2Ptr = nullptr;
-	byte *cameraBuffer3Ptr = nullptr;
 
 	int overlaySize1 = 0;
 	int overlaySize2 = 0;

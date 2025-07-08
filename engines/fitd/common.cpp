@@ -19,19 +19,21 @@
  *
  */
 
-#include "fitd/common.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/file.h"
+#include "common/memstream.h"
 #include "common/system.h"
+#include "graphics/managed_surface.h"
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
+#include "fitd/common.h"
 #include "fitd/debugtools.h"
 #include "fitd/engine.h"
 #include "fitd/file_access.h"
@@ -41,7 +43,6 @@
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
-#include "fitd/inventory.h"
 #include "fitd/jack.h"
 #include "fitd/life.h"
 #include "fitd/lines.h"
@@ -960,51 +961,69 @@ static void loadMask(int cameraIdx) {
 	}
 }
 
-void fillpoly(int16 *datas, int n, byte c);
-
 static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < g_engine->_engine->cameraDataTable[g_engine->_engine->currentCamera]->numViewedRooms; viewedRoomIdx++) {
 		const CameraViewedRoom *pcameraViewedRoomData = &g_engine->_engine->cameraDataTable[g_engine->_engine->currentCamera]->viewedRoomTable[viewedRoomIdx];
 
-		byte *data2 = g_engine->_engine->roomPtrCamera[g_engine->_engine->currentCamera] + pcameraViewedRoomData->offsetToMask;
-		byte *data = data2;
+		byte *dataStart = g_engine->_engine->roomPtrCamera[g_engine->_engine->currentCamera] + pcameraViewedRoomData->offsetToMask;
+		byte *data = dataStart;
 		data += 2;
 
-		const int numMask = *(int16 *)data2;
+		const int numMask = *(int16 *)dataStart;
+
+		Graphics::ManagedSurface s;
+		s.create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
+		const byte colorMask = 0xFF;
+		byte pal[256 * 3] = {};
+		pal[255 * 3 + 0] = 0xFF;
+		pal[255 * 3 + 1] = 0xFF;
+		pal[255 * 3 + 2] = 0xFF;
 
 		for (int maskIdx = 0; maskIdx < numMask; maskIdx++) {
 			maskStruct *pDestMask = &maskBuffers[viewedRoomIdx][maskIdx];
-			memset(pDestMask->mask, 0, 320 * 200);
-			g_engine->_engine->polyBackBuffer = &pDestMask->mask[0];
-
-			byte *src = data2 + *(uint16 *)(data + 2);
-
-			// int numMaskZone = *(int16 *)(data);
+			byte *src = dataStart + *(uint16 *)(data + 2);
+			const int numMaskPoly = *(int16 *)src;
+			src += 2;
 
 			int minX = 319;
 			int maxX = 0;
 			int minY = 199;
 			int maxY = 0;
 
-			/*if(isBgOverlayRequired( actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
-			actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
-			data+4,
-			*(int16*)(data) ))*/
-			{
-				const int numMaskPoly = *(int16 *)src;
+			if (g_engine->_engine->currentFloor == 7 && g_engine->_engine->currentRoom == 1 && g_engine->_engine->currentCamera == 1) {
+				int tmp = 42;
+			}
+
+			s.clear();
+			for (int maskPolyIdx = 0; maskPolyIdx < numMaskPoly; maskPolyIdx++) {
+				const int numPoints = *(int16 *)src;
 				src += 2;
 
-				for (int maskPolyIdx = 0; maskPolyIdx < numMaskPoly; maskPolyIdx++) {
-					const int numPoints = *(int16 *)src;
-					src += 2;
-
-					memcpy(g_engine->_engine->cameraBuffer, src, numPoints * 4);
-
-					fillpoly((int16 *)src, numPoints, 0xFF);
-
+				switch (numPoints) {
+				case 1: {
+					const int16 x = *(int16 *)(src + 0);
+					const int16 y = *(int16 *)(src + 2);
+					s.setPixel(x, y, colorMask);
+					break;
+				}
+				case 2: {
+					const int16 x1 = *(int16 *)(src + 0);
+					const int16 y1 = *(int16 *)(src + 2);
+					const int16 x2 = *(int16 *)(src + 4);
+					const int16 y2 = *(int16 *)(src + 6);
+					s.drawLine(x1, y1, x2, y2, colorMask);
+					break;
+				}
+				default: {
+					Common::Array<int> x;
+					Common::Array<int> y;
+					x.resize(numPoints);
+					y.resize(numPoints);
 					for (int verticeId = 0; verticeId < numPoints; verticeId++) {
-						const short verticeX = *(short *)(src + verticeId * 4 + 0);
-						const short verticeY = *(short *)(src + verticeId * 4 + 2);
+						const int16 verticeX = *(int16 *)(src + verticeId * 4 + 0);
+						const int16 verticeY = *(int16 *)(src + verticeId * 4 + 2);
+						x[verticeId] = verticeX;
+						y[verticeId] = verticeY;
 
 						minX = MIN(minX, static_cast<int>(verticeX));
 						minY = MIN(minY, static_cast<int>(verticeY));
@@ -1012,75 +1031,28 @@ static void createAITD1Mask() {
 						maxY = MAX(maxY, static_cast<int>(verticeY));
 					}
 
-					src += numPoints * 4;
-					// drawBgOverlaySub2(param);
+					// draw polygon
+					s.drawPolygonScan(x.data(), y.data(), numPoints, Common::Rect(0, 0, 319, 199), colorMask);
+					for (int i = 0; i < numPoints - 1; ++i) {
+						s.drawLine(x[i], y[i], x[i + 1], y[i + 1], colorMask);
+					}
+
+					// draw polygon contour
+					s.drawLine(x[numPoints - 1], y[numPoints - 1], x[0], y[0], colorMask);
+					break;
+				}
 				}
 
-				//      blitOverlay(src);
-
-				g_engine->_engine->polyBackBuffer = nullptr;
+				src += numPoints * 4;
 			}
 
-			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, g_engine->_engine->aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
+			memcpy(pDestMask->mask, s.getBasePtr(0, 0), 320 * 200);
+			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, g_engine->_engine->aux, minX, minY, maxX, maxY);
 
 			const int numOverlay = *(int16 *)data;
 			data += 2;
 			data += (numOverlay * 4 + 1) * 2;
 		}
-
-		/*		byte* pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i*4);
-
-		for(int j=0; j<pRoomView->numMask; j++)
-		{
-		byte* pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j*4);
-
-		maskStruct* pDestMask = &g_maskBuffers[i][j];
-
-		memset(pDestMask->mask, 0, 320*200);
-
-		pDestMask->x1 = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-		pDestMask->y1 = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-		pDestMask->x2 = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-		pDestMask->y2 = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-		pDestMask->deltaX = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-		pDestMask->deltaY = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-
-		assert(pDestMask->deltaX == pDestMask->x2 - pDestMask->x1 + 1);
-		assert(pDestMask->deltaY == pDestMask->y2 - pDestMask->y1 + 1);
-
-		for(int k=0; k<pDestMask->deltaY; k++)
-		{
-		u16 uNumEntryForLine = READ_LE_U16(pMaskData);
-		pMaskData += 2;
-
-		byte* pDestBuffer = pDestMask->mask;
-		byte* pSourceBuffer = (byte*)g_engine->_engine->aux;
-
-		int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
-
-		for(int l=0; l<uNumEntryForLine; l++)
-		{
-		byte uNumSkip = *(pMaskData++);
-		byte uNumCopy = *(pMaskData++);
-
-		offset += uNumSkip;
-
-		for(int m=0; m<uNumCopy; m++)
-		{
-		pDestBuffer[offset] = 0xFF;
-		offset++;
-		}
-		}
-		}
-
-		osystem_createMask(pDestMask->mask, i, j, (byte*)g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
-		}*/
 	}
 
 	g_engine->_engine->polyBackBuffer = nullptr;
@@ -1753,8 +1725,6 @@ static void drawBgOverlay(Object *actorPtr) {
 		const int numOverlayZone = *(int16 *)data2;
 
 		for (int i = 0; i < numOverlayZone; i++) {
-			// char *src = data2 + *(uint16 *)(data + 2);
-
 			if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
 									actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
 									data + 4,
@@ -1762,26 +1732,6 @@ static void drawBgOverlay(Object *actorPtr) {
 				osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
 				osystem_drawMask(relativeCameraIndex, i);
 				osystem_clearClip();
-
-				/*
-				int j;
-				numOverlay = *(s16*)src;
-				src += 2;
-
-				for(j=0;j<numOverlay;j++)
-				{
-				int param = *(s16*)(src);
-				src+=2;
-
-				memcpy(g_engine->_engine->cameraBuffer, src, param*4);
-
-				src+=param*4;
-
-				drawBgOverlaySub2(param);
-				}
-				*/
-
-				//      blitOverlay(src);
 			}
 
 			const int numOverlay = *(int16 *)data;
@@ -2549,7 +2499,7 @@ void processActor2() {
 
 					const int oldRoom = g_engine->_engine->currentProcessedActorPtr->room;
 
-					g_engine->_engine->currentProcessedActorPtr->room = static_cast<short>(pCurrentZone->parameter);
+					g_engine->_engine->currentProcessedActorPtr->room = static_cast<int16>(pCurrentZone->parameter);
 
 					const int x = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldX - g_engine->_engine->roomDataTable[oldRoom].worldX) * 10;
 					const int y = (g_engine->_engine->roomDataTable[g_engine->_engine->currentProcessedActorPtr->room].worldY - g_engine->_engine->roomDataTable[oldRoom].worldY) * 10;
@@ -2571,7 +2521,7 @@ void processActor2() {
 					onceMore = true;
 					if (g_engine->_engine->currentProcessedActorIdx == g_engine->_engine->currentCameraTargetActor) {
 						g_engine->_engine->needChangeRoom = 1;
-						g_engine->_engine->newRoom = static_cast<short>(pCurrentZone->parameter);
+						g_engine->_engine->newRoom = static_cast<int16>(pCurrentZone->parameter);
 						if (g_engine->getGameId() > GID_AITD1)
 							loadRoom(g_engine->_engine->newRoom);
 
@@ -2586,14 +2536,14 @@ void processActor2() {
 				case 8: {
 					assert(g_engine->getGameId() != GID_AITD1);
 					if (g_engine->getGameId() != GID_AITD1) {
-						g_engine->_engine->currentProcessedActorPtr->hardMat = static_cast<short>(pCurrentZone->parameter);
+						g_engine->_engine->currentProcessedActorPtr->hardMat = static_cast<int16>(pCurrentZone->parameter);
 					}
 					break;
 				}
 				case 9: // Scenar
 				{
 					if (g_engine->getGameId() == GID_AITD1 || !flagFloorChange) {
-						g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<short>(pCurrentZone->parameter);
+						g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<int16>(pCurrentZone->parameter);
 					}
 					break;
 				}
@@ -2607,7 +2557,7 @@ void processActor2() {
 
 					g_engine->_engine->currentProcessedActorPtr->life = life;
 
-					g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<short>(pCurrentZone->parameter);
+					g_engine->_engine->currentProcessedActorPtr->HARD_DEC = static_cast<int16>(pCurrentZone->parameter);
 					flagFloorChange = true;
 					return;
 				}
