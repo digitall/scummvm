@@ -78,6 +78,22 @@ void updatePendingEvents() {
 	// 			*/
 	//         }
 	//     }
+
+	if (g_engine->_engine->newFlagLight != 0) {
+		g_engine->_engine->newFlagLight = 0;
+		if (g_engine->_engine->cVars[getCVarsIdx(KILLED_SORCERER)] != 0) {
+			if (g_engine->_engine->lightOff) {
+				fadeOutPhys(64, 2);
+				memset(g_engine->_engine->logicalScreen, 0, 320 * 200);
+				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
+				gfx_setPalette(g_engine->_engine->currentGamePalette);
+			} else {
+				makeBlackPalette();
+				osystem_updateScreen();
+				fadeInPhys(64, 0);
+			}
+		}
+	}
 }
 
 void mainLoop(int allowSystemMenu, int deltaTime) {
@@ -264,14 +280,11 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 
 		sortActorList();
 
-		//    if(FlagRefreshAux2)
-		{
-			//      setupCameraSub4();
+		if (g_engine->_engine->flagRefreshAux2) {
+			refreshAux2();
 		}
 
-		//    mainLoopSub1();
-
-		// osystem_delay(100);
+		//    gereAux2();
 
 		mainDraw(g_engine->_engine->flagRedraw);
 

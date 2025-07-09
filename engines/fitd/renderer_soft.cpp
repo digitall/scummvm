@@ -237,8 +237,8 @@ static void renderer_setClip(float left, float top, float right, float bottom) {
 	_state->clipMask.x = CLIP(_state->clipMask.x, static_cast<int16>(0), static_cast<int16>(WIDTH));
 	_state->clipMask.y = CLIP(_state->clipMask.y, static_cast<int16>(0), static_cast<int16>(HEIGHT));
 
-	_state->clipMask.w = CLIP(_state->clipMask.w, static_cast<int16>(0), static_cast<int16>(WIDTH - _state->clipMask.x - 1));
-	_state->clipMask.h = CLIP(_state->clipMask.h, static_cast<int16>(0), static_cast<int16>(HEIGHT - _state->clipMask.y - 1));
+	_state->clipMask.w = CLIP(_state->clipMask.w, static_cast<int16>(0), static_cast<int16>(WIDTH - _state->clipMask.x));
+	_state->clipMask.h = CLIP(_state->clipMask.h, static_cast<int16>(0), static_cast<int16>(HEIGHT - _state->clipMask.y));
 }
 
 static void renderer_clearClip() {
@@ -249,6 +249,28 @@ static void renderer_clearClip() {
 }
 
 static void renderer_drawMask(int roomId, int maskId) {
+	if (maskId == 666) {
+		for (uint16 i = 0; i < _state->numMasks; i++) {
+			const Mask *pMask = &_state->masks[i];
+			if (pMask->roomId == roomId && pMask->maskId == maskId) {
+				byte *s = static_cast<byte *>(g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y));
+				const byte *m = &pMask->mask[_state->clipMask.y * WIDTH + _state->clipMask.x];
+				for (int16 h = 0; h < _state->clipMask.h; h++) {
+					for (int16 w = 0; w < _state->clipMask.w; w++) {
+						if (!*m) {
+							*s = 0;
+						}
+						m++;
+						s++;
+					}
+					m += WIDTH - _state->clipMask.w;
+					s += WIDTH - _state->clipMask.w;
+				}
+				return;
+			}
+		}
+	}
+
 	for (uint16 i = 0; i < _state->numMasks; i++) {
 		const Mask *pMask = &_state->masks[i];
 		if (pMask->roomId == roomId && pMask->maskId == maskId) {
@@ -709,6 +731,17 @@ struct FlatRenderState {
 	byte color;
 } _flatState;
 
+struct CopyPolyRenderState {
+	byte *ptr;
+} _copyPolyState;
+
+static void copypoly_init(byte c) {
+}
+
+static void copypoly_render(byte *dst) {
+	*dst = 0xFF;
+}
+
 static void none_nextLine(int16 xMin, int16 xMax) {
 }
 
@@ -841,7 +874,7 @@ static void render(byte color, uint8 material) {
 	assert(_state->polyMinY >= 0);
 	assert(_state->polyMaxY < HEIGHT);
 	int16 y = _state->polyMinY;
-	byte *pDestLine = static_cast<uint8 *>(g_engine->_screen->getBasePtr(0, y));
+	byte *pDestLine = static_cast<uint8 *>(material == 7 ? g_engine->_engine->frontBuffer + y * 320 : g_engine->_screen->getBasePtr(0, y));
 	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
 	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
 	MaterialRender matRender;
@@ -899,6 +932,13 @@ static void render(byte color, uint8 material) {
 		matRender.init = marble_init;
 		matRender.render = marble2_render;
 		matRender.nextLine = marble_nextLine;
+		break;
+	}
+	case 7: {
+		// copypoly
+		matRender.init = copypoly_init;
+		matRender.render = copypoly_render;
+		matRender.nextLine = none_nextLine;
 		break;
 	}
 	default: {

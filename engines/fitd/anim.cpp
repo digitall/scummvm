@@ -457,13 +457,13 @@ void updateAnimation() {
 
 			if (actorTouchedPtr->_flags & AF_FOUNDABLE) // takable
 			{
-				if (g_engine->_engine->currentProcessedActorPtr->trackMode == 1 /*&& ((gameId == AITD1 && defines.field_1E == 0) || (gameId >= JACK && defines.field_6 == 0))*/) // TODO: check if character isn't dead...
-				{
+				// TODO: check if character isn't dead...
+				if (g_engine->_engine->currentProcessedActorPtr->trackMode == 1 && ((g_engine->getGameId() == GID_AITD1 && g_engine->_engine->cVars[getCVarsIdx(DEAD_PERSO)] == 0)) /*|| (gameId >= JACK && defines.field_6 == 0))*/) {
 					foundObject(actorTouchedPtr->indexInWorld, 0);
 				}
 			} else {
-				if (actorTouchedPtr->_flags & AF_MOVABLE) // can be pushed ?
-				{
+				// can be pushed ?
+				if (actorTouchedPtr->_flags & AF_MOVABLE) {
 					ZVStruct localZv2;
 
 					bool isPushPossible = true;
@@ -485,8 +485,8 @@ void updateAnimation() {
 					}
 
 					if (!isPushPossible) {
-						if (stepX || stepZ) // if we're trying to move
-						{
+						// if we're trying to move
+						if (stepX || stepZ) {
 							if (actorTouchedPtr->room != g_engine->_engine->currentProcessedActorPtr->room) {
 								ZVStruct localZv3;
 
@@ -511,8 +511,8 @@ void updateAnimation() {
 								stepZ = g_engine->_engine->hardColStepZ;
 							}
 						}
-					} else // push succeed
-					{
+					} else {
+						// push succeed
 						if (actorTouchedPtr->_flags & AF_BOXIFY) {
 							removeFromBGIncrust(collisionIndex);
 						}
@@ -530,10 +530,10 @@ void updateAnimation() {
 				} else {
 					// can't be pushed
 					if (g_engine->_engine->currentProcessedActorPtr->dynFlags & 1) {
-						if (stepX || stepZ) // if moving
-						{
-							if (actorTouchedPtr->room == g_engine->_engine->currentProcessedActorPtr->room) // same room -> easy case
-							{
+						// if moving
+						if (stepX || stepZ) {
+							if (actorTouchedPtr->room == g_engine->_engine->currentProcessedActorPtr->room) {
+								// same room -> easy case
 								g_engine->_engine->hardColStepX = stepX;
 								g_engine->_engine->hardColStepZ = stepZ;
 
@@ -541,8 +541,8 @@ void updateAnimation() {
 
 								stepX = g_engine->_engine->hardColStepX;
 								stepZ = g_engine->_engine->hardColStepZ;
-							} else // different room
-							{
+							} else {
+								// different room
 								ZVStruct localZv3;
 
 								copyZv(touchedZv, &localZv3);
@@ -624,8 +624,8 @@ void updateAnimation() {
 		}
 	}
 
-	if (g_engine->_engine->currentProcessedActorPtr->END_FRAME) // key frame change
-	{
+	if (g_engine->_engine->currentProcessedActorPtr->END_FRAME) {
+		// key frame change
 		g_engine->_engine->currentProcessedActorPtr->FRAME++;
 
 		if (g_engine->_engine->currentProcessedActorPtr->FRAME >= g_engine->_engine->currentProcessedActorPtr->numOfFrames) // end of anim ?
@@ -652,8 +652,8 @@ void updateAnimation() {
 		g_engine->_engine->currentProcessedActorPtr->animNegX = 0;
 		g_engine->_engine->currentProcessedActorPtr->animNegY = 0;
 		g_engine->_engine->currentProcessedActorPtr->animNegZ = 0;
-	} else // not the end of anim
-	{
+	} else {
+		// not the end of anim
 		if (g_engine->_engine->currentProcessedActorPtr->ANIM == -1 && g_engine->_engine->currentProcessedActorPtr->speed != 0 && g_engine->_engine->currentProcessedActorPtr->speedChange.param == 0) {
 			g_engine->_engine->currentProcessedActorPtr->worldX += g_engine->_engine->currentProcessedActorPtr->stepX;
 			g_engine->_engine->currentProcessedActorPtr->roomX += g_engine->_engine->currentProcessedActorPtr->stepX;

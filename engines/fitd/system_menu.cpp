@@ -323,12 +323,6 @@ void processSystemMenu() {
 	freezeTime();
 	saveAmbiance();
 
-	if (g_engine->_engine->lightOff) {
-		makeBlackPalette();
-	}
-
-	// clearScreenSystemMenu(unkScreenVar,g_engine->_engine->aux2);
-
 	int currentSelectedEntry = 0;
 
 	while (!exitMenu && !::Engine::shouldQuit()) {
@@ -339,85 +333,77 @@ void processSystemMenu() {
 		flushScreen();
 		osystem_drawBackground();
 
-		if (g_engine->_engine->lightOff) {
-			fadeInPhys(0x40, 0);
-		}
+		g_engine->_engine->localKey = g_engine->_engine->key;
+		g_engine->_engine->localClick = g_engine->_engine->click;
+		g_engine->_engine->localJoyD = g_engine->_engine->joyD;
 
-		//  while(!exitMenu)
-		{
-			g_engine->_engine->localKey = g_engine->_engine->key;
-			g_engine->_engine->localClick = g_engine->_engine->click;
-			g_engine->_engine->localJoyD = g_engine->_engine->joyD;
-
-			if (!input5) {
-				if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) // enter
-				{
-					g_engine->_engine->key &= ~0x1C;
-					switch (currentSelectedEntry) {
-					case 0: // exit menu
-						exitMenu = 1;
-						break;
-					case 1: // save
-						if (showSaveMenu(45)) {
-							exitMenu = 1;
-						}
-						break;
-					case 2: // load
-						if (showLoadMenu(46)) {
-							g_engine->_engine->flagInitView = 2;
-							unfreezeTime();
-							return;
-						}
-						break;
-					case 3: // music
-						g_engine->_engine->musicEnabled = g_engine->_engine->musicEnabled ? 0 : 1;
-						g_engine->_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, g_engine->_engine->musicEnabled ? false : true);
-						break;
-					case 4: // sound
-						g_engine->_engine->soundToggle = g_engine->_engine->soundToggle ? 0 : 1;
-						g_engine->_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, g_engine->_engine->soundToggle ? false : true);
-						break;
-					case 5: // details
-						g_engine->_engine->detailToggle = g_engine->_engine->detailToggle ? 0 : 1;
-						break;
-					case 6: // quit
-						::Engine::quitGame();
-						break;
-					}
-				} else {
-					if (g_engine->_engine->localKey == 0x1B) {
+		if (!input5) {
+			if (g_engine->_engine->localKey == 0x1C || g_engine->_engine->localClick) // enter
+			{
+				g_engine->_engine->key &= ~0x1C;
+				switch (currentSelectedEntry) {
+				case 0: // exit menu
+					exitMenu = 1;
+					break;
+				case 1: // save
+					if (showSaveMenu(45)) {
 						exitMenu = 1;
 					}
-					if (g_engine->_engine->localJoyD == 1) // up
-					{
-						currentSelectedEntry--;
-
-						if (currentSelectedEntry < 0)
-							currentSelectedEntry = 6;
-
-						input5 = 1;
+					break;
+				case 2: // load
+					if (showLoadMenu(46)) {
+						g_engine->_engine->flagInitView = 2;
+						unfreezeTime();
+						return;
 					}
-					if (g_engine->_engine->localJoyD == 2) // bottom
-					{
-						currentSelectedEntry++;
-
-						if (currentSelectedEntry > 6)
-							currentSelectedEntry = 0;
-
-						input5 = 1;
-					}
+					break;
+				case 3: // music
+					g_engine->_engine->musicEnabled = g_engine->_engine->musicEnabled ? 0 : 1;
+					g_engine->_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, g_engine->_engine->musicEnabled ? false : true);
+					break;
+				case 4: // sound
+					g_engine->_engine->soundToggle = g_engine->_engine->soundToggle ? 0 : 1;
+					g_engine->_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, g_engine->_engine->soundToggle ? false : true);
+					break;
+				case 5: // details
+					g_engine->_engine->detailToggle = g_engine->_engine->detailToggle ? 0 : 1;
+					break;
+				case 6: // quit
+					::Engine::quitGame();
+					break;
 				}
 			} else {
-				if (!g_engine->_engine->localKey && !g_engine->_engine->localJoyD) {
-					input5 = 0;
+				if (g_engine->_engine->localKey == 0x1B) {
+					exitMenu = 1;
 				}
+				if (g_engine->_engine->localJoyD == 1) // up
+				{
+					currentSelectedEntry--;
+
+					if (currentSelectedEntry < 0)
+						currentSelectedEntry = 6;
+
+					input5 = 1;
+				}
+				if (g_engine->_engine->localJoyD == 2) // bottom
+				{
+					currentSelectedEntry++;
+
+					if (currentSelectedEntry > 6)
+						currentSelectedEntry = 0;
+
+					input5 = 1;
+				}
+			}
+		} else {
+			if (!g_engine->_engine->localKey && !g_engine->_engine->localJoyD) {
+				input5 = 0;
 			}
 		}
 
 		osystem_flip(nullptr);
 	}
 
-	// fadeOut(32,2);
 	while ((g_engine->_engine->key || g_engine->_engine->joyD || g_engine->_engine->click) && !::Engine::shouldQuit()) {
 		process_events();
 	}

@@ -63,38 +63,32 @@ void process_events() {
 }
 
 int make3dTatou() {
-	byte paletteBackup[768];
-	uint localChrono;
-
 	ScopedPtr tatou2d(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_MCG));
 	ScopedPtr tatou3d(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_3DO));
 	ScopedPtr tatouPal(checkLoadMallocPak("ITD_RESS.PAK", AITD1_TATOU_PAL));
 
-	int time = 8920;
-	int rotation = 256;
+	byte paletteBackup[768];
 
 	setupCameraProjection(160, 100, 128, 500, 490);
-
 	copyPalette(g_engine->_engine->currentGamePalette, paletteBackup);
-
 	paletteFill(g_engine->_engine->currentGamePalette, 0, 0, 0);
-
 	gfx_setPalette(g_engine->_engine->currentGamePalette);
 
 	copyPalette(tatouPal.get(), g_engine->_engine->currentGamePalette);
 	fastCopyScreen(tatou2d.get() + 770, g_engine->_engine->frontBuffer);
 	fastCopyScreen(g_engine->_engine->frontBuffer, g_engine->_engine->aux2);
-
 	gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 	fadeInPhys(8, 0);
 
+	uint localChrono;
 	startChrono(&localChrono);
 
+	int time = 8920;
+	int rotation = 256;
 	do {
 		process_events();
 
-		// g_engine->_engine->timeGlobal++;
 		g_engine->_engine->timer = g_engine->_engine->timeGlobal;
 
 		if (evalChrono(&localChrono) <= 180) // avant eclair
@@ -104,24 +98,19 @@ int make3dTatou() {
 			}
 		} else // eclair
 		{
-			const int unk1 = 8;
-			/*  LastSample = -1;
-			LastPriority = -1; */
+			const int alpha = 8;
+			g_engine->_engine->lastSample = -1;
+			g_engine->_engine->lastPriority = -1;
 
 			playSound(g_engine->_engine->cVars[getCVarsIdx(SAMPLE_TONNERRE)]);
 
-			/*     LastSample = -1;
-			LastPriority = -1;*/
+			g_engine->_engine->lastSample = -1;
+			g_engine->_engine->lastPriority = -1;
 
 			paletteFill(g_engine->_engine->currentGamePalette, 63, 63, 63);
 			gfx_setPalette(g_engine->_engine->currentGamePalette);
-			/*  setClipSize(0,0,319,199);*/
-
 			clearScreenTatou();
-
-			setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
-
-			// blitScreenTatou();
+			setCameraTarget(0, 0, 0, alpha, rotation, 0, time);
 			gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 
 			process_events();
@@ -129,32 +118,23 @@ int make3dTatou() {
 			copyPalette(tatouPal.get(), g_engine->_engine->currentGamePalette);
 			gfx_setPalette(g_engine->_engine->currentGamePalette);
 			gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
-
 			affObjet(0, 0, 0, 0, 0, 0, tatou3d.get());
 
 			while (!::Engine::shouldQuit() && g_engine->_engine->key == 0 && g_engine->_engine->click == 0 && g_engine->_engine->joyD == 0) // boucle de rotation du tatou
 			{
 				const int deltaTime = 50;
-				process_events();
 
+				process_events();
 				time += deltaTime - 25;
 
 				if (time > 16000)
 					break;
 
 				rotation -= 8;
-
 				clearScreenTatou();
-
-				setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
-
+				setCameraTarget(0, 0, 0, alpha, rotation, 0, time);
 				affObjet(0, 0, 0, 0, 0, 0, tatou3d.get());
-
-				// blitScreenTatou();
-
-				// osystem_stopFrame();
 			}
-
 			break;
 		}
 	} while (!::Engine::shouldQuit());

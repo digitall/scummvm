@@ -323,6 +323,8 @@ public:
 	int BBox3D2 = 0;
 	int BBox3D3 = 0;
 	int BBox3D4 = 0;
+
+	int flagRefreshAux2 = 0;
 };
 } // namespace Fitd
 

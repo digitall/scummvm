@@ -2236,10 +2236,6 @@ void processLife(int lifeNum, bool callFoundLife) {
 					if (g_engine->_engine->lightOff != lifeTempVar1) {
 						g_engine->_engine->lightOff = lifeTempVar1;
 						g_engine->_engine->newFlagLight = 1;
-
-						if (g_engine->_engine->lightOff) {
-							makeBlackPalette();
-						}
 					}
 				}
 

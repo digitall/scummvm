@@ -171,6 +171,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 void throwStoppedAt(int x, int z);
 void deleteInventoryObjet(int objIdx);
 void runGame();
+void refreshAux2();
 
 } // namespace Fitd
 

@@ -28,6 +28,7 @@
 #include "common/memstream.h"
 #include "common/system.h"
 #include "graphics/managed_surface.h"
+
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
 #include "fitd/aitd3.h"
@@ -990,10 +991,6 @@ static void createAITD1Mask() {
 			int minY = 199;
 			int maxY = 0;
 
-			if (g_engine->_engine->currentFloor == 7 && g_engine->_engine->currentRoom == 1 && g_engine->_engine->currentCamera == 1) {
-				int tmp = 42;
-			}
-
 			s.clear();
 			for (int maskPolyIdx = 0; maskPolyIdx < numMaskPoly; maskPolyIdx++) {
 				const int numPoints = *(int16 *)src;
@@ -1153,7 +1150,7 @@ static void deleteObjet(int index) // remove actor
 	}
 }
 
-static void setupCameraSub4() {
+void refreshAux2() {
 	fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->aux2);
 
 	// TODO: implementer la suite
@@ -1520,7 +1517,7 @@ void createActorList() {
 				g_engine->_engine->sortedActorTable[g_engine->_engine->numActorInList] = i;
 				if (!(actorPtr->_flags & (AF_SPECIAL & AF_ANIMATED))) {
 					actorPtr->_flags |= AF_BOXIFY;
-					//  FlagRefreshAux2 = 1;
+					g_engine->_engine->flagRefreshAux2 = 1;
 				}
 				g_engine->_engine->numActorInList++;
 			}
@@ -1562,7 +1559,7 @@ void setupCamera() {
 	updateAllActorAndObjects();
 	createActorList();
 	//  setupCameraSub3();
-	setupCameraSub4();
+	refreshAux2();
 	/*  setupCameraSub5();
 	 */
 	if (g_engine->_engine->flagInitView == 2) {
@@ -1636,7 +1633,7 @@ void removeFromBGIncrust(int actorIdx) {
 
 	actorPtr->_flags &= ~AF_BOXIFY;
 
-	//  FlagRefreshAux2 = 1;
+	g_engine->_engine->flagRefreshAux2 = 1;
 
 	g_engine->_engine->BBox3D1 = actorPtr->screenXMin;
 
@@ -1724,20 +1721,27 @@ static void drawBgOverlay(Object *actorPtr) {
 
 		const int numOverlayZone = *(int16 *)data2;
 
-		for (int i = 0; i < numOverlayZone; i++) {
-			if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
-									actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
-									data + 4,
-									*(int16 *)data)) {
-				osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
-				osystem_drawMask(relativeCameraIndex, i);
-				osystem_clearClip();
-			}
+		if (g_engine->_engine->lightOff && g_engine->_engine->lightX != 20000) {
+			osystem_setClip(0, 0, 320, 200);
+			osystem_drawMask(0, 666);
+			osystem_clearClip();
+		} else {
+			for (int i = 0; i < numOverlayZone; i++) {
+				if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
+										actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
+										data + 4,
+										*(int16 *)data)) {
+					osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
+					osystem_drawMask(relativeCameraIndex, i);
+					osystem_clearClip();
+				}
 
-			const int numOverlay = *(int16 *)data;
-			data += 2;
-			data += (numOverlay * 4 + 1) * 2;
+				const int numOverlay = *(int16 *)data;
+				data += 2;
+				data += (numOverlay * 4 + 1) * 2;
+			}
 		}
+
 	} else {
 		for (int i = 0; i < pcameraViewedRoomData->numMask; i++) {
 			const CameraMask *pMaskZones = &pcameraViewedRoomData->masks[i];
@@ -2033,6 +2037,7 @@ void mainDraw(int flagFlip) {
 
 	// osystem_startModelRender();
 
+	memset(g_engine->_engine->frontBuffer, 0, 320 * 200);
 	for (int i = 0; i < g_engine->_engine->numActorInList; i++) {
 		const int currentDrawActor = g_engine->_engine->sortedActorTable[i];
 
@@ -2076,6 +2081,20 @@ void mainDraw(int flagFlip) {
 					if (actorPtr->indexInWorld == g_engine->_engine->cVars[getCVarsIdx(LIGHT_OBJECT)]) {
 						g_engine->_engine->lightX = (g_engine->_engine->BBox3D3 + g_engine->_engine->BBox3D1) / 2;
 						g_engine->_engine->lightY = (g_engine->_engine->BBox3D4 + g_engine->_engine->BBox3D2) / 2;
+
+						// TODO: fix light mask
+						// this is not a translation of the original code
+						// the original code is using a material 7 to copy only the pixels inside the circle (drawSphere)
+						// and maskId 666 is just a trick here to identify this special mask
+						// I'm way too lazy to change that right now
+						if (g_engine->_engine->lightOff && g_engine->_engine->lightX != 20000) {
+							osystem_drawSphere(g_engine->_engine->lightX, g_engine->_engine->lightY, 0, 0, 7, 30);
+							osystem_createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
+							g_engine->_engine->ancLumiereX = g_engine->_engine->lightX;
+							g_engine->_engine->ancLumiereY = g_engine->_engine->lightY;
+						}
+					} else if (g_engine->_engine->lightOff) {
+						osystem_createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
 					}
 				}
 
@@ -2114,14 +2133,13 @@ void mainDraw(int flagFlip) {
 				// osystem_flip(NULL);
 			}
 		} else {
-			// mainDrawSub1();
+			// flipLogPhys();
 		}
 	} else {
 	}
 
-	//    osystem_stopFrame();
-
-	//	osystem_flip(NULL);
+	// SWAP(ListLogBox, ListPhysBox);
+	// SWAP(NbLogBoxs, NbPhysBoxs);
 
 	g_engine->_engine->flagRedraw = 0;
 }
@@ -2867,6 +2885,35 @@ static int drawTextOverlay() {
 
 					renderText(X, y + 1, currentMessage->string->textPtr);
 				}
+
+				y -= 16;
+				hasText = 1;
+			}
+
+			currentMessage++;
+		}
+	} else {
+		for (int i = 0; i < 5; i++) {
+			if (currentMessage->string) {
+				const int width = currentMessage->string->width;
+				const int X = 160 - width / 2;
+				const int Y = X + width;
+
+				if (X < g_engine->_engine->BBox3D1) {
+					g_engine->_engine->BBox3D1 = X;
+				}
+
+				if (Y > g_engine->_engine->BBox3D3) {
+					g_engine->_engine->BBox3D3 = Y;
+				}
+
+				if (currentMessage->time < 26) {
+					extSetFont(g_engine->_engine->ptrFont, 15);
+				} else {
+					extSetFont(g_engine->_engine->ptrFont, 0);
+				}
+
+				renderText(X, y + 1, currentMessage->string->textPtr);
 
 				y -= 16;
 				hasText = 1;
