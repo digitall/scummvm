@@ -2726,7 +2726,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				while (evalChrono(&musicChrono) < 120) {
 					process_events();
 				}
-				g_engine->_engine->giveUp = 1;
+				g_engine->_engine->flagGameOver = 1;
 				exitLife = 1;
 				break;
 			}
@@ -2738,7 +2738,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				while (!g_engine->_engine->key && !g_engine->_engine->joyD && g_engine->_engine->click) {
 					process_events();
 				}
-				g_engine->_engine->giveUp = 1;
+				g_engine->_engine->flagGameOver = 1;
 				exitLife = 1;
 				break;
 			}

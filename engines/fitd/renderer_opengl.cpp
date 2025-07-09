@@ -256,7 +256,7 @@ struct Vertex {
 };
 
 // vertex buffers for rendering
-struct polyVertex {
+struct PolyVertex {
 	float X;
 	float Y;
 	float Z;
@@ -285,10 +285,10 @@ struct sphereVertex {
 };
 
 static struct State {
-	polyVertex noiseVertices[NUM_MAX_NOISE_VERTICES];
-	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
-	polyVertex transparentVertices[NUM_MAX_TRANSPARENT_VERTICES];
-	polyVertex rampVertices[NUM_MAX_RAMP_VERTICES];
+	PolyVertex noiseVertices[NUM_MAX_NOISE_VERTICES];
+	PolyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
+	PolyVertex transparentVertices[NUM_MAX_TRANSPARENT_VERTICES];
+	PolyVertex rampVertices[NUM_MAX_RAMP_VERTICES];
 	sphereVertex sphereVertices[NUM_MAX_SPHERES_VERTICES];
 	int numUsedFlatVertices;
 	int numUsedNoiseVertices;
@@ -416,24 +416,24 @@ static void renderer_init() {
 	// create flat shader
 	_state->flatShader = new OpenGL::Shader();
 	_state->flatShader->loadFromStrings("flatShader", flatVSSrc, flatPSSrc, attributes, 110);
-	_state->flatShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
-	_state->flatShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
+	_state->flatShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 0);
+	_state->flatShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 3 * sizeof(float));
 	_state->flatShader->use();
 	GL_CALL(glUniform1i(_state->flatShader->getUniformLocation("u_palette"), 0));
 
 	// create noise shader
 	_state->noiseShader = new OpenGL::Shader();
 	_state->noiseShader->loadFromStrings("flatShader", noiseVSSrc, noisePSSrc, attributes, 110);
-	_state->noiseShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
-	_state->noiseShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
+	_state->noiseShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 0);
+	_state->noiseShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 3 * sizeof(float));
 	_state->noiseShader->use();
 	GL_CALL(glUniform1i(_state->noiseShader->getUniformLocation("u_palette"), 0));
 
 	// create ramp shader
 	_state->rampShader = new OpenGL::Shader();
 	_state->rampShader->loadFromStrings("rampShader", flatVSSrc, rampPSSrc, attributes, 110);
-	_state->rampShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
-	_state->rampShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
+	_state->rampShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 0);
+	_state->rampShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(PolyVertex), 3 * sizeof(float));
 	_state->rampShader->use();
 	GL_CALL(glUniform1i(_state->rampShader->getUniformLocation("u_palette"), 0));
 
@@ -562,7 +562,7 @@ static void renderer_flushPendingPrimitives() {
 		glDepthFunc(GL_LEQUAL);
 
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedFlatVertices, _state->flatVertices, GL_STREAM_DRAW));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(PolyVertex) * _state->numUsedFlatVertices, _state->flatVertices, GL_STREAM_DRAW));
 
 		_state->flatShader->use();
 
@@ -583,7 +583,7 @@ static void renderer_flushPendingPrimitives() {
 		glDepthFunc(GL_LEQUAL);
 
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedNoiseVertices, _state->noiseVertices, GL_STREAM_DRAW));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(PolyVertex) * _state->numUsedNoiseVertices, _state->noiseVertices, GL_STREAM_DRAW));
 
 		_state->noiseShader->use();
 
@@ -604,7 +604,7 @@ static void renderer_flushPendingPrimitives() {
 		glDepthFunc(GL_LEQUAL);
 
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedRampVertices, _state->rampVertices, GL_STREAM_DRAW));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(PolyVertex) * _state->numUsedRampVertices, _state->rampVertices, GL_STREAM_DRAW));
 
 		_state->rampShader->use();
 
@@ -812,15 +812,15 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	default:
 	case 0: // flat (triste)
 	{
-		polyVertex *pVertex = &_state->flatVertices[_state->numUsedFlatVertices];
+		PolyVertex *pVertex = &_state->flatVertices[_state->numUsedFlatVertices];
 		_state->numUsedFlatVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedFlatVertices < NUM_MAX_FLAT_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 
@@ -839,15 +839,15 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	}
 	case 1: // dither (pierre/tele)
 	{
-		polyVertex *pVertex = &_state->noiseVertices[_state->numUsedNoiseVertices];
+		PolyVertex *pVertex = &_state->noiseVertices[_state->numUsedNoiseVertices];
 		_state->numUsedNoiseVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 
@@ -866,15 +866,15 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	}
 	case 2: // trans
 	{
-		polyVertex *pVertex = &_state->transparentVertices[_state->numUsedTransparentVertices];
+		PolyVertex *pVertex = &_state->transparentVertices[_state->numUsedTransparentVertices];
 		_state->numUsedTransparentVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 
@@ -893,7 +893,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	case 4: // copper (ramps top to bottom)
 	case 5: // copper2 (ramps top to bottom, 2 scanline per color)
 	{
-		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		PolyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
@@ -906,9 +906,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 
@@ -926,7 +926,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	}
 	case 3: // marbre (ramp left to right)
 	{
-		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		PolyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
@@ -939,9 +939,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 
@@ -959,7 +959,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	}
 	case 6: // marbre2 (ramp right to left)
 	{
-		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		PolyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
@@ -972,9 +972,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
-				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-3], sizeof(PolyVertex));
 				pVertex++;
-				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				memcpy(pVertex, &pVertex[-2], sizeof(PolyVertex));
 				pVertex++;
 			}
 

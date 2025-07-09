@@ -86,13 +86,7 @@ static int modelSinGamma;
 
 static uint32 positionInPrimEntry = 0;
 
-static int renderVar1 = 0;
-
 static int numOfPrimitiveToRender = 0;
-
-static char renderBuffer[3261];
-
-static char *renderVar2 = nullptr;
 
 static int modelFlags = 0;
 
@@ -568,7 +562,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *
 				return 1;
 			}
 
-		} while (renderVar1 == 0);
+		} while (true);
 	}
 
 	return 0;
@@ -795,11 +789,7 @@ void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte 
 	g_engine->_engine->BBox3D3 = -0x7FFF;
 	g_engine->_engine->BBox3D4 = -0x7FFF;
 
-	renderVar1 = 0;
-
 	numOfPrimitiveToRender = 0;
-
-	renderVar2 = renderBuffer;
 
 	modelFlags = pBody->m_flags;
 
@@ -914,11 +904,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	g_engine->_engine->BBox3D3 = -0x7FFF;
 	g_engine->_engine->BBox3D4 = -0x7FFF;
 
-	renderVar1 = 0;
-
 	numOfPrimitiveToRender = 0;
-
-	renderVar2 = renderBuffer;
 
 	modelFlags = READ_LE_S16(ptr);
 	ptr += 2;

@@ -22,7 +22,6 @@
 #include "engines/util.h"
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
-#include "fitd/gfx.h"
 #include "fitd/lines.h"
 #include "fitd/renderer.h"
 #include "graphics/screen.h"
@@ -39,7 +38,7 @@ enum {
 	HEIGHT = 200,
 };
 
-struct polyVertex {
+struct PolyVertex {
 	int16 X;
 	int16 Y;
 	int16 Z;
@@ -65,10 +64,9 @@ struct ClipMask {
 struct State {
 	int16 tabVerticXmin[HEIGHT];
 	int16 tabVerticXmax[HEIGHT];
-	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
-	polyVertex tmpVertices[NUM_MAX_FLAT_VERTICES];
+	PolyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
+	PolyVertex tmpVertices[NUM_MAX_FLAT_VERTICES];
 	byte physicalScreen[WIDTH * HEIGHT];
-	byte physicalScreenRGB[WIDTH * HEIGHT * 3];
 	byte RGB_Pal[256 * 3];
 
 	int16 polyMinX;
@@ -171,34 +169,21 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 
 	for (int i = top; i < bottom; i++) {
 		const byte *in = static_cast<const byte *>(&videoBuffer[0]) + left + i * WIDTH;
-		byte *out2 = _state->physicalScreen + left + i * WIDTH;
-		byte *out = _state->physicalScreenRGB + left * 3 + i * WIDTH * 3;
+		byte *out = _state->physicalScreen + left + i * WIDTH;
 
 		for (int j = left; j < right; j++) {
 			const byte color = *in++;
-
-			*out++ = _state->RGB_Pal[color * 3];
-			*out++ = _state->RGB_Pal[color * 3 + 1];
-			*out++ = _state->RGB_Pal[color * 3 + 2];
-
-			*out2++ = color;
+			*out++ = color;
 		}
 	}
 }
 
 static void renderer_refreshFrontTextureBuffer() {
-	byte *out = _state->physicalScreenRGB;
-	const byte *in = _state->physicalScreen;
-
-	for (int i = 0; i < HEIGHT * WIDTH; i++) {
-		const byte color = *in++;
-		*out++ = _state->RGB_Pal[color * 3];
-		*out++ = _state->RGB_Pal[color * 3 + 1];
-		*out++ = _state->RGB_Pal[color * 3 + 2];
-	}
+	// TODO: remove ?
 }
 
 static void renderer_flushPendingPrimitives() {
+	// TODO: remove ?
 }
 
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
@@ -295,9 +280,9 @@ static void renderer_drawMask(int roomId, int maskId) {
 	}
 }
 
-static int16 leftClip(polyVertex **polys, int16 num) {
-	polyVertex *pVertex = polys[0];
-	polyVertex *pTabPolyClip = polys[1];
+static int16 leftClip(PolyVertex **polys, int16 num) {
+	PolyVertex *pVertex = polys[0];
+	PolyVertex *pTabPolyClip = polys[1];
 	int16 newNbPoints = 0;
 
 	// invert the pointers to continue on the clipped vertices in the next method
@@ -305,8 +290,8 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 	polys[1] = pVertex;
 
 	for (int i = 0; i < num; i++, pVertex++) {
-		const polyVertex *p0 = pVertex;
-		const polyVertex *p1 = p0 + 1;
+		const PolyVertex *p0 = pVertex;
+		const PolyVertex *p1 = p0 + 1;
 
 		// clipFlag :
 		// 0x00 : none clipped
@@ -352,9 +337,9 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 	return newNbPoints;
 }
 
-static int16 rightClip(polyVertex **polys, int16 num) {
-	polyVertex *pVertex = polys[0];
-	polyVertex *pTabPolyClip = polys[1];
+static int16 rightClip(PolyVertex **polys, int16 num) {
+	PolyVertex *pVertex = polys[0];
+	PolyVertex *pTabPolyClip = polys[1];
 	int16 newNbPoints = 0;
 
 	// invert the pointers to continue on the clipped vertices in the next method
@@ -362,8 +347,8 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 	polys[1] = pVertex;
 
 	for (int i = 0; i < num; i++, pVertex++) {
-		const polyVertex *p0 = pVertex;
-		const polyVertex *p1 = p0 + 1;
+		const PolyVertex *p0 = pVertex;
+		const PolyVertex *p1 = p0 + 1;
 
 		// clipFlag :
 		// 0x00 : none clipped
@@ -409,9 +394,9 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 	return newNbPoints;
 }
 
-static int16 topClip(polyVertex **polys, int16 num) {
-	polyVertex *pVertex = polys[0];
-	polyVertex *pTabPolyClip = polys[1];
+static int16 topClip(PolyVertex **polys, int16 num) {
+	PolyVertex *pVertex = polys[0];
+	PolyVertex *pTabPolyClip = polys[1];
 	int16 newNbPoints = 0;
 
 	// invert the pointers to continue on the clipped vertices in the next method
@@ -419,8 +404,8 @@ static int16 topClip(polyVertex **polys, int16 num) {
 	polys[1] = pVertex;
 
 	for (int i = 0; i < num; i++, pVertex++) {
-		const polyVertex *p0 = pVertex;
-		const polyVertex *p1 = p0 + 1;
+		const PolyVertex *p0 = pVertex;
+		const PolyVertex *p1 = p0 + 1;
 
 		// clipFlag :
 		// 0x00 : none clipped
@@ -466,9 +451,9 @@ static int16 topClip(polyVertex **polys, int16 num) {
 	return newNbPoints;
 }
 
-static int16 bottomClip(polyVertex **polys, int16 num) {
-	polyVertex *pVertex = polys[0];
-	polyVertex *pTabPolyClip = polys[1];
+static int16 bottomClip(PolyVertex **polys, int16 num) {
+	PolyVertex *pVertex = polys[0];
+	PolyVertex *pTabPolyClip = polys[1];
 	int16 newNbPoints = 0;
 
 	// invert the pointers to continue on the clipped vertices in the next method
@@ -476,8 +461,8 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 	polys[1] = pVertex;
 
 	for (int i = 0; i < num; i++, pVertex++) {
-		const polyVertex *p0 = pVertex;
-		const polyVertex *p1 = p0 + 1;
+		const PolyVertex *p0 = pVertex;
+		const PolyVertex *p1 = p0 + 1;
 
 		// clipFlag :
 		// 0x00 : none clipped
@@ -523,7 +508,7 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 	return newNbPoints;
 }
 
-static int16 poly_clip(polyVertex **polys, int16 num) {
+static int16 poly_clip(PolyVertex **polys, int16 num) {
 	bool hasBeenClipped = false;
 	int32 clippedNum = num;
 	if (_state->polyMinX < 0) {
@@ -578,12 +563,12 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 	return clippedNum;
 }
 
-static void poly_setMinMax(polyVertex *pPolys, int16 num) {
-	polyVertex *pTabPoly = pPolys;
+static void poly_setMinMax(PolyVertex *pPolys, int16 num) {
+	PolyVertex *pTabPoly = pPolys;
 	int32 incY = -1;
 	for (int i = 0; i < num; i++, pTabPoly++) {
-		const polyVertex *p0 = pTabPoly;
-		const polyVertex *p1 = p0 + 1;
+		const PolyVertex *p0 = pTabPoly;
+		const PolyVertex *p1 = p0 + 1;
 		int16 *pVertic = nullptr;
 
 		int32 dy = p1->Y - p0->Y;
@@ -643,7 +628,7 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 		_state->tabVerticXmin[_state->polyMinY] = INT16_MAX;
 		_state->tabVerticXmax[_state->polyMinY] = INT16_MIN;
 		for (int i = 0; i < num; i++, pTabPoly++) {
-			const polyVertex *p0 = pTabPoly;
+			const PolyVertex *p0 = pTabPoly;
 			if (p0->X < _state->tabVerticXmin[_state->polyMinY])
 				_state->tabVerticXmin[_state->polyMinY] = p0->X;
 			if (p0->X > _state->tabVerticXmax[_state->polyMinY])
@@ -656,7 +641,7 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 	}
 }
 
-static void set_boundingBox(const polyVertex *pTabPoly, int16 num) {
+static void set_boundingBox(const PolyVertex *pTabPoly, int16 num) {
 	// compute the polygon bounding box
 	_state->polyMinX = INT16_MAX;
 	_state->polyMaxX = INT16_MIN;
@@ -679,8 +664,8 @@ static void set_boundingBox(const polyVertex *pTabPoly, int16 num) {
 	}
 }
 
-static int16 prepare_poly(const int16 *buffer, polyVertex *pTabPoly, int16 num) {
-	polyVertex *pVertex = pTabPoly;
+static int16 prepare_poly(const int16 *buffer, PolyVertex *pTabPoly, int16 num) {
+	PolyVertex *pVertex = pTabPoly;
 
 	for (int i = 0; i < num; i++) {
 		pVertex->X = buffer[i * 3 + 0];
@@ -688,25 +673,6 @@ static int16 prepare_poly(const int16 *buffer, polyVertex *pTabPoly, int16 num) 
 		pVertex->Z = buffer[i * 3 + 2];
 		pVertex++;
 	}
-
-	// num = 4;
-	// polyVertex *pVertex = pTabPoly;
-	// pVertex->X = -24;
-	// pVertex->Y = 1;
-	// pVertex->Z = 379;
-	// pVertex++;
-	// pVertex->X = 0;
-	// pVertex->Y = 10;
-	// pVertex->Z = 439;
-	// pVertex++;
-	// pVertex->X = -10;
-	// pVertex->Y = 13;
-	// pVertex->Z = 411;
-	// pVertex++;
-	// pVertex->X = -23;
-	// pVertex->Y = 15;
-	// pVertex->Z = 381;
-	// pVertex++;
 
 	set_boundingBox(pTabPoly, num);
 
@@ -717,7 +683,7 @@ static int16 prepare_poly(const int16 *buffer, polyVertex *pTabPoly, int16 num) 
 
 	// copy the first point to the end of the polygon
 	pTabPoly[num] = pTabPoly[0];
-	polyVertex *polys[] = {pTabPoly, _state->tmpVertices};
+	PolyVertex *polys[] = {pTabPoly, _state->tmpVertices};
 
 	num = poly_clip(polys, num);
 	if (!num)

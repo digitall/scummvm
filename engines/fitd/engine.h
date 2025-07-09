@@ -170,7 +170,7 @@ public:
 	int nextSample = 0;
 	int nextMusic = 0;
 	int16 currentCameraTargetActor = 0;
-	int16 giveUp = 0;
+	int16 flagGameOver = 0;
 	int16 lightOff = 0;
 	int newFlagLight = 0;
 	int lastPriority = 0;

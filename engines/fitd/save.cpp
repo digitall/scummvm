@@ -114,7 +114,7 @@ static int loadJack(Common::SeekableReadStream *in) {
 	}
 
 	g_engine->_engine->statusScreenAllowed = in->readSint16LE();
-	g_engine->_engine->giveUp = in->readSint16LE();
+	g_engine->_engine->flagGameOver = in->readSint16LE();
 	g_engine->_engine->lightOff = in->readSint16LE();
 	g_engine->_engine->saveShakeVar1 = in->readSint16LE();
 	g_engine->_engine->saveFlagRotPal = in->readSint16LE();
@@ -292,7 +292,7 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	}
 
 	g_engine->_engine->statusScreenAllowed = in->readSint16LE();
-	g_engine->_engine->giveUp = in->readSint16LE();
+	g_engine->_engine->flagGameOver = in->readSint16LE();
 	g_engine->_engine->lightOff = in->readSint16LE();
 	g_engine->_engine->saveShakeVar1 = in->readSint16LE();
 	g_engine->_engine->saveFlagRotPal = in->readSint16LE();
@@ -494,7 +494,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	}
 
 	g_engine->_engine->statusScreenAllowed = in->readSint16LE();
-	g_engine->_engine->giveUp = in->readSint16LE();
+	g_engine->_engine->flagGameOver = in->readSint16LE();
 	g_engine->_engine->lightOff = in->readSint16LE();
 	g_engine->_engine->saveShakeVar1 = in->readSint16LE();
 	g_engine->_engine->saveFlagRotPal = in->readSint16LE();
@@ -715,7 +715,7 @@ static int saveAitd1(Common::WriteStream *out, const Common::String &desc) {
 	}
 
 	out->writeSint16LE(g_engine->_engine->statusScreenAllowed);
-	out->writeSint16LE(g_engine->_engine->giveUp);
+	out->writeSint16LE(g_engine->_engine->flagGameOver);
 	out->writeSint16LE(g_engine->_engine->lightOff);
 	out->writeSint16LE(g_engine->_engine->saveShakeVar1);
 	out->writeSint16LE(g_engine->_engine->saveFlagRotPal);
@@ -876,7 +876,7 @@ static int saveJack(Common::WriteStream *out, const Common::String &desc) {
 	}
 
 	out->writeSint16LE(g_engine->_engine->statusScreenAllowed);
-	out->writeSint16LE(g_engine->_engine->giveUp);
+	out->writeSint16LE(g_engine->_engine->flagGameOver);
 	out->writeSint16LE(g_engine->_engine->lightOff);
 	out->writeSint16LE(g_engine->_engine->saveShakeVar1);
 	out->writeSint16LE(g_engine->_engine->saveFlagRotPal);
@@ -1043,7 +1043,7 @@ int makeSaveOthers(Common::WriteStream *out, const Common::String &desc) {
 	}
 
 	out->writeSint16LE(g_engine->_engine->statusScreenAllowed);
-	out->writeSint16LE(g_engine->_engine->giveUp);
+	out->writeSint16LE(g_engine->_engine->flagGameOver);
 	out->writeSint16LE(g_engine->_engine->lightOff);
 	out->writeSint16LE(g_engine->_engine->saveShakeVar1);
 	out->writeSint16LE(g_engine->_engine->saveFlagRotPal);

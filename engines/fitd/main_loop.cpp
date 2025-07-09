@@ -38,8 +38,6 @@
 
 namespace Fitd {
 
-int mainLoopSwitch = 0;
-
 void updatePendingEvents() {
 	// TODO: miss pending events here
 
@@ -215,7 +213,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 				g_engine->_engine->currentProcessedActorPtr++;
 			}
 
-			if (g_engine->_engine->giveUp)
+			if (g_engine->_engine->flagGameOver)
 				break;
 		}
 
@@ -254,16 +252,12 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 					g_engine->_engine->currentProcessedActorPtr++;
 				}
 
-				if (g_engine->_engine->giveUp)
+				if (g_engine->_engine->flagGameOver)
 					break;
 
 				g_engine->_engine->currentCamera = tempCurrentCamera;
 			}
-			if (g_engine->_engine->flagInitView
-#ifdef FITD_DEBUGGER
-				|| debuggerVar_topCamera
-#endif
-			) {
+			if (g_engine->_engine->flagInitView) {
 				setupCamera();
 			}
 		}

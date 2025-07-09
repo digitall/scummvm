@@ -794,7 +794,7 @@ static void clearMessageList() {
 }
 
 void initVars() {
-	g_engine->_engine->giveUp = 0;
+	g_engine->_engine->flagGameOver = 0;
 
 	g_engine->_engine->numObjInInventoryTable = 0;
 	g_engine->_engine->inHandTable = -1;
