@@ -55,6 +55,7 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
+#include "graphics/screen.h"
 
 namespace Fitd {
 
@@ -2140,6 +2141,8 @@ void mainDraw(int flagFlip) {
 
 	// SWAP(ListLogBox, ListPhysBox);
 	// SWAP(NbLogBoxs, NbPhysBoxs);
+
+	memcpy(g_engine->_engine->aux2, g_engine->_screen->getBasePtr(0, 0), 320 * 200);
 
 	g_engine->_engine->flagRedraw = 0;
 }
