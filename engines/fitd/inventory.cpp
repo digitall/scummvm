@@ -29,17 +29,11 @@
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
-#include "fitd/inventory.h"
 #include "fitd/life.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
-
-int statusLeft;
-int statusTop;
-int statusRight;
-int statusBottom;
 
 static int numInventoryActions;
 static int16 inventoryActionTable[5];
@@ -103,8 +97,8 @@ static int drawListObjets(int startIdx, int selectIdx, int selectColor) {
 }
 
 static void renderInventoryObject(int arg) {
-	setClip(statusLeft, statusTop, statusRight, statusBottom);
-	fillBox(statusLeft, statusTop, statusRight, statusBottom, 0);
+	setClip(g_engine->_engine->statusLeft, g_engine->_engine->statusTop, g_engine->_engine->statusRight, g_engine->_engine->statusBottom);
+	fillBox(g_engine->_engine->statusLeft, g_engine->_engine->statusTop, g_engine->_engine->statusRight, g_engine->_engine->statusBottom, 0);
 
 	g_engine->_engine->statusVar1 -= 8;
 
@@ -115,7 +109,7 @@ static void renderInventoryObject(int arg) {
 		Common::String buffer;
 		extSetFont(g_engine->_engine->ptrFont, 4);
 		buffer = Common::String::format("%d", g_engine->_engine->vars[arg]);
-		renderText(statusLeft + 4, statusTop + 4, buffer.c_str());
+		renderText(g_engine->_engine->statusLeft + 4, g_engine->_engine->statusTop + 4, buffer.c_str());
 	}
 	switch (g_engine->getGameId()) {
 	case GID_AITD2:
@@ -124,7 +118,6 @@ static void renderInventoryObject(int arg) {
 	default:
 		break;
 	}
-
 }
 
 static void drawInventoryActions(int arg) {
@@ -200,12 +193,12 @@ void processInventory() {
 	case GID_JACK:
 		affBigCadre(80, 150, 160, 100);
 
-		statusLeft = g_engine->_engine->windowX1;
-		statusTop = g_engine->_engine->windowY1;
-		statusRight = g_engine->_engine->windowX2;
-		statusBottom = g_engine->_engine->windowY2;
+		g_engine->_engine->statusLeft = g_engine->_engine->windowX1;
+		g_engine->_engine->statusTop = g_engine->_engine->windowY1;
+		g_engine->_engine->statusRight = g_engine->_engine->windowX2;
+		g_engine->_engine->statusBottom = g_engine->_engine->windowY2;
 
-		setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
+		setupCameraProjection((g_engine->_engine->statusRight - g_engine->_engine->statusLeft) / 2 + g_engine->_engine->statusLeft, (g_engine->_engine->statusBottom - g_engine->_engine->statusTop) / 2 + g_engine->_engine->statusTop, 128, 400, 390);
 
 		break;
 	case GID_AITD2:

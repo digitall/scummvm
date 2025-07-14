@@ -24,8 +24,6 @@
 #include "fitd/engine.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
-#include "fitd/inventory.h"
-#include "fitd/life.h"
 #include "fitd/main_loop.h"
 #include "fitd/pak.h"
 #include "fitd/startup_menu.h"
@@ -129,11 +127,11 @@ void aitd3DrawInventory() {
 		assert(0);
 	}
 
-	statusLeft = 27;
-	statusTop = 100;
-	statusRight = 159;
-	statusBottom = 174;
+	g_engine->_engine->statusLeft = 27;
+	g_engine->_engine->statusTop = 100;
+	g_engine->_engine->statusRight = 159;
+	g_engine->_engine->statusBottom = 174;
 
-	setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
+	setupCameraProjection((g_engine->_engine->statusRight - g_engine->_engine->statusLeft) / 2 + g_engine->_engine->statusLeft, (g_engine->_engine->statusBottom - g_engine->_engine->statusTop) / 2 + g_engine->_engine->statusTop, 128, 400, 390);
 }
 } // namespace Fitd

@@ -28,11 +28,12 @@
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/hqr.h"
-#include "fitd/inventory.h"
 #include "fitd/music.h"
 #include "fitd/room.h"
 #include "fitd/system_menu.h"
 #include "fitd/vars.h"
+
+#define AITD1_INVENTORY_SIZE 30
 
 namespace Fitd {
 

@@ -22,14 +22,7 @@
 #ifndef FITD_INVENTORY_H
 #define FITD_INVENTORY_H
 
-#define AITD1_INVENTORY_SIZE 30
-
 namespace Fitd {
-
-extern int statusLeft;
-extern int statusTop;
-extern int statusRight;
-extern int statusBottom;
 
 void processInventory();
 

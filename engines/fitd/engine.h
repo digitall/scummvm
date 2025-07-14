@@ -325,6 +325,11 @@ public:
 	int BBox3D4 = 0;
 
 	int flagRefreshAux2 = 0;
+
+	int statusLeft = 0;
+	int statusTop = 0;
+	int statusRight = 0;
+	int statusBottom = 0;
 };
 } // namespace Fitd
 
