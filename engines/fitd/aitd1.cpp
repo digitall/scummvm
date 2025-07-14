@@ -184,12 +184,12 @@ static int makeIntroScreens() {
 	gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
 	memcpy(g_engine->_engine->logicalScreen, g_engine->_engine->frontBuffer, 320 * 200);
-	osystem_flip(nullptr);
+	flip();
 	pakLoad("ITD_RESS.PAK", AITD1_LIVRE, g_engine->_engine->aux);
 	uint chrono;
 	startChrono(&chrono);
 
-	osystem_drawBackground();
+	drawBackground();
 
 	do {
 
@@ -231,7 +231,7 @@ int choosePerso() {
 
 	while (!::Engine::shouldQuit() && choiceMade == 0) {
 		process_events();
-		osystem_drawBackground();
+		drawBackground();
 
 		// TODO: missing code for music stop
 
@@ -263,7 +263,7 @@ int choosePerso() {
 		while ((!::Engine::shouldQuit() && (g_engine->_engine->localKey = g_engine->_engine->key) != 28) && g_engine->_engine->click == 0) // process input
 		{
 			process_events();
-			osystem_drawBackground();
+			drawBackground();
 
 			if (g_engine->_engine->joyD & 4) // left
 			{

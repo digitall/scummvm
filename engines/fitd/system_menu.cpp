@@ -209,10 +209,10 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 			}
 		}
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-		osystem_startFrame();
+		startFrame();
 		process_events();
 		flushScreen();
-		osystem_drawBackground();
+		drawBackground();
 
 		if (g_engine->_engine->joyD & 1) {
 			// up g_engine->_engine->key
@@ -328,10 +328,10 @@ void processSystemMenu() {
 	while (!exitMenu && !::Engine::shouldQuit()) {
 		affOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-		osystem_startFrame();
+		startFrame();
 		process_events();
 		flushScreen();
-		osystem_drawBackground();
+		drawBackground();
 
 		g_engine->_engine->localKey = g_engine->_engine->key;
 		g_engine->_engine->localClick = g_engine->_engine->click;
@@ -401,7 +401,7 @@ void processSystemMenu() {
 			}
 		}
 
-		osystem_flip(nullptr);
+		flip();
 	}
 
 	while ((g_engine->_engine->key || g_engine->_engine->joyD || g_engine->_engine->click) && !::Engine::shouldQuit()) {

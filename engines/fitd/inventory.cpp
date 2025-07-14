@@ -218,7 +218,7 @@ void processInventory() {
 		*/
 
 		process_events();
-		osystem_drawBackground();
+		drawBackground();
 
 		g_engine->_engine->localKey = g_engine->_engine->key;
 		g_engine->_engine->localJoyD = g_engine->_engine->joyD;

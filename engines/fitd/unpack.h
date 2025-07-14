@@ -25,7 +25,6 @@
 
 namespace Fitd {
 
-int PAK_deflate(byte * srcBuffer, byte * dstBuffer, uint compressedSize, uint uncompressedSize);
 int PAK_explode(byte * srcBuffer, byte * dstBuffer, uint compressedSize, uint uncompressedSize, uint16 flags);
 
 }

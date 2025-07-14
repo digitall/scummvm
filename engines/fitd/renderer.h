@@ -32,7 +32,7 @@ namespace Fitd {
 
 struct Renderer {
 	void (*init)();
-	void (*deinit)();
+	void (*destroy)();
 	void (*startFrame)();
 	void (*drawBackground)();
 	void (*setPalette)(const byte *palette);

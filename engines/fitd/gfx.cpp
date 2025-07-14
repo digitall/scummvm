@@ -112,15 +112,15 @@ void gfx_init() {
 }
 
 void gfx_deinit() {
-	renderer.deinit();
+	renderer.destroy();
 }
 
-void osystem_startFrame() {
+void startFrame() {
 	renderer.startFrame();
-	osystem_drawBackground();
+	drawBackground();
 }
 
-void osystem_drawBackground() {
+void drawBackground() {
 	renderer.drawBackground();
 }
 
@@ -140,7 +140,7 @@ static void osystem_fillPoly(int16 *buffer, int numPoint, byte color, uint8 poly
 	renderer.fillPoly(buffer, numPoint, color, polyType);
 }
 
-void osystem_flushPendingPrimitives() {
+void flushPendingPrimitives() {
 	renderer.flushPendingPrimitives();
 }
 
@@ -847,24 +847,24 @@ void renderZixel(PrimEntry *pEntry) // point
 	const float pointSize = 20.f;
 	const float transformedSize = pointSize * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(pEntry->vertices[0].Z + g_engine->_engine->cameraPerspective);
 
-	osystem_drawZixel(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
+	drawZixel(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 void renderPoint(PrimEntry *pEntry) // point
 {
-	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
+	drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
 void renderBigPoint(PrimEntry *pEntry) // point
 {
-	osystem_drawBigPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
+	drawBigPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
 void renderSphere(PrimEntry *pEntry) // sphere
 {
 	const float transformedSize = static_cast<float>(pEntry->size) * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(pEntry->vertices[0].Z + g_engine->_engine->cameraPerspective);
 
-	osystem_drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
+	drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 renderFunction renderFunctions[] = {
@@ -997,7 +997,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		renderFunctions[primTable[i].type](&primTable[i]);
 	}
 
-	osystem_flushPendingPrimitives();
+	flushPendingPrimitives();
 	return 0;
 }
 
@@ -1045,39 +1045,39 @@ void flushScreen() {
 	}
 }
 
-void osystem_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+void createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
 	renderer.createMask(mask, roomId, maskId, refImage, maskX1, maskY1, maskX2, maskY2);
 }
 
-void osystem_setClip(float left, float top, float right, float bottom) {
-	renderer.setClip(left, top, right, bottom);
+void setClip() {
+	renderer.setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
 }
 
-void osystem_clearClip() {
+void clearClip() {
 	renderer.clearClip();
 }
 
-void osystem_drawMask(int roomId, int maskId) {
+void drawMask(int roomId, int maskId) {
 	renderer.drawMask(roomId, maskId);
 }
 
-void osystem_flip(byte *videoBuffer) {
-	osystem_flushPendingPrimitives();
+void flip() {
+	flushPendingPrimitives();
 }
 
-void osystem_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+void drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size) {
 	renderer.drawZixel(X, Y, Z, color, material, size);
 }
 
-void osystem_drawPoint(float X, float Y, float Z, uint8 color) {
+void drawPoint(float X, float Y, float Z, uint8 color) {
 	renderer.drawPoint(X, Y, Z, color);
 }
 
-void osystem_drawBigPoint(float X, float Y, float Z, uint8 color) {
+void drawBigPoint(float X, float Y, float Z, uint8 color) {
 	renderer.drawPoint(X, Y, Z, color);
 }
 
-void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+void drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
 	renderer.drawSphere(X, Y, Z, color, material, size);
 }
 
@@ -1106,7 +1106,7 @@ void copyBlock(byte *in, byte *out, int left, int top, int right, int bottom) {
 	}
 }
 
-void osystem_updateScreen() {
+void updateScreen() {
 	renderer.updateScreen();
 }
 

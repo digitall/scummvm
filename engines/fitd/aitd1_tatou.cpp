@@ -43,7 +43,7 @@ void process_events() {
 	// TODO: fix this
 	const uint32 timeIncrease = 2;
 
-	osystem_flushPendingPrimitives();
+	flushPendingPrimitives();
 
 	if (g_engine->_engine->shakeVar1) {
 		shakeTime = (shakeTime + 1) % 6;
@@ -54,8 +54,8 @@ void process_events() {
 		}
 	}
 
-	osystem_updateScreen();
-	osystem_startFrame();
+	updateScreen();
+	startFrame();
 
 	readKeyboard();
 	g_engine->_engine->timeGlobal += timeIncrease;

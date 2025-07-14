@@ -24,8 +24,6 @@
 
 namespace Fitd {
 
-#define NUM_MAX_SEQUENCE_PARAM 30
-
 typedef struct SequenceParam {
 	uint frame;
 	uint sample;

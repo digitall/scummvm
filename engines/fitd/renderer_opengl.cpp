@@ -313,7 +313,7 @@ static struct State {
 } *_state;
 
 static void renderer_init();
-static void renderer_deinit();
+static void renderer_destroy();
 static void renderer_startFrame();
 static void renderer_drawBackground();
 static void renderer_setPalette(const byte *palette);
@@ -336,7 +336,7 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 Renderer createOpenGLRenderer() {
 	Renderer r;
 	r.init = renderer_init;
-	r.deinit = renderer_deinit;
+	r.destroy = renderer_destroy;
 	r.startFrame = renderer_startFrame;
 	r.drawBackground = renderer_drawBackground;
 	r.setPalette = renderer_setPalette;
@@ -456,7 +456,7 @@ static void renderer_init() {
 	GL_CALL(glUniform1i(_state->sphereShader->getUniformLocation("u_palette"), 0));
 }
 
-static void renderer_deinit() {
+static void renderer_destroy() {
 	GL_CALL(glDeleteTextures(1, &_state->g_backgroundTexture));
 	GL_CALL(glDeleteTextures(1, &_state->g_paletteTexture));
 	GL_CALL(glDeleteBuffers(1, &_state->ebo));

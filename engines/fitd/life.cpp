@@ -43,6 +43,8 @@
 #include "fitd/vars.h"
 #include "fitd/zv.h"
 
+#define NUM_MAX_SEQUENCE_PARAM 30
+
 namespace Fitd {
 
 int groundLevel;
@@ -783,7 +785,7 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
 			gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
 
-			osystem_drawBackground();
+			drawBackground();
 
 			currentFrameId++;
 
@@ -910,8 +912,8 @@ static void affCbm(byte *p1, byte *p2) {
 static void endSequence() {
 	pakLoad("CAMERA06.PAK", 7, g_engine->_engine->aux);
 	gfx_copyBlockPhys(g_engine->_engine->aux, 0, 0, 320, 200);
-	osystem_drawBackground();
-	osystem_updateScreen();
+	drawBackground();
+	updateScreen();
 
 	pakLoad("ENDSEQ.PAK", 0, g_engine->_engine->aux);
 	fastCopyScreen(g_engine->_engine->aux + 770, g_engine->_engine->aux2);
@@ -924,8 +926,8 @@ static void endSequence() {
 		setFadePalette(g_engine->_engine->currentGamePalette, pal2, i);
 	}
 	gfx_copyBlockPhys(g_engine->_engine->aux2, 0, 0, 320, 200);
-	osystem_drawBackground();
-	osystem_updateScreen();
+	drawBackground();
+	updateScreen();
 
 	for (int i = 0; i < 2; ++i) {
 		for (int j = 1; j < 12; ++j) {
@@ -934,8 +936,8 @@ static void endSequence() {
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
 			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
 			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-			osystem_drawBackground();
-			osystem_updateScreen();
+			drawBackground();
+			updateScreen();
 		}
 	}
 	for (int i = 0; i < 2; ++i) {
@@ -945,8 +947,8 @@ static void endSequence() {
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
 			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
 			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-			osystem_drawBackground();
-			osystem_updateScreen();
+			drawBackground();
+			updateScreen();
 		}
 	}
 	for (int i = 0; i < 2; ++i) {
@@ -956,8 +958,8 @@ static void endSequence() {
 			pakLoad("ENDSEQ.PAK", j, g_engine->_engine->aux);
 			affCbm(g_engine->_engine->aux, g_engine->_engine->logicalScreen);
 			gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-			osystem_drawBackground();
-			osystem_updateScreen();
+			drawBackground();
+			updateScreen();
 		}
 	}
 	for (int i = 0; i < 256; i += 32) {
@@ -967,8 +969,8 @@ static void endSequence() {
 	}
 	memset(g_engine->_engine->logicalScreen, 0, 320 * 200);
 	gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-	osystem_drawBackground();
-	osystem_updateScreen();
+	drawBackground();
+	updateScreen();
 	paletteFill(pal2, 255, 255, 0);
 	for (int i = 0; i < 256; i += 16) {
 		process_events();
@@ -2364,7 +2366,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				fastCopyScreen(g_engine->_engine->aux, g_engine->_engine->frontBuffer);
 				gfx_copyBlockPhys(g_engine->_engine->frontBuffer, 0, 0, 320, 200);
-				osystem_drawBackground();
+				drawBackground();
 
 				uint chrono;
 				startChrono(&chrono);

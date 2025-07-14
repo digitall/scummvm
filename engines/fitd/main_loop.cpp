@@ -87,7 +87,7 @@ void updatePendingEvents() {
 				gfx_setPalette(g_engine->_engine->currentGamePalette);
 			} else {
 				makeBlackPalette();
-				osystem_updateScreen();
+				updateScreen();
 				fadeInPhys(64, 0);
 			}
 		}

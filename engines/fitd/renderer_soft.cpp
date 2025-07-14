@@ -82,7 +82,7 @@ struct State {
 static State *_state = nullptr;
 
 static void renderer_init();
-static void renderer_deinit();
+static void renderer_destroy();
 static void renderer_startFrame();
 static void renderer_drawBackground();
 static void renderer_setPalette(const byte *palette);
@@ -104,7 +104,7 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 Renderer createSoftwareRenderer() {
 	Renderer r{};
 	r.init = renderer_init;
-	r.deinit = renderer_deinit;
+	r.destroy = renderer_destroy;
 	r.startFrame = renderer_startFrame;
 	r.drawBackground = renderer_drawBackground;
 	r.setPalette = renderer_setPalette;
@@ -134,7 +134,7 @@ static void renderer_init() {
 	g_engine->_screen = new Graphics::Screen(WIDTH, HEIGHT);
 }
 
-static void renderer_deinit() {
+static void renderer_destroy() {
 	delete g_engine->_screen;
 	free(_state);
 	_state = nullptr;
@@ -229,8 +229,8 @@ static void renderer_setClip(float left, float top, float right, float bottom) {
 static void renderer_clearClip() {
 	_state->clipMask.x = 0;
 	_state->clipMask.y = 0;
-	_state->clipMask.x = WIDTH;
-	_state->clipMask.w = HEIGHT;
+	_state->clipMask.w = WIDTH;
+	_state->clipMask.h = HEIGHT;
 }
 
 static void renderer_drawMask(int roomId, int maskId) {

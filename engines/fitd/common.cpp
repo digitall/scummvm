@@ -331,7 +331,7 @@ static void turnPageBackward() {
 	g_engine->_engine->logicalScreen = saveLogicalScreen;
 
 	gfx_copyBlockPhys(saveLogicalScreen, 0, 0, 320, 200);
-	osystem_drawBackground();
+	drawBackground();
 }
 
 int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int perso) {
@@ -563,7 +563,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 					turnPageForward();
 				} else {
 					gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-					osystem_drawBackground();
+					drawBackground();
 				}
 			}
 
@@ -577,7 +577,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				}
 			} else {
 				gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-				osystem_drawBackground();
+				drawBackground();
 			}
 		}
 
@@ -958,7 +958,7 @@ static void loadMask(int cameraIdx) {
 				}
 			}
 
-			osystem_createMask(pDestMask->mask, i, j, g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+			createMask(pDestMask->mask, i, j, g_engine->_engine->aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
 		}
 	}
 }
@@ -1045,7 +1045,7 @@ static void createAITD1Mask() {
 			}
 
 			memcpy(pDestMask->mask, s.getBasePtr(0, 0), 320 * 200);
-			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, g_engine->_engine->aux, minX, minY, maxX, maxY);
+			createMask(pDestMask->mask, viewedRoomIdx, maskIdx, g_engine->_engine->aux, minX, minY, maxX, maxY);
 
 			const int numOverlay = *(int16 *)data;
 			data += 2;
@@ -1723,18 +1723,17 @@ static void drawBgOverlay(Object *actorPtr) {
 		const int numOverlayZone = *(int16 *)data2;
 
 		if (g_engine->_engine->lightOff && g_engine->_engine->lightX != 20000) {
-			osystem_setClip(0, 0, 320, 200);
-			osystem_drawMask(0, 666);
-			osystem_clearClip();
+			clearClip();
+			drawMask(0, 666);
 		} else {
 			for (int i = 0; i < numOverlayZone; i++) {
 				if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
 										actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
 										data + 4,
 										*(int16 *)data)) {
-					osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
-					osystem_drawMask(relativeCameraIndex, i);
-					osystem_clearClip();
+					setClip();
+					drawMask(relativeCameraIndex, i);
+					clearClip();
 				}
 
 				const int numOverlay = *(int16 *)data;
@@ -1756,9 +1755,9 @@ static void drawBgOverlay(Object *actorPtr) {
 				const int actorZ2 = actorPtr->zv.ZVZ2 / 10;
 
 				if (actorX1 >= pRect->zoneX1 && actorZ1 >= pRect->zoneZ1 && actorX2 <= pRect->zoneX2 && actorZ2 <= pRect->zoneZ2) {
-					osystem_setClip(g_engine->_engine->clipLeft, g_engine->_engine->clipTop, g_engine->_engine->clipRight, g_engine->_engine->clipBottom);
-					osystem_drawMask(relativeCameraIndex, i);
-					osystem_clearClip();
+					setClip();
+					drawMask(relativeCameraIndex, i);
+					clearClip();
 					break;
 				}
 			}
@@ -1824,7 +1823,7 @@ static void drawSpecialObject(int actorIdx) {
 				const int16 z = pPointList[2];
 				if (z > 300) {
 					const float transformedSize = size * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(z + g_engine->_engine->cameraPerspective);
-					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, transformedSize);
+					drawSphere(pPointList[0], pPointList[1], z, color, 3, transformedSize);
 				}
 				flowAnimList[0] -= 5;                // size -= 5
 				flowPointList[1] -= flowAnimList[1]; // y -= dy
@@ -1861,7 +1860,7 @@ static void drawSpecialObject(int actorIdx) {
 			if (y >= 0) {
 				freeData = false;
 				if (pPointList[2] > 100) {
-					osystem_drawPoint(pPointList[0], pPointList[1], pPointList[2], color);
+					drawPoint(pPointList[0], pPointList[1], pPointList[2], color);
 				}
 				flowAnimList[1] += 6;
 				walkStep(10, 0, flowAnimList[0]);
@@ -1939,7 +1938,7 @@ static void drawSpecialObject(int actorIdx) {
 			const int z = pPointList[2];
 			if (z > 10) {
 				const float transformedSize = static_cast<float>(size) * static_cast<float>(g_engine->_engine->cameraFovX) / static_cast<float>(z + g_engine->_engine->cameraPerspective);
-				osystem_drawSphere(x, y, z, 176, 2, transformedSize);
+				drawSphere(x, y, z, 176, 2, transformedSize);
 			}
 			pPointList += 3;
 		}
@@ -2089,13 +2088,13 @@ void mainDraw(int flagFlip) {
 						// and maskId 666 is just a trick here to identify this special mask
 						// I'm way too lazy to change that right now
 						if (g_engine->_engine->lightOff && g_engine->_engine->lightX != 20000) {
-							osystem_drawSphere(g_engine->_engine->lightX, g_engine->_engine->lightY, 0, 0, 7, 30);
-							osystem_createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
+							drawSphere(g_engine->_engine->lightX, g_engine->_engine->lightY, 0, 0, 7, 30);
+							createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
 							g_engine->_engine->ancLumiereX = g_engine->_engine->lightX;
 							g_engine->_engine->ancLumiereY = g_engine->_engine->lightY;
 						}
 					} else if (g_engine->_engine->lightOff) {
-						osystem_createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
+						createMask(g_engine->_engine->frontBuffer, 0, 666, nullptr, 0, 0, 320, 200);
 					}
 				}
 
@@ -2113,7 +2112,7 @@ void mainDraw(int flagFlip) {
 		}
 	}
 
-	osystem_flushPendingPrimitives();
+	flushPendingPrimitives();
 
 	if (drawTextOverlay()) {
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, g_engine->_engine->BBox3D1, g_engine->_engine->BBox3D2, g_engine->_engine->BBox3D3, g_engine->_engine->BBox3D4);
@@ -2127,7 +2126,7 @@ void mainDraw(int flagFlip) {
 		if (flagFlip) {
 			if (flagFlip == 2 || g_engine->_engine->newFlagLight) {
 				makeBlackPalette();
-				osystem_flip(nullptr);
+				flip();
 				fadeInPhys(0x10, 0);
 				g_engine->_engine->newFlagLight = 0;
 			} else {
@@ -2142,7 +2141,8 @@ void mainDraw(int flagFlip) {
 	// SWAP(ListLogBox, ListPhysBox);
 	// SWAP(NbLogBoxs, NbPhysBoxs);
 
-	memcpy(g_engine->_engine->aux2, g_engine->_screen->getBasePtr(0, 0), 320 * 200);
+	if (g_engine->_screen)
+		memcpy(g_engine->_engine->aux2, g_engine->_screen->getBasePtr(0, 0), 320 * 200);
 
 	g_engine->_engine->flagRedraw = 0;
 }
@@ -2281,7 +2281,7 @@ void foundObject(int objIdx, int param) {
 	}
 
 	drawFoundObect(var_6, objPtr->foundName, var_A);
-	osystem_flip(nullptr);
+	flip();
 
 	input5 = 1;
 
@@ -2289,7 +2289,7 @@ void foundObject(int objIdx, int param) {
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
 		process_events();
-		osystem_drawBackground();
+		drawBackground();
 
 		g_engine->_engine->localKey = g_engine->_engine->key;
 		g_engine->_engine->localJoyD = g_engine->_engine->joyD;

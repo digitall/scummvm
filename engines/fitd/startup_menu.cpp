@@ -98,11 +98,11 @@ int processStartupMenu() {
 	}
 	drawStartupMenu(0);
 
-	osystem_startFrame();
+	startFrame();
 	// osystem_stopFrame();
 	gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
 
-	osystem_flip(nullptr);
+	flip();
 	fadeInPhys(16, 0);
 	startChrono(&chrono);
 
@@ -113,14 +113,14 @@ int processStartupMenu() {
 		}
 
 		gfx_copyBlockPhys(g_engine->_engine->logicalScreen, 0, 0, 320, 200);
-		osystem_startFrame();
+		startFrame();
 
 		if (selectedEntry != -1 || evalChrono(&chrono) > 0x10000) {
 			break;
 		}
 
 		process_events();
-		osystem_drawBackground();
+		drawBackground();
 
 		if (g_engine->_engine->joyD & 1) // up key
 		{
@@ -131,7 +131,7 @@ int processStartupMenu() {
 			}
 
 			drawStartupMenu(currentSelectedEntry);
-			osystem_flip(nullptr);
+			flip();
 			//      menuWaitVSync();
 
 			startChrono(&chrono);
@@ -151,7 +151,7 @@ int processStartupMenu() {
 
 			drawStartupMenu(currentSelectedEntry);
 			// menuWaitVSync();
-			osystem_flip(nullptr);
+			flip();
 
 			startChrono(&chrono);
 
@@ -165,7 +165,7 @@ int processStartupMenu() {
 			selectedEntry = currentSelectedEntry;
 		}
 		// osystem_stopFrame();
-		osystem_flip(nullptr);
+		flip();
 	}
 
 	if (selectedEntry == 2) // if exit game, do not fade
