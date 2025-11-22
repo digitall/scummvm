@@ -42,7 +42,7 @@ typedef struct PakInfoStruct // warning: alignment unsafe
 	int16 offset;
 } pakInfoStruct;
 
-class State {
+class DebugPakState {
 public:
 	Common::StringArray members;
 	Common::String member;
@@ -51,7 +51,7 @@ public:
 	void *selectedTexture = nullptr;
 };
 
-static State *_state = nullptr;
+static DebugPakState *_state = nullptr;
 
 static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 	pPakInfo->discSize = f.readSint32LE();
@@ -109,7 +109,7 @@ static void selectRes(int resIndex) {
 }
 
 void debugPakInit() {
-	_state = new State();
+	_state = new DebugPakState();
 	const Common::Path &path = ConfMan.getPath("path");
 	Common::FSDirectory gameRoot(path);
 	Common::ArchiveMemberList members;

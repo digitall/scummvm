@@ -24,10 +24,6 @@
 
 #include "common/scummsys.h"
 
-namespace Graphics {
-struct Surface;
-}
-
 namespace Fitd {
 
 struct Renderer {

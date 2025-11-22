@@ -22,10 +22,6 @@
 #ifndef FITD_OPENGLRENDERER_H
 #define FITD_OPENGLRENDERER_H
 
-namespace Graphics {
-struct Surface;
-}
-
 namespace Fitd {
 
 struct Renderer;

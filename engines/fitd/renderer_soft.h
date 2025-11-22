@@ -22,10 +22,6 @@
 #ifndef FITD_TINYGLRENDERER_H
 #define FITD_TINYGLRENDERER_H
 
-namespace Graphics {
-struct Surface;
-}
-
 namespace Fitd {
 
 struct Renderer;

@@ -1045,6 +1045,10 @@ static void renderer_updateScreen() {
 }
 
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
+	left = CLIP<int>(left, 0, WIDTH);
+	right = CLIP<int>(right, 0, WIDTH);
+	top = CLIP<int>(top, 0, HEIGHT);
+	bottom = CLIP<int>(bottom, 0, HEIGHT);
 	byte *dst = static_cast<byte *>(g_engine->_screen->getBasePtr(0, 0));
 
 	while ((right - left) % 4) {
