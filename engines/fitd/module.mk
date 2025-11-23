@@ -29,7 +29,6 @@ MODULE_OBJS = \
 	music.o \
 	object.o \
 	pak.o \
-	renderer_opengl.o \
 	renderer_soft.o \
 	room.o \
 	save.o \
@@ -40,6 +39,10 @@ MODULE_OBJS = \
 	track.o \
 	unpack.o \
 	zv.o
+
+ifdef USE_OPENGL_SHADERS
+MODULE_OBJS += renderer_opengl.o
+endif
 
 ifdef USE_IMGUI
 MODULE_OBJS += \

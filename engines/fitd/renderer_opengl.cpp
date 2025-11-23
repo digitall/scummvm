@@ -29,6 +29,8 @@
 #include "graphics/opengl/shader.h"
 #include "graphics/opengl/system_headers.h"
 
+#ifdef USE_OPENGL_SHADERS
+
 #define NUM_MAX_FLAT_VERTICES 5000 * 3
 #define NUM_MAX_NOISE_VERTICES 2000 * 3
 #define NUM_MAX_TRANSPARENT_VERTICES 1000 * 2
@@ -391,7 +393,7 @@ static void renderer_init() {
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 320, 200, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr));
 
 	// create palette texture
 	GL_CALL(glGenTextures(1, &_state->g_paletteTexture));
@@ -401,7 +403,7 @@ static void renderer_init() {
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 3, 256, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 3, 256, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr));
 
 	// create background shader
 	_state->backgroundShader = new OpenGL::Shader();
@@ -508,7 +510,7 @@ static void renderer_setPalette(const byte *palette) {
 	memcpy(_state->RGB_Pal, palette, 256 * 3);
 
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3, 256, GL_RED, GL_UNSIGNED_BYTE, _state->RGB_Pal));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3, 256, GL_LUMINANCE, GL_UNSIGNED_BYTE, _state->RGB_Pal));
 }
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
@@ -538,7 +540,7 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 	}
 
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, _state->physicalScreen));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_LUMINANCE, GL_UNSIGNED_BYTE, _state->physicalScreen));
 }
 
 static void renderer_refreshFrontTextureBuffer() {
@@ -553,7 +555,7 @@ static void renderer_refreshFrontTextureBuffer() {
 	}
 
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, _state->physicalScreen));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_LUMINANCE, GL_UNSIGNED_BYTE, _state->physicalScreen));
 }
 
 static void renderer_flushPendingPrimitives() {
@@ -671,7 +673,7 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte 
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, mask));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 320, 200, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, mask));
 
 	_state->maskTextures[roomId][maskId].maskX1 = maskX1;
 	_state->maskTextures[roomId][maskId].maskX2 = maskX2 + 1;
@@ -1061,3 +1063,5 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 }
 
 } // namespace Fitd
+
+#endif
