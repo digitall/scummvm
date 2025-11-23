@@ -47,6 +47,11 @@
 
 namespace Fitd {
 
+typedef struct SequenceParam {
+	uint frame;
+	uint sample;
+} SequenceParam;
+
 int groundLevel;
 int16 specialTable[4] = {144, 192, 48, 112};
 
@@ -2210,10 +2215,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 				g_engine->_engine->currentLifePtr += 2;
 
 				if (g_engine->_engine->currentMusic != -1) {
-					fadeMusic(0, 0, 0x8000);   // fade out music
-					startChrono(&musicChrono); // fade out music timer
-					g_engine->_engine->currentMusic = -2;         // waiting next music
-					g_engine->_engine->nextMusic = lifeTempVar1;  // next music to play
+					fadeMusic(0, 0, 0x8000);                     // fade out music
+					startChrono(&musicChrono);                   // fade out music timer
+					g_engine->_engine->currentMusic = -2;        // waiting next music
+					g_engine->_engine->nextMusic = lifeTempVar1; // next music to play
 				} else {
 					playMusic(lifeTempVar1);
 				}

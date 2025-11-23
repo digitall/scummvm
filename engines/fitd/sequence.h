@@ -24,11 +24,6 @@
 
 namespace Fitd {
 
-typedef struct SequenceParam {
-	uint frame;
-	uint sample;
-} SequenceParam;
-
 void convertPaletteIfRequired(byte *lpalette);
 
 } // namespace Fitd

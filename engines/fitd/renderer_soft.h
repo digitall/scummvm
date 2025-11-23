@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef FITD_TINYGLRENDERER_H
-#define FITD_TINYGLRENDERER_H
+#ifndef FITD_SOFTRENDERER_H
+#define FITD_SOFTRENDERER_H
 
 namespace Fitd {
 

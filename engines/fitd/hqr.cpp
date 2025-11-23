@@ -31,6 +31,23 @@
 
 namespace Fitd {
 
+typedef struct HqrSubEntry
+{
+    int16 key;
+    int16 size;
+    uint lastTimeUsed;
+    byte* ptr;
+} HqrSubEntry;
+
+typedef struct HqrEntry {
+	char string[14];
+	uint16 maxFreeData;
+	uint16 sizeFreeData;
+	uint16 numMaxEntry;
+	uint16 numUsedEntry;
+	HqrSubEntry *entries;
+} HqrEntry;
+
 static HqrSubEntry *quickFindEntry(int index, int numMax, HqrSubEntry *ptr) {
 	// no RE. Original was probably faster
 	for (int i = 0; i < numMax; i++) {

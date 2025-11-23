@@ -26,34 +26,17 @@
 
 namespace Fitd {
 
-typedef struct HqrSubEntry
-{
-    int16 key;
-    int16 size;
-    uint lastTimeUsed;
-    byte* ptr;
-} HqrSubEntry;
-
-typedef struct HqrEntry {
-	char string[14];
-	uint16 maxFreeData;
-	uint16 sizeFreeData;
-	uint16 numMaxEntry;
-	uint16 numUsedEntry;
-	HqrSubEntry *entries;
-} HqrEntry;
+struct HqrSubEntry;
+struct HqrEntry;
 
 byte *hqrGet(HqrEntry *hqrPtr, int index);
 int hqMalloc(HqrEntry *hqrPtr, int size);
 byte *hqPtrMalloc(HqrEntry *hqrPtr, int index);
-void hqrName(HqrEntry * ptr, const char * name);
+void hqrName(HqrEntry *ptr, const char *name);
 HqrEntry *hqrInitRessource(const char *name, int size, int numEntries);
 HqrEntry *hqrInit(int size, int numEntry);
 void hqrReset(HqrEntry *hqrPtr);
 void hqrFree(HqrEntry *hqrPtr);
-
-struct Body;
-Body getBodyFromPtr(void *ptr);
 
 } // namespace Fitd
 

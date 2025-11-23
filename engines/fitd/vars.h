@@ -245,6 +245,7 @@ struct Body {
 	uint8 *m_raw;
 };
 
+Body getBodyFromPtr(void *ptr);
 uint16 getFlags(const Body *body);
 uint16 getVerticesSize(const Body *body);
 void copyVertices(const Body *body, int16 *dst);
