@@ -53,7 +53,7 @@ void hqrReset(HqrEntry *hqrPtr);
 void hqrFree(HqrEntry *hqrPtr);
 
 struct Body;
-Body *getBodyFromPtr(void *ptr);
+Body getBodyFromPtr(void *ptr);
 
 } // namespace Fitd
 

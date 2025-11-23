@@ -72,8 +72,6 @@ public:
 
 	Common::HashMap<void *, byte *> bodyBufferMap;
 	Common::Array<CameraData> currentFloorCameraData;
-	Common::Array<Body *> bodies;
-	Common::Array<Animation *> animations;
 	Common::Array<RoomData> roomDataTable;
 	Common::Array<WorldObject> worldObjets;
 	byte *currentFoundBody = nullptr;

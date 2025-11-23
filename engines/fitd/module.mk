@@ -39,7 +39,6 @@ MODULE_OBJS = \
 	tatou.o \
 	track.o \
 	unpack.o \
-	vars.o \
 	zv.o
 
 ifdef USE_IMGUI

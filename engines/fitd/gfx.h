@@ -23,6 +23,8 @@
 #define FITD_GFX_H
 
 #include "common/scummsys.h"
+#include "common/array.h"
+#include "fitd/vars.h"
 
 namespace Graphics {
 struct Surface;

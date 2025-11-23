@@ -195,8 +195,7 @@ void loadFloor(int floorNumber) {
 
 	assert(expectedNumberOfCamera < 40);
 
-	int i;
-	for (i = 0; i < expectedNumberOfCamera; i++) {
+	for (int i = 0; i < expectedNumberOfCamera; i++) {
 		uint offset;
 		byte *currentCameraData = nullptr;
 
@@ -219,14 +218,12 @@ void loadFloor(int floorNumber) {
 
 		// load cameras
 		if (offset < currentFloorCameraRawDataSize) {
-			int k;
-			byte *backupDataPtr;
 
 			if (g_engine->_engine->currentFloorCameraRawData) {
 				currentCameraData = g_engine->_engine->currentFloorCameraRawData + READ_LE_U32(g_engine->_engine->currentFloorCameraRawData + i * 4);
 			}
 
-			backupDataPtr = currentCameraData;
+			byte *backupDataPtr = currentCameraData;
 
 			assert(currentCameraData);
 			g_engine->_engine->currentFloorCameraData[i].alpha = READ_LE_U16(currentCameraData + 0x00);
@@ -247,7 +244,7 @@ void loadFloor(int floorNumber) {
 
 			g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.reserve(g_engine->_engine->currentFloorCameraData[i].numViewedRooms);
 
-			for (k = 0; k < g_engine->_engine->currentFloorCameraData[i].numViewedRooms; k++) {
+			for (int k = 0; k < g_engine->_engine->currentFloorCameraData[i].numViewedRooms; k++) {
 				g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.emplace_back();
 				CameraViewedRoom *pCurrentCameraViewedRoom = &g_engine->_engine->currentFloorCameraData[i].viewedRoomTable.back();
 
@@ -304,23 +301,19 @@ void loadFloor(int floorNumber) {
 				}
 				// load camera cover
 				{
-					byte *pZoneData;
-					int numZones;
-					int j;
-
-					pZoneData = backupDataPtr + g_engine->_engine->currentFloorCameraData[i].viewedRoomTable[k].offsetToCover;
+					byte* pZoneData = backupDataPtr + g_engine->_engine->currentFloorCameraData[i].viewedRoomTable[k].offsetToCover;
 					if (pMaskData) {
 						assert(pZoneData == pMaskData);
 					}
 					// pZoneData = currentCameraData;
 
+					int numZones;
 					pCurrentCameraViewedRoom->numCoverZones = numZones = READ_LE_U16(pZoneData);
 					pZoneData += 2;
 
 					pCurrentCameraViewedRoom->coverZones.resize(numZones);
 
-					for (j = 0; j < pCurrentCameraViewedRoom->numCoverZones; j++) {
-						int pointIdx;
+					for (int j = 0; j < pCurrentCameraViewedRoom->numCoverZones; j++) {
 						int numPoints;
 
 						pCurrentCameraViewedRoom->coverZones[j].numPoints = numPoints = READ_LE_U16(pZoneData);
@@ -328,7 +321,7 @@ void loadFloor(int floorNumber) {
 
 						pCurrentCameraViewedRoom->coverZones[j].pointTable.resize(numPoints + 1);
 
-						for (pointIdx = 0; pointIdx < pCurrentCameraViewedRoom->coverZones[j].numPoints; pointIdx++) {
+						for (int pointIdx = 0; pointIdx < pCurrentCameraViewedRoom->coverZones[j].numPoints; pointIdx++) {
 							pCurrentCameraViewedRoom->coverZones[j].pointTable[pointIdx].x = READ_LE_U16(pZoneData);
 							pZoneData += 2;
 							pCurrentCameraViewedRoom->coverZones[j].pointTable[pointIdx].y = READ_LE_U16(pZoneData);
