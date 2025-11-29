@@ -77,7 +77,7 @@ void updatePendingEvents() {
 	//         }
 	//     }
 
-	if (g_engine->_engine->newFlagLight != 0) {
+	if ((g_engine->getGameId() == GID_AITD1) && (g_engine->_engine->newFlagLight != 0)) {
 		g_engine->_engine->newFlagLight = 0;
 		if (g_engine->_engine->cVars[getCVarsIdx(KILLED_SORCERER)] != 0) {
 			if (g_engine->_engine->lightOff) {
