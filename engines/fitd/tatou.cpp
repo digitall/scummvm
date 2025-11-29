@@ -97,7 +97,7 @@ void playRepeatedSound(int num) {
 		g_engine->_engine->lastPriority = priorities[num];
 		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
 
-		const byte *samplePtr = hqrGet(g_engine->_engine->listSamp, num);
+		const byte *samplePtr = hqrGet(g_engine->_engine->listSamp, num).data;
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
@@ -115,7 +115,7 @@ void playSound(int num) {
 		g_engine->_engine->lastSample = num;
 		g_engine->_engine->lastPriority = priorities[num];
 		g_engine->_mixer->stopID(g_engine->_engine->lastSample);
-		const byte *samplePtr = hqrGet(g_engine->_engine->listSamp, num);
+		const byte *samplePtr = hqrGet(g_engine->_engine->listSamp, num).data;
 		Audio::SoundHandle handle;
 		Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
 		Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);

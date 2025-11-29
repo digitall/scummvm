@@ -221,10 +221,10 @@ static int loadJack(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum).data;
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM).data;
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -413,10 +413,10 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum).data;
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM).data;
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -612,10 +612,10 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (g_engine->_engine->objectTable[i].indexInWorld != -1 && g_engine->_engine->objectTable[i].bodyNum != -1) {
-			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum);
+			byte *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->objectTable[i].bodyNum).data;
 
 			if (g_engine->_engine->objectTable[i].ANIM != -1) {
-				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM);
+				byte *animPtr = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->objectTable[i].ANIM).data;
 				setAnimObjet(g_engine->_engine->objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}

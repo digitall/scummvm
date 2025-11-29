@@ -556,7 +556,7 @@ void setupRealZv(ZVStruct *zvPtr) {
 
 static void doRealZv(Object *actorPtr) {
 
-	computeScreenBox(0, 0, 0, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum));
+	computeScreenBox(0, 0, 0, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum).data);
 
 	ZVStruct *zvPtr = &actorPtr->zv;
 
@@ -996,7 +996,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 	g_engine->_engine->currentLifeActorPtr = g_engine->_engine->currentProcessedActorPtr;
 	g_engine->_engine->currentLifeNum = lifeNum;
 
-	g_engine->_engine->currentLifePtr = hqrGet(g_engine->_engine->listLife, lifeNum);
+	g_engine->_engine->currentLifePtr = hqrGet(g_engine->_engine->listLife, lifeNum).data;
 	assert(g_engine->_engine->currentLifePtr);
 
 	while (!::Engine::shouldQuit() && !exitLife) {
@@ -1240,7 +1240,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 					if (g_engine->_engine->currentProcessedActorPtr->_flags & AF_ANIMATED) {
 						if (g_engine->_engine->currentProcessedActorPtr->ANIM != -1 && g_engine->_engine->currentProcessedActorPtr->bodyNum != -1) {
-							byte *pAnim = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM);
+							byte *pAnim = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM).data;
 							byte *pBody;
 
 							if (g_engine->getGameId() >= GID_JACK) {
@@ -1248,7 +1248,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 								gereDecal(); */
 							}
 
-							pBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
+							pBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data;
 
 							/*    if(gameId >= GID_JACK)
 							{
@@ -1277,14 +1277,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 				g_engine->_engine->currentProcessedActorPtr->bodyNum = param1;
 
 				if (g_engine->_engine->currentProcessedActorPtr->_flags & AF_ANIMATED) {
-					byte *pAnim = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM);
+					byte *pAnim = hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM).data;
 					byte *pBody;
 
 					if (g_engine->getGameId() >= GID_JACK) {
 						/*                  if (bFlagDecal)
 						gereDecal(); */
 					}
-					pBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
+					pBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data;
 
 					setAnimObjet(0, pAnim, pBody);
 					initAnim(param2, 4, -1);
@@ -1339,7 +1339,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_DO_ROT_ZV: {
 				// appendFormated("LM_DO_ROT_ZV ");
-				getZvRot(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum), &g_engine->_engine->currentProcessedActorPtr->zv,
+				getZvRot(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data, &g_engine->_engine->currentProcessedActorPtr->zv,
 						 g_engine->_engine->currentProcessedActorPtr->alpha,
 						 g_engine->_engine->currentProcessedActorPtr->beta,
 						 g_engine->_engine->currentProcessedActorPtr->gamma);
@@ -1354,7 +1354,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				break;
 			}
 			case LM_DO_MAX_ZV: {
-				getZvMax(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum), &g_engine->_engine->currentProcessedActorPtr->zv);
+				getZvMax(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data, &g_engine->_engine->currentProcessedActorPtr->zv);
 
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX;
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX;
@@ -1366,7 +1366,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				break;
 			}
 			case LM_DO_NORMAL_ZV: {
-				giveZVObjet(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum), &g_engine->_engine->currentProcessedActorPtr->zv);
+				giveZVObjet(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data, &g_engine->_engine->currentProcessedActorPtr->zv);
 
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX;
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX;
@@ -1379,7 +1379,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_DO_CARRE_ZV: {
 				// appendFormated("LM_DO_CARRE_ZV ");
-				getZvCube(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum), &g_engine->_engine->currentProcessedActorPtr->zv);
+				getZvCube(hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data, &g_engine->_engine->currentProcessedActorPtr->zv);
 
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX1 += g_engine->_engine->currentProcessedActorPtr->roomX;
 				g_engine->_engine->currentProcessedActorPtr->zv.ZVX2 += g_engine->_engine->currentProcessedActorPtr->roomX;
@@ -1608,7 +1608,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_CONTINUE_TRACK: {
 				// appendFormated("LM_CONTINUE_TRACK ");
-				byte *ptr = hqrGet(g_engine->_engine->listTrack, g_engine->_engine->currentProcessedActorPtr->trackNumber);
+				byte *ptr = hqrGet(g_engine->_engine->listTrack, g_engine->_engine->currentProcessedActorPtr->trackNumber).data;
 
 				ptr += g_engine->_engine->currentProcessedActorPtr->positionInTrack * 2;
 

@@ -29,7 +29,12 @@ namespace Fitd {
 struct HqrSubEntry;
 struct HqrEntry;
 
-byte *hqrGet(HqrEntry *hqrPtr, int index);
+typedef struct HqData {
+	byte *data;
+	int16 size;
+} HqData;
+
+HqData hqrGet(HqrEntry *hqrPtr, int index);
 int hqMalloc(HqrEntry *hqrPtr, int size);
 byte *hqPtrMalloc(HqrEntry *hqrPtr, int index);
 void hqrName(HqrEntry *ptr, const char *name);

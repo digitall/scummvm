@@ -279,7 +279,7 @@ void processInventory() {
 
 				g_engine->_engine->currentFoundBodyIdx = g_engine->_engine->worldObjets[selectedWorldObjectIdx].foundBody;
 
-				g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
+				g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx).data;
 
 				const int var_C = g_engine->_engine->worldObjets[selectedWorldObjectIdx].flags2;
 

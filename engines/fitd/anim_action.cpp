@@ -210,7 +210,7 @@ void gereFrappe() {
 
 			ZVStruct rangeZv;
 
-			giveZVObjet(hqrGet(g_engine->_engine->listBody, objPtr->body), &rangeZv);
+			giveZVObjet(hqrGet(g_engine->_engine->listBody, objPtr->body).data, &rangeZv);
 
 			rangeZv.ZVX1 += x;
 			rangeZv.ZVX2 += x;
@@ -276,7 +276,7 @@ void gereFrappe() {
 		actorPtr->roomY = y;
 		actorPtr->roomZ = z;
 
-		giveZVObjet(hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum), &actorPtr->zv);
+		giveZVObjet(hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum).data, &actorPtr->zv);
 
 		actorPtr->zv.ZVX1 += x;
 		actorPtr->zv.ZVX2 += x;

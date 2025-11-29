@@ -124,10 +124,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->HIT_BY = -1;
 
 	if (body != -1) {
-		bodyPtr = hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum);
+		bodyPtr = hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum).data;
 
 		if (anim != -1) {
-			byte *animPtr = hqrGet(g_engine->_engine->listAnim, anim);
+			byte *animPtr = hqrGet(g_engine->_engine->listAnim, anim).data;
 
 			setAnimObjet(frame, animPtr, bodyPtr);
 

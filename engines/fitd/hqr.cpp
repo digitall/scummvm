@@ -120,10 +120,12 @@ byte *hqPtrMalloc(HqrEntry *hqrPtr, int index) {
 	return ptr->ptr;
 }
 
-byte *hqrGet(HqrEntry *hqrPtr, int index) {
+HqData hqrGet(HqrEntry *hqrPtr, int index) {
 
-	if (index < 0)
-		return nullptr;
+	if (index < 0) {
+		HqData emptyData = { nullptr, 0 };
+		return emptyData;
+	}
 
 	HqrSubEntry *foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
 
@@ -131,14 +133,17 @@ byte *hqrGet(HqrEntry *hqrPtr, int index) {
 		foundEntry->lastTimeUsed = g_engine->_engine->timer;
 		g_engine->_engine->hqLoad = 0;
 
-		return foundEntry->ptr;
+		HqData data = { foundEntry->ptr, foundEntry->size };
+		return data;
 	}
 
 	freezeTime();
 	const int size = pakGetPakSize(hqrPtr->string, index);
 
-	if (size == 0)
-		return nullptr;
+	if (size == 0) {
+		HqData emptyData = { nullptr, 0 };
+		return emptyData;
+	}
 
 	if (size >= hqrPtr->maxFreeData) {
 		error("%s", hqrPtr->string);
@@ -169,7 +174,8 @@ byte *hqrGet(HqrEntry *hqrPtr, int index) {
 
 	unfreezeTime();
 
-	return ptr;
+	HqData data = { ptr, static_cast<int16>(size) };
+	return data;
 }
 
 HqrEntry *hqrInit(int size, int numEntry) {

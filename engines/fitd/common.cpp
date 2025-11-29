@@ -203,7 +203,7 @@ void executeFoundLife(int objIdx) {
 	const int currentActorLifeNum = g_engine->_engine->currentLifeNum;
 
 	if (g_engine->_engine->currentLifeNum != -1) {
-		lifeOffset = (g_engine->_engine->currentLifePtr - hqrGet(g_engine->_engine->listLife, currentActorLifeNum)) / 2;
+		lifeOffset = (g_engine->_engine->currentLifePtr - hqrGet(g_engine->_engine->listLife, currentActorLifeNum).data) / 2;
 	}
 
 	int var_2 = 0;
@@ -259,7 +259,7 @@ void executeFoundLife(int objIdx) {
 
 	if (currentActorLifeNum != -1) {
 		g_engine->_engine->currentLifeNum = currentActorLifeNum;
-		g_engine->_engine->currentLifePtr = hqrGet(g_engine->_engine->listLife, g_engine->_engine->currentLifeNum) + lifeOffset * 2;
+		g_engine->_engine->currentLifePtr = hqrGet(g_engine->_engine->listLife, g_engine->_engine->currentLifeNum).data + lifeOffset * 2;
 	}
 }
 
@@ -1882,7 +1882,7 @@ static void drawSpecialObject(int actorIdx) {
 	}
 	case 3: {
 		// muzzle flash
-		flowPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->cVars[getCVarsIdx(BODY_FLAMME)]);
+		flowPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->cVars[getCVarsIdx(BODY_FLAMME)]).data;
 		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
 		actorPtr->indexInWorld = -1;
 		break;
@@ -2051,7 +2051,7 @@ void mainDraw(int flagFlip) {
 			if (actorPtr->_flags & AF_SPECIAL) {
 				drawSpecialObject(currentDrawActor);
 			} else {
-				byte *bodyPtr = hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum);
+				byte *bodyPtr = hqrGet(g_engine->_engine->listBody, actorPtr->bodyNum).data;
 
 				if (g_engine->_engine->hqLoad) {
 					// setAnimObjet(actorPtr->FRAME, HQR_Get(g_engine->_engine->listAnim, actorPtr->ANIM), bodyPtr);
@@ -2171,7 +2171,7 @@ void drawFoundObect(int menuState, int objectName, int zoomFactor) {
 
 	setCameraTarget(0, 0, 0, 60, g_engine->_engine->statusVar1, 0, zoomFactor);
 
-	affObjet(0, 0, 0, 0, 0, 0, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx));
+	affObjet(0, 0, 0, 0, 0, 0, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx).data);
 
 	simpleMessage(160, g_engine->_engine->windowY1, 20, 1);
 	simpleMessage(160, g_engine->_engine->windowY1 + 16, objectName, 1);
@@ -2265,7 +2265,7 @@ void foundObject(int objIdx, int param) {
 	}
 
 	g_engine->_engine->currentFoundBodyIdx = objPtr->foundBody;
-	g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx);
+	g_engine->_engine->currentFoundBody = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentFoundBodyIdx).data;
 
 	setupCameraProjection(160, 100, 128, 300, 298);
 
@@ -2751,7 +2751,7 @@ void throwStoppedAt(int x, int z) {
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
 
-	const uint8 *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum);
+	const uint8 *bodyPtr = hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data;
 
 	giveZVObjet(bodyPtr, &zvLocal);
 
@@ -3126,6 +3126,16 @@ void runGame() {
 
 	// If a savegame was selected from the launcher, load it
 	const int saveSlot = ConfMan.getInt("save_slot");
+
+	// for (size_t i = 0; i < 12; i++) {
+	// 	HqData data = hqrGet(g_engine->_engine->listMus, i); // Preload music entries
+	// 	Common::DumpFile f;
+	// 	Common::String path(Common::String::format("mus%02d.dat", i));
+	// 	debug("Writing music file: %s\n", path.c_str());
+	// 	f.open(path.c_str());
+	// 	f.write(data.data, data.size);
+	// 	f.close();
+	// }
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:

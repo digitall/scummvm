@@ -143,7 +143,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 
 			g_engine->_engine->currentProcessedActorPtr->_flags |= AF_ANIMATED;
 
-			setAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, animNum), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+			setAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, animNum).data, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data);
 
 			g_engine->_engine->currentProcessedActorPtr->animType = animType;
 			g_engine->_engine->currentProcessedActorPtr->animInfo = animInfo;
@@ -172,7 +172,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 			removeFromBGIncrust(g_engine->_engine->currentProcessedActorIdx);
 		}
 
-		setAnimObjet(0, hqrGet(g_engine->_engine->listAnim, animNum), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		setAnimObjet(0, hqrGet(g_engine->_engine->listAnim, animNum).data, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data);
 
 		g_engine->_engine->currentProcessedActorPtr->newAnim = animNum;
 		g_engine->_engine->currentProcessedActorPtr->newAnimType = animType;
@@ -295,7 +295,7 @@ void updateAnimation() {
 			g_engine->_engine->currentProcessedActorPtr->animNegZ = 0;
 		}
 
-		initBufferAnim(g_engine->_engine->bufferAnim[g_engine->_engine->bufferAnimCounter], hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		initBufferAnim(g_engine->_engine->bufferAnim[g_engine->_engine->bufferAnimCounter], hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data);
 
 		g_engine->_engine->bufferAnimCounter++;
 		if (g_engine->_engine->bufferAnimCounter == NB_BUFFER_ANIM)
@@ -310,7 +310,7 @@ void updateAnimation() {
 		g_engine->_engine->currentProcessedActorPtr->END_ANIM = 0;
 		g_engine->_engine->currentProcessedActorPtr->FRAME = 0;
 
-		g_engine->_engine->currentProcessedActorPtr->numOfFrames = getNbFramesAnim(hqrGet(g_engine->_engine->listAnim, newAnim));
+		g_engine->_engine->currentProcessedActorPtr->numOfFrames = getNbFramesAnim(hqrGet(g_engine->_engine->listAnim, newAnim).data);
 	}
 
 	if (g_engine->_engine->currentProcessedActorPtr->ANIM == -1) // no animation
@@ -350,7 +350,7 @@ void updateAnimation() {
 		oldStepY = g_engine->_engine->currentProcessedActorPtr->stepY;
 		oldStepZ = g_engine->_engine->currentProcessedActorPtr->stepZ;
 
-		g_engine->_engine->currentProcessedActorPtr->END_FRAME = setInterAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM), hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum));
+		g_engine->_engine->currentProcessedActorPtr->END_FRAME = setInterAnimObjet(g_engine->_engine->currentProcessedActorPtr->FRAME, hqrGet(g_engine->_engine->listAnim, g_engine->_engine->currentProcessedActorPtr->ANIM).data, hqrGet(g_engine->_engine->listBody, g_engine->_engine->currentProcessedActorPtr->bodyNum).data);
 
 		walkStep(g_engine->_engine->animStepX, g_engine->_engine->animStepZ, g_engine->_engine->currentProcessedActorPtr->beta);
 

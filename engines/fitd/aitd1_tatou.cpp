@@ -40,8 +40,7 @@ static void clearScreenTatou() {
 }
 
 void process_events() {
-	// TODO: fix this
-	const uint32 timeIncrease = 2;
+	const uint32 timeIncrease = 1;
 
 	flushPendingPrimitives();
 
