@@ -77,7 +77,6 @@ void OpenGLRenderer::init() {
 
 	glDisable(GL_LIGHTING);
 	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
 	glEnable(GL_SCISSOR_TEST);
@@ -128,7 +127,7 @@ void OpenGLRenderer::drawTexturedRect2D(const Common::Rect &screenRect, const Co
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glDisable(GL_DEPTH_TEST);
+
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -157,7 +156,6 @@ void OpenGLRenderer::drawTexturedRect2D(const Common::Rect &screenRect, const Co
 
 	glDisable(GL_BLEND);
 	glDepthMask(GL_TRUE);
-	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glBindTexture(GL_TEXTURE_2D, 0); // Bind the default (empty) texture to avoid darker colors!
 	glFlush();
@@ -166,7 +164,6 @@ void OpenGLRenderer::drawTexturedRect2D(const Common::Rect &screenRect, const Co
 void OpenGLRenderer::drawSkybox(Texture *texture, Math::Vector3d camera) {
 	OpenGLTexture *glTexture = static_cast<OpenGLTexture *>(texture);
 
-	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -202,7 +199,6 @@ void OpenGLRenderer::drawSkybox(Texture *texture, Math::Vector3d camera) {
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glFlush();
 }
@@ -311,7 +307,7 @@ void OpenGLRenderer::renderCrossair(const Common::Point &crossairPosition) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
 
-	glDisable(GL_DEPTH_TEST);
+
 	glDepthMask(GL_FALSE);
 
 	useColor(255, 255, 255);
@@ -337,7 +333,6 @@ void OpenGLRenderer::renderCrossair(const Common::Point &crossairPosition) {
 	glLineWidth(1);
 
 	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 }
 
@@ -367,7 +362,6 @@ void OpenGLRenderer::renderPlayerShootRay(byte color, const Common::Point &posit
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
 	}
 
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
 	glColor4ub(r, g, b, 255);
@@ -391,7 +385,6 @@ void OpenGLRenderer::renderPlayerShootRay(byte color, const Common::Point &posit
 	glLineWidth(1);
 
 	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 }
 
@@ -420,7 +413,6 @@ void OpenGLRenderer::drawCelestialBody(Math::Vector3d position, float radius, by
 		}
 
 	glLoadMatrixf(m);
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
 	setStippleData(stipple);
@@ -462,7 +454,6 @@ void OpenGLRenderer::drawCelestialBody(Math::Vector3d position, float radius, by
 		useStipple(false);
 	}
 
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glPopMatrix();
 }
@@ -493,7 +484,6 @@ void OpenGLRenderer::renderPlayerShootBall(byte color, const Common::Point &posi
 		glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
 	}
 
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
 	glColor4ub(r, g, b, 255);
@@ -519,7 +509,6 @@ void OpenGLRenderer::renderPlayerShootBall(byte color, const Common::Point &posi
 	glDisableClientState(GL_VERTEX_ARRAY);
 
 	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 }
 
@@ -557,10 +546,6 @@ void OpenGLRenderer::renderFace(const Common::Array<Math::Vector3d> &vertices) {
 	glVertexPointer(3, GL_FLOAT, 0, _verts);
 	glDrawArrays(GL_TRIANGLES, 0, vi + 3);
 	glDisableClientState(GL_VERTEX_ARRAY);
-}
-
-void OpenGLRenderer::depthTesting(bool enabled) {
-	glDisable(GL_DEPTH_TEST);
 }
 
 void OpenGLRenderer::enableCulling(bool enabled) {
