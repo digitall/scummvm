@@ -457,8 +457,7 @@ void updateAnimation() {
 
 			if (actorTouchedPtr->_flags & AF_FOUNDABLE) // takable
 			{
-				// TODO: check if character isn't dead...
-				if (g_engine->_engine->currentProcessedActorPtr->trackMode == 1 && ((g_engine->getGameId() == GID_AITD1 && g_engine->_engine->cVars[getCVarsIdx(DEAD_PERSO)] == 0)) /*|| (gameId >= JACK && defines.field_6 == 0))*/) {
+				if (g_engine->_engine->currentProcessedActorPtr->trackMode == 1 && g_engine->_engine->cVars[getCVarsIdx(DEAD_PERSO)] == 0 /*|| (gameId >= JACK && defines.field_6 == 0))*/) {
 					foundObject(actorTouchedPtr->indexInWorld, 0);
 				}
 			} else {
