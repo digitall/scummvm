@@ -1057,15 +1057,13 @@ static void createAITD1Mask() {
 }
 
 static int isInViewList(int value) {
-	const byte *ptr = g_engine->_engine->currentCameraVisibilityList;
-	int var;
-
-	while ((var = *ptr++) != -1) {
-		if (value == var) {
+	for (uint i = 0; i < ARRAYSIZE(g_engine->_engine->currentCameraVisibilityList); i++) {
+		int var = g_engine->_engine->currentCameraVisibilityList[i];
+		if (var == -1)
+			break;
+		if (var == value)
 			return 1;
-		}
 	}
-
 	return 0;
 }
 
