@@ -589,8 +589,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				Common::String fileName(Common::String::format("%02d%02d%02d.VOC", perso, page, part++));
 				Common::File *f = new Common::File();
 				f->open(fileName.c_str());
-				if (!f->isOpen())
+				if (!f->isOpen()) {
+					delete f;
 					break;
+				}
 				Audio::SeekableAudioStream *voc = Audio::makeVOCStream(f, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
 				if (!queuing_audio_stream) {
 					queuing_audio_stream = Audio::makeQueuingAudioStream(voc->getRate(), voc->isStereo());

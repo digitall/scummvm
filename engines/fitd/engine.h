@@ -68,6 +68,11 @@ public:
 		hqrFree(listBody);
 		hqrFree(listAnim);
 		hqrFree(listMatrix);
+
+		free(ptrCadre);
+
+		free(currentFloorRoomRawData);
+		free(currentFloorCameraRawData);
 	}
 
 	Common::HashMap<void *, byte *> bodyBufferMap;

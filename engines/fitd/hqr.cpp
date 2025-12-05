@@ -222,6 +222,7 @@ void hqrFree(HqrEntry *hqrPtr) {
 		if (hqrPtr->entries[i].ptr)
 			free(hqrPtr->entries[i].ptr);
 	}
+	free(hqrPtr->entries);
 
 	free(hqrPtr);
 }

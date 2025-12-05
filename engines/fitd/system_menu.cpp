@@ -166,6 +166,7 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
 			}
 			scaleDownImage(d->w, d->h, 30, y - 20, static_cast<const byte *>(d->getBasePtr(0, 0)));
+			d->free();
 			renderText(140, y, desc.c_str());
 		} else {
 			renderText(140, y, desc.c_str());
