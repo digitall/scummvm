@@ -242,18 +242,18 @@ struct Primitive {
 };
 
 struct Body {
-	uint8 *m_raw;
-};
+	void *m_raw;
 
-Body getBodyFromPtr(void *ptr);
-uint16 getFlags(const Body *body);
-uint16 getVerticesSize(const Body *body);
-void copyVertices(const Body *body, int16 *dst);
-void getVertices(const Body *body, Common::Array<Point3d> &dst);
-uint16 getGroupOrderSize(const Body *body);
-void getGroupOrders(const Body *body, Common::Array<uint16> &dst);
-void getGroups(const Body *body, Common::Array<Group> &dst);
-void getPrimitives(const Body *body, Common::Array<Primitive> &dst);
+	uint16 m_flags;
+	ZVStruct m_zv;
+	Common::Array<uint8> m_scratchBuffer;
+	Common::Array<Point3d> m_vertices;
+	Common::Array<uint16> m_groupOrder;
+	Common::Array<Group> m_groups;
+	Common::Array<Primitive> m_primitives;
+
+	void sync();
+};
 
 struct Frame {
 	uint16 m_timestamp;

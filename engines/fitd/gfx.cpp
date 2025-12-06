@@ -378,24 +378,26 @@ static void rotateGroupe(Group *ptr) {
 	} while (--temp2);
 }
 
-static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, const Body *pBody) {
+static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody) {
 	renderX = x - g_engine->_engine->translateX;
 	renderY = y;
 	renderZ = z - g_engine->_engine->translateZ;
 
-	copyVertices(pBody, &g_engine->_engine->pointBuffer[0]);
+	assert(pBody->m_vertices.size() < NUM_MAX_POINT_IN_POINT_BUFFER);
 
-	g_engine->_engine->numOfPoints = getVerticesSize(pBody);
-	numOfBones = getGroupOrderSize(pBody);
+	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
+		g_engine->_engine->pointBuffer[i * 3 + 0] = pBody->m_vertices[i].x;
+		g_engine->_engine->pointBuffer[i * 3 + 1] = pBody->m_vertices[i].y;
+		g_engine->_engine->pointBuffer[i * 3 + 2] = pBody->m_vertices[i].z;
+	}
+
+	g_engine->_engine->numOfPoints = pBody->m_vertices.size();
+	numOfBones = pBody->m_groupOrder.size();
 	assert(numOfBones < NUM_MAX_BONES);
 
-	Common::Array<Group> groups;
-	getGroups(pBody, groups);
-	if (getFlags(pBody) & INFO_OPTIMISE) {
-		Common::Array<uint16> groupOrders;
-		getGroupOrders(pBody, groupOrders);
-		for (uint i = 0; i < groupOrders.size(); i++) {
-			const Group *pGroup = &groups[groupOrders[i]];
+	if (pBody->m_flags & INFO_OPTIMISE) {
+		for (uint i = 0; i < pBody->m_groupOrder.size(); i++) {
+			const Group *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			switch (pGroup->m_state.m_type) {
 			case 1:
@@ -414,14 +416,12 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, const 
 			rotateGroupeOptimise(pGroup);
 		}
 	} else {
-		groups[0].m_state.m_delta[0] = alpha;
-		groups[0].m_state.m_delta[1] = beta;
-		groups[0].m_state.m_delta[2] = gamma;
+		pBody->m_groups[0].m_state.m_delta[0] = alpha;
+		pBody->m_groups[0].m_state.m_delta[1] = beta;
+		pBody->m_groups[0].m_state.m_delta[2] = gamma;
 
-		Common::Array<uint16> groupOrders;
-		getGroupOrders(pBody, groupOrders);
-		for (uint i = 0; i < groups.size(); i++) {
-			Group *pGroup = &groups[groupOrders[i]];
+		for (uint i = 0; i < pBody->m_groups.size(); i++) {
+			Group *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			const int transX = pGroup->m_state.m_delta[0];
 			const int transY = pGroup->m_state.m_delta[1];
@@ -447,8 +447,8 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, const 
 		}
 	}
 
-	for (uint i = 0; i < groups.size(); i++) {
-		const Group *pGroup = &groups[i];
+	for (uint i = 0; i < pBody->m_groups.size(); i++) {
+		const Group *pGroup = &pBody->m_groups[i];
 
 		int point1 = pGroup->m_baseVertices * 6;
 		int point2 = pGroup->m_start * 6;
@@ -675,9 +675,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 }
 
 int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody) {
-	Common::Array<Point3d> vertices;
-	getVertices(pBody, vertices);
-	return rotateNuage2(x, y, z, alpha, beta, gamma, vertices.size(), (int16 *)vertices.data());
+	return rotateNuage2(x, y, z, alpha, beta, gamma, pBody->m_vertices.size(), &pBody->m_vertices[0].x);
 }
 
 static void processPrim_Line(int primType, Primitive *ptr, char **out) {
@@ -783,7 +781,7 @@ static void processPrim_Point(PrimType primType, Primitive *ptr, char **out) {
 }
 
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte *bodyPtr) {
-	const Body body = getBodyFromPtr(bodyPtr);
+	Body *pBody = getBodyFromPtr(bodyPtr);
 
 	g_engine->_engine->BBox3D1 = 0x7FFF;
 	g_engine->_engine->BBox3D2 = 0x7FFF;
@@ -793,10 +791,11 @@ void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte 
 
 	numOfPrimitiveToRender = 0;
 
-	modelFlags = getFlags(&body);
+	modelFlags = pBody->m_flags;
 
 	if (modelFlags & INFO_ANIM) {
-		animNuage(x, y, z, alpha, beta, gamma, &body);
+		pBody->sync();
+		animNuage(x, y, z, alpha, beta, gamma, pBody);
 	}
 }
 
@@ -890,7 +889,10 @@ static int primCompare(const void *prim1, const void *prim2) {
 }
 
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {
-	Body body = getBodyFromPtr(modelPtr);
+	Body *pBody = getBodyFromPtr(modelPtr);
+	const byte *ptr = static_cast<byte *>(modelPtr);
+	int i;
+	char *out;
 
 	// reinit the 2 static tables
 	positionInPrimEntry = 0;
@@ -904,10 +906,15 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 
 	numOfPrimitiveToRender = 0;
 
-	modelFlags = getFlags(&body);
+	modelFlags = READ_LE_S16(ptr);
+	ptr += 2;
+	ptr += 12; // skip the ZV
+
+	ptr += READ_LE_S16(ptr) + 2; // skip scratch buffer
 
 	if (modelFlags & INFO_ANIM) {
-		if (!animNuage(x, y, z, alpha, beta, gamma, &body)) {
+		pBody->sync();
+		if (!animNuage(x, y, z, alpha, beta, gamma, pBody)) {
 			g_engine->_engine->BBox3D3 = -32000;
 			g_engine->_engine->BBox3D4 = -32000;
 			g_engine->_engine->BBox3D1 = 32000;
@@ -915,7 +922,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			return 2;
 		}
 	} else if (!(modelFlags & INFO_TORTUE)) {
-		if (!rotateNuage(x, y, z, alpha, beta, gamma, &body)) {
+		if (!rotateNuage(x, y, z, alpha, beta, gamma, pBody)) {
 			g_engine->_engine->BBox3D3 = -32000;
 			g_engine->_engine->BBox3D4 = -32000;
 			g_engine->_engine->BBox3D1 = 32000;
@@ -932,10 +939,9 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		return 2;
 	}
 
-	Common::Array<Primitive> primitives;
-	getPrimitives(&body, primitives);
+	const int numPrim = pBody->m_primitives.size();
 
-	if (!primitives.size()) {
+	if (!numPrim) {
 		g_engine->_engine->BBox3D3 = -32000;
 		g_engine->_engine->BBox3D4 = -32000;
 		g_engine->_engine->BBox3D1 = 32000;
@@ -943,11 +949,11 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		return 2;
 	}
 
-	char *out = primBuffer;
+	out = primBuffer;
 
 	// create the list of all primitives to render
-	for (uint i = 0; i < primitives.size(); i++) {
-		Primitive *pPrimitive = &primitives[i];
+	for (i = 0; i < numPrim; i++) {
+		Primitive *pPrimitive = &pBody->m_primitives[i];
 		const PrimType primType = pPrimitive->m_type;
 
 		switch (primType) {
@@ -968,6 +974,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		case processPrim_PolyTexture9:
 		case processPrim_PolyTexture10:
 			processPrim_Poly(primType, pPrimitive, &out);
+			ptr += 3 * 2;
 			break;
 		default:
 			return 0;
@@ -986,7 +993,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		return 1; // model ok, but out of screen
 	}
 
-	for (int i = 0; i < numOfPrimitiveToRender; i++) {
+	for (i = 0; i < numOfPrimitiveToRender; i++) {
 		renderFunctions[primTable[i].type](&primTable[i]);
 	}
 

@@ -789,263 +789,12 @@ static void patchInterStep(byte **bodyPtr, int bp, int bx) // local
 	*bodyPtr += 2;
 }
 
-uint16 getFlags(const Body *body) { return READ_LE_U16(body->m_raw); }
-
-uint16 getVerticesSize(const Body *body) {
-	uint16 scratchBufferSize = READ_LE_U16(body->m_raw + 14);
-	uint16 numVertices = READ_LE_U16(body->m_raw + 16 + scratchBufferSize);
-	return numVertices;
-}
-
-uint16 getGroupOrderSize(const Body *body) {
-	uint16 groupOrderSize = 0;
-	uint16 flags = getFlags(body);
-
-	if (flags & INFO_ANIM) {
-		uint8 *ptr = body->m_raw + 14;
-		uint16 scratchBufferSize = READ_LE_U16(ptr);
-		ptr += 2 + scratchBufferSize;
-		uint16 numVertices = READ_LE_U16(ptr);
-		ptr += 2 + (numVertices * 6);
-		groupOrderSize = READ_LE_U16(ptr);
-	}
-	return groupOrderSize;
-}
-
-void getGroupOrders(const Body *body, Common::Array<uint16> &dst) {
-	uint16 flags = getFlags(body);
-
-	if (flags & INFO_ANIM) {
-		uint16 scratchBufferSize = READ_LE_U16(body->m_raw + 14);
-		uint16 numVertices = READ_LE_U16(body->m_raw + 16 + scratchBufferSize);
-		uint16 numGroupOrders = READ_LE_U16(body->m_raw + 18 + scratchBufferSize + (numVertices * 6));
-		uint16 *pGroupOrders = (uint16 *)(body->m_raw + 20 + scratchBufferSize + (numVertices * 6));
-		dst.resize(numGroupOrders);
-		uint16 groupOrderSize = (flags & INFO_OPTIMISE) ? 24 : 16;
-		for (uint16 i = 0; i < numGroupOrders; i++) {
-			dst[i] = READ_LE_U16(pGroupOrders) / groupOrderSize;
-			pGroupOrders++;
-		}
-	}
-}
-
-void getGroups(const Body *body, Common::Array<Group> &dst) {
-	uint16 flags = getFlags(body);
-
-	if (flags & INFO_ANIM) {
-		uint8 *ptr = body->m_raw + 14;
-		uint16 scratchBufferSize = READ_LE_U16(ptr);
-		ptr += 2 + scratchBufferSize;
-		uint16 numVertices = READ_LE_U16(ptr);
-		ptr += 2 + (numVertices * 6);
-		uint16 numGroups = READ_LE_U16(ptr);
-		dst.resize(numGroups);
-		uint8 *pGroup = (uint8 *)(ptr + 2);
-		if (flags & INFO_OPTIMISE) {
-			// AITD2+
-			for (int i = 0; i < numGroups; i++) {
-				dst[i].m_start = READ_LE_S16(pGroup) / 6;
-				pGroup += 2;
-				dst[i].m_numVertices = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_baseVertices = READ_LE_S16(pGroup) / 6;
-				pGroup += 2;
-				dst[i].m_orgGroup = READ_LE_S8(pGroup);
-				pGroup += 1;
-				dst[i].m_numGroup = READ_LE_S8(pGroup);
-				pGroup += 1;
-				dst[i].m_state.m_type = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[0] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[1] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[2] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_rotateDelta[0] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_rotateDelta[1] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_rotateDelta[2] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				pGroup += 2; // padding?
-			}
-		} else {
-			pGroup += numGroups * 2;
-			for (int i = 0; i < numGroups; i++) {
-				dst[i].m_start = READ_LE_S16(pGroup) / 6;
-				pGroup += 2;
-				dst[i].m_numVertices = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_baseVertices = READ_LE_S16(pGroup) / 6;
-				pGroup += 2;
-				dst[i].m_orgGroup = READ_LE_S8(pGroup);
-				pGroup += 1;
-				dst[i].m_numGroup = READ_LE_S8(pGroup);
-				pGroup += 1;
-				dst[i].m_state.m_type = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[0] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[1] = READ_LE_S16(pGroup);
-				pGroup += 2;
-				dst[i].m_state.m_delta[2] = READ_LE_S16(pGroup);
-				pGroup += 2;
-			}
-		}
-	}
-}
-
-void copyVertices(const Body *body, int16 *dst) {
-	uint8 *ptr = body->m_raw + 14;
-	uint16 scratchBufferSize = READ_LE_U16(ptr);
-	ptr += 2 + scratchBufferSize;
-	uint16 numVertices = READ_LE_U16(ptr);
-	int16 *pVerts = (int16 *)(ptr + 2);
-	assert(numVertices < NUM_MAX_POINT_IN_POINT_BUFFER);
-	for (uint16 i = 0; i < numVertices; i++) {
-		*dst = READ_LE_S16(pVerts);
-		dst++;
-		pVerts++;
-		*dst = READ_LE_S16(pVerts);
-		dst++;
-		pVerts++;
-		*dst = READ_LE_S16(pVerts);
-		dst++;
-		pVerts++;
-	}
-}
-
-void getVertices(const Body *body, Common::Array<Point3d> &dst) {
-	uint size = getVerticesSize(body);
-	if (size == 0) {
-		dst.clear();
-		return;
-	}
-	dst.resize(size);
-	copyVertices(body, (int16 *)&dst[0]);
-}
-
-void getPrimitives(const Body *body, Common::Array<Primitive> &dst) {
-	uint16 scratchBufferSize = READ_LE_U16(body->m_raw + 14);
-	uint16 numVertices = READ_LE_U16(body->m_raw + 16 + scratchBufferSize);
-	uint8 *pPrimitive = body->m_raw + 18 + scratchBufferSize + (numVertices * 6);
-	uint16 flags = getFlags(body);
-	if (flags & INFO_ANIM) {
-		uint16 numGroups = READ_LE_U16(pPrimitive);
-		if (flags & INFO_OPTIMISE) {
-			// AITD2+
-			pPrimitive += 2 + numGroups * 2 + numGroups * 24;
-		} else {
-			pPrimitive += 2 + numGroups * 2 + numGroups * 16;
-		}
-	}
-	uint16 numPrimitives = READ_LE_U16(pPrimitive);
-	pPrimitive += 2;
-	dst.resize(numPrimitives);
-	for (uint16 i = 0; i < numPrimitives; i++) {
-		dst[i].m_type = static_cast<PrimType>(READ_LE_U8(pPrimitive));
-		pPrimitive += 1;
-		switch (dst[i].m_type) {
-		case primTypeEnum_Line:
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_even = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_points.resize(2);
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			break;
-		case primTypeEnum_Poly:
-			dst[i].m_points.resize(READ_LE_U8(pPrimitive));
-			pPrimitive += 1;
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			break;
-		case primTypeEnum_Point:
-		case primTypeEnum_BigPoint:
-		case primTypeEnum_Zixel:
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_even = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_points.resize(1);
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			break;
-		case primTypeEnum_Sphere:
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_even = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_size = READ_LE_U16(pPrimitive);
-			pPrimitive += 2;
-			dst[i].m_points.resize(1);
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			break;
-		case processPrim_PolyTexture8:
-			dst[i].m_points.resize(READ_LE_U8(pPrimitive));
-			pPrimitive += 1;
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			break;
-		case processPrim_PolyTexture9:
-		case processPrim_PolyTexture10:
-			dst[i].m_points.resize(READ_LE_U8(pPrimitive));
-			pPrimitive += 1;
-			dst[i].m_material = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			dst[i].m_color = READ_LE_U8(pPrimitive);
-			pPrimitive += 1;
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				dst[i].m_points[j] = READ_LE_U16(pPrimitive) / 6;
-				pPrimitive += 2;
-			}
-			// load UVS?
-			for (uint j = 0; j < dst[i].m_points.size(); j++) {
-				READ_LE_U8(pPrimitive);
-				pPrimitive += 1;
-				READ_LE_U8(pPrimitive);
-				pPrimitive += 1;
-			}
-			break;
-		default:
-			assert(0);
-		}
-	}
-}
-
 int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 	int numOfBonesInAnim = *(int16 *)(animPtr + 2);
 
-	const Body body = getBodyFromPtr(bodyPtr);
+	const Body *pBody = getBodyFromPtr(bodyPtr);
 
-	const int flag = getFlags(&body);
+	const int flag = pBody->m_flags;
 
 	animPtr += 4;
 
@@ -1060,7 +809,7 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 
 	const uint16 keyframeLength = *(uint16 *)animPtr; // keyframe length
 
-	if (!(getFlags(&body) & INFO_ANIM)) // do not anim if the model can't be animated
+	if (!(pBody->m_flags & INFO_ANIM)) // do not anim if the model can't be animated
 	{
 		return 0;
 	}
@@ -1090,9 +839,8 @@ int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 	uint16 bx = ax;
 	bodyPtr += bx * 2; // skip group order table
 
-	uint16 groupOrderSize = getGroupOrderSize(&body);
-	if (static_cast<uint>(numOfBonesInAnim) > groupOrderSize) {
-		numOfBonesInAnim = groupOrderSize;
+	if (static_cast<uint>(numOfBonesInAnim) > pBody->m_groupOrder.size()) {
+		numOfBonesInAnim = pBody->m_groupOrder.size();
 	}
 
 	bodyPtr += 10; // skip bone 0
