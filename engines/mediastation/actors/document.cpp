@@ -49,7 +49,7 @@ ScriptValue DocumentActor::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	case kDocumentSetMultipleSoundsMethod: {
 		assert(args.size() == 1);
 		bool value = args[0].asBool();
-		warning("%s: STUB: %s: %d", __func__, builtInMethodToStr(methodId), value);
+		warning("[%s] %s: STUB: %s: %d", debugName(), __func__, builtInMethodToStr(methodId), value);
 		break;
 	}
 
@@ -91,7 +91,7 @@ void DocumentActor::processBranch(Common::Array<ScriptValue> &args) {
 	if (args.size() > 1) {
 		bool disableUpdates = static_cast<bool>(args[1].asParamToken());
 		if (disableUpdates)
-			warning("%s: disableUpdates parameter not handled yet", __func__);
+			warning("[%s] %s: disableUpdates parameter not handled yet", debugName(), __func__);
 	}
 
 	g_engine->getDocument()->scheduleScreenBranch(contextId);

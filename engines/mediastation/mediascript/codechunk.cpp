@@ -237,14 +237,16 @@ ScriptValue CodeChunk::evaluateValue() {
 
 	case kOperandTypeParamToken: {
 		uint literal = _bytecode->readTypedUint16();
-		debugC(5, kDebugScript, "%d ", literal);
+		Common::String tokenName = g_engine->formatParamTokenName(literal);
+		debugC(5, kDebugScript, "%s ", tokenName.c_str());
 		returnValue.setToParamToken(literal);
 		return returnValue;
 	}
 
 	case kOperandTypeActorId: {
 		uint actorId = _bytecode->readTypedUint16();
-		debugC(5, kDebugScript, "%d ", actorId);
+		Common::String actorName = g_engine->formatActorName(actorId, true);
+		debugC(5, kDebugScript, "%s ", actorName.c_str());
 		returnValue.setToActorId(actorId);
 		return returnValue;
 	}
@@ -263,7 +265,9 @@ ScriptValue CodeChunk::evaluateValue() {
 
 	case kOperandTypeFunctionId: {
 		uint functionId = _bytecode->readTypedUint16();
-		debugC(5, kDebugScript, "%d ", functionId);
+		// Function IDs are included in this same listing that also includes actors.
+		Common::String functionName = g_engine->formatFunctionName(functionId);
+		debugC(5, kDebugScript, "%s ", functionName.c_str());
 		returnValue.setToFunctionId(functionId);
 		return returnValue;
 	}
@@ -288,27 +292,29 @@ ScriptValue CodeChunk::evaluateVariable() {
 ScriptValue *CodeChunk::readAndReturnVariable() {
 	uint id = _bytecode->readTypedUint16();
 	VariableScope scope = static_cast<VariableScope>(_bytecode->readTypedUint16());
-	debugC(5, kDebugScript, "%d (%s)", id, variableScopeToStr(scope));
+	Common::String name = g_engine->formatVariableName(id);
 
-	ScriptValue returnValue;
+	ScriptValue *variable = nullptr;
 	switch (scope) {
 	case kVariableScopeGlobal: {
-		ScriptValue *variable = g_engine->getVariable(id);
+		variable = g_engine->getVariable(id);
 		if (variable == nullptr) {
-			error("%s: Global variable %d doesn't exist", __func__, id);
+			error("%s: Global variable %s doesn't exist", __func__, g_engine->formatVariableName(id).c_str());
 		}
-		return variable;
+		break;
 	}
 
 	case kVariableScopeLocal: {
 		uint index = id - 1;
-		return &_locals.operator[](index);
+		variable = &_locals.operator[](index);
+		break;
 	}
 
 	case kVariableScopeIndirectParameter: {
 		ScriptValue indexValue = evaluateExpression();
 		uint index = static_cast<uint>(indexValue.asFloat() + id);
-		return &_args->operator[](index);
+		variable = &_args->operator[](index);
+		break;
 	}
 
 	case kVariableScopeParameter: {
@@ -316,12 +322,16 @@ ScriptValue *CodeChunk::readAndReturnVariable() {
 		if (_args == nullptr) {
 			error("%s: Requested a parameter in a code chunk that has no parameters", __func__);
 		}
-		return &_args->operator[](index);
+		variable = &_args->operator[](index);
+		break;
 	}
 
 	default:
 		error("%s: Got unknown variable scope %s (%d)", __func__, variableScopeToStr(scope), static_cast<uint>(scope));
 	}
+
+	debugC(5, kDebugScript, "%s (%s) [value: %s]", name.c_str(), variableScopeToStr(scope), variable->getDebugString().c_str());
+	return variable;
 }
 
 void CodeChunk::evaluateIf() {
@@ -465,7 +475,8 @@ ScriptValue CodeChunk::evaluateFunctionCall(bool isIndirect) {
 }
 
 ScriptValue CodeChunk::evaluateFunctionCall(uint functionId, uint paramCount) {
-	debugC(5, kDebugScript, "%d (%d params)", functionId, paramCount);
+	Common::String functionName = g_engine->formatFunctionName(functionId);
+	debugC(5, kDebugScript, "%s (%d params)", functionName.c_str(), paramCount);
 
 	Common::Array<ScriptValue> args;
 	for (uint i = 0; i < paramCount; i++) {
@@ -515,14 +526,14 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 		if (target.asActorId() == 0) {
 			// It seems to be valid to call a method on a null actor ID, in
 			// which case nothing happens. Still issue warning for traceability.
-			warning("%s: Attempt to call method on a null actor ID", __func__);
+			warning("%s: Attempt to call method %s (%d) on null actor ID", __func__, builtInMethodToStr(method), static_cast<uint>(method));
 			return returnValue;
 		} else {
 			// This is a regular actor that we can process directly.
 			uint actorId = target.asActorId();
 			Actor *targetActor = g_engine->getActorById(actorId);
 			if (targetActor == nullptr) {
-				error("%s: Attempt to call method on actor ID %d, which isn't loaded", __func__, target.asActorId());
+				error("[%s] %s: Actor not loaded", g_engine->formatActorName(target.asActorId()).c_str(), __func__);
 			}
 			returnValue = targetActor->callMethod(method, args);
 			return returnValue;
@@ -536,7 +547,8 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 	}
 
 	default:
-		error("Attempt to call method on unimplemented value type %s (%d)",
+		error("%s: Attempt to call method %s (%d) on unimplemented value type %s (%d)", __func__,
+			builtInMethodToStr(method), static_cast<uint>(method),
 			scriptValueTypeToStr(target.getType()), static_cast<uint>(target.getType()));
 	}
 }
@@ -544,7 +556,7 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 void CodeChunk::evaluateDeclareLocals() {
 	uint localVariableCount = _bytecode->readTypedUint16();
 	if (localVariableCount <= 0) {
-		error("Got non-positive local variable count");
+		error("%s: Got non-positive local variable count", __func__);
 	}
 	debugC(5, kDebugScript, "%d", localVariableCount);
 	_locals = Common::Array<ScriptValue>(localVariableCount);
@@ -569,11 +581,11 @@ void CodeChunk::evaluateWhileLoop() {
 		_bytecode->seek(loopStartPosition);
 		ScriptValue condition = evaluateExpression();
 		if (condition.getType() != kScriptValueTypeBool) {
-			error("Expected loop condition to be bool, not %s", scriptValueTypeToStr(condition.getType()));
+			error("%s: Expected loop condition to be bool, not %s", __func__, scriptValueTypeToStr(condition.getType()));
 		}
 
 		if (++iterationCount >= MAX_LOOP_ITERATION_COUNT) {
-			error("Exceeded max loop iteration count");
+			error("%s: Exceeded max loop iteration count", __func__);
 		}
 
 		if (condition.asBool()) {

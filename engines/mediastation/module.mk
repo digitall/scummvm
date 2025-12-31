@@ -32,7 +32,8 @@ MODULE_OBJS = \
 	mediascript/scriptconstants.o \
 	mediascript/scriptvalue.o \
 	mediastation.o \
-	metaengine.o
+	metaengine.o \
+	profile.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_MEDIASTATION), DYNAMIC_PLUGIN)

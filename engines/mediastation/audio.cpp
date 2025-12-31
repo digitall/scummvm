@@ -78,7 +78,6 @@ void AudioSequence::readChunk(Chunk &chunk) {
 		error("%s: Unknown audio encoding 0x%x", __func__, static_cast<uint>(_bitsPerSample));
 	}
 	_streams.push_back(stream);
-	debugC(5, kDebugLoading, "Finished reading audio chunk (@0x%llx)", static_cast<long long int>(chunk.pos()));
 }
 
 bool AudioSequence::isActive() {

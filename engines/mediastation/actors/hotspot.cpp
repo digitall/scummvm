@@ -165,7 +165,7 @@ uint16 HotspotActor::findActorToAcceptMouseEvents(
 			result |= kMouseUpFlag;
 		}
 	} else {
-		debugC(5, kDebugEvents, "%s: %d: Inactive", __func__, id());
+		debugC(6, kDebugEvents, "[%s] %s: Inactive", debugName(),  __func__);
 	}
 
 	return result;
@@ -194,7 +194,7 @@ void HotspotActor::deactivate() {
 
 void HotspotActor::mouseDownEvent(const Common::Event &event) {
 	if (!_isActive) {
-		warning("%s: Called on inactive hotspot", __func__);
+		warning("[%s] %s: Inactive", debugName(), __func__);
 		return;
 	}
 
@@ -204,7 +204,7 @@ void HotspotActor::mouseDownEvent(const Common::Event &event) {
 
 void HotspotActor::mouseUpEvent(const Common::Event &event) {
 	if (!_isActive) {
-		warning("%s: Called on inactive hotspot", __func__);
+		warning("[%s] %s: Inactive", debugName(), __func__);
 		return;
 	}
 
@@ -214,16 +214,16 @@ void HotspotActor::mouseUpEvent(const Common::Event &event) {
 
 void HotspotActor::mouseEnteredEvent(const Common::Event &event) {
 	if (!_isActive) {
-		warning("%s: Called on inactive hotspot", __func__);
+		warning("[%s] %s: Inactive", debugName(), __func__);
 		return;
 	}
 
 	g_engine->setMouseInsideHotspot(this);
 	if (_cursorResourceId != 0) {
-		debugC(5, kDebugEvents, "%s: Setting cursor %d for asset %d", __func__, _cursorResourceId, id());
+		debugC(5, kDebugEvents, "[%s] %s: Setting cursor %d", debugName(), __func__, _cursorResourceId);
 		g_engine->getCursorManager()->setAsTemporary(_cursorResourceId);
 	} else {
-		debugC(5, kDebugEvents, "%s: Unsetting cursor for asset %d", __func__, id());
+		debugC(5, kDebugEvents, "[%s] %s: Unsetting cursor", debugName(), __func__);
 		g_engine->getCursorManager()->unsetTemporary();
 	}
 
@@ -232,7 +232,7 @@ void HotspotActor::mouseEnteredEvent(const Common::Event &event) {
 
 void HotspotActor::mouseMovedEvent(const Common::Event &event) {
 	if (!_isActive) {
-		warning("%s: Called on inactive hotspot", __func__);
+		warning("[%s] %s: Inactive", debugName(), __func__);
 		return;
 	}
 
@@ -241,7 +241,7 @@ void HotspotActor::mouseMovedEvent(const Common::Event &event) {
 
 void HotspotActor::mouseExitedEvent(const Common::Event &event) {
 	if (!_isActive) {
-		warning("%s: Called on inactive hotspot", __func__);
+		warning("[%s] %s: Inactive", debugName(), __func__);
 		return;
 	}
 

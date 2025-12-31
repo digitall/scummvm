@@ -72,7 +72,7 @@ void TimerActor::timePlay() {
 		}
 	}
 
-	debugC(5, kDebugScript, "Timer::timePlay(): Now playing for %d ms", _duration);
+	debugC(5, kDebugScript, "[%s] %s: Now playing for %d ms", debugName(), __func__, _duration);
 }
 
 void TimerActor::timeStop() {

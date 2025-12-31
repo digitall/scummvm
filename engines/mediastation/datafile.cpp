@@ -168,10 +168,10 @@ bool Chunk::seek(int64 offset, int whence) {
 
 	if (pos() < _dataStartOffset) {
 		uint overrun = _dataStartOffset - offset;
-		error("Attempted to seek 0x%x bytes before start of chunk (@0x%llx)", overrun, static_cast<long long int>(pos()));
+		error("%s: Attempted to seek 0x%x bytes before start of chunk (@0x%llx)", __func__, overrun, static_cast<long long int>(pos()));
 	} else if (pos() > _dataEndOffset) {
 		uint overrun = offset - _dataEndOffset;
-		error("Attempted to seek 0x%x bytes past end of chunk (@0x%llx)", overrun, static_cast<long long int>(pos()));
+		error("%s: Attempted to seek 0x%x bytes past end of chunk (@0x%llx)", __func__, overrun, static_cast<long long int>(pos()));
 	}
 	return true;
 }
@@ -227,7 +227,7 @@ void CdRomStream::openStream(uint streamId) {
 
 	const FileInfo &fileInfo = g_engine->fileInfoForIdent(streamInfo._fileId);
 	if (fileInfo._id == 0) {
-		error("%s: File %d for stream %d not found in current title", __func__, streamInfo._fileId, streamId);
+		error("%s: File %s for stream %d not found in current title", __func__, g_engine->formatFileName(streamInfo._fileId).c_str(), streamId);
 	}
 
 	bool requestedStreamAlreadyOpen = isOpen() && _fileId == streamInfo._fileId;
@@ -312,7 +312,7 @@ void StreamFeedManager::closeStreamFeed(StreamFeed *streamFeed) {
 
 void StreamFeedManager::registerChannelClient(ChannelClient *client) {
 	if (_channelClients.getValOrDefault(client->channelIdent()) != nullptr) {
-		error("%s: Channel ident %d already has a client", __func__, client->channelIdent());
+		error("%s: Channel %s already has a client", __func__, g_engine->formatAssetNameForChannelIdent(client->channelIdent()).c_str());
 	}
 	_channelClients.setVal(client->channelIdent(), client);
 }

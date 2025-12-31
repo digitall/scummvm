@@ -262,7 +262,7 @@ void StreamMovieActor::updateFrameState() {
 		uint currentTime = g_system->getMillis();
 		movieTime = currentTime - _startTime;
 	}
-	debugC(5, kDebugGraphics, "StreamMovieActor::updateFrameState (%d): Starting update (movie time: %d)", _id, movieTime);
+	debugC(7, kDebugGraphics, "[%s] %s: Starting update (movie time: %d)", debugName(), __func__, movieTime);
 
 	// This complexity is necessary becuase movies can have more than one frame
 	// showing at the same time - for instance, a movie background and an
@@ -314,14 +314,16 @@ void StreamMovieActor::updateFrameState() {
 
 	// Show the frames that are currently active, for debugging purposes.
 	for (MovieFrame *frame : _framesOnScreen) {
-		debugC(5, kDebugGraphics, "   (time: %d ms) Frame %d (%d x %d) @ (%d, %d); start: %d ms, end: %d ms, zIndex = %d", \
-			movieTime, frame->index, frame->image->width(), frame->image->height(), frame->leftTop.x, frame->leftTop.y, frame->startInMilliseconds, frame->endInMilliseconds, frame->zIndex);
+		debugC(8, kDebugGraphics, "[%s] %s: (time: %d ms) Frame %d (%d x %d) @ (%d, %d); start: %d ms, end: %d ms, zIndex = %d",
+			debugName(), __func__, movieTime, frame->index, frame->image->width(), frame->image->height(), frame->leftTop.x, frame->leftTop.y, frame->startInMilliseconds, frame->endInMilliseconds, frame->zIndex);
 	}
 }
 
 void StreamMovieActor::draw(DisplayContext &displayContext) {
 	for (MovieFrame *frame : _framesOnScreen) {
 		Common::Rect bbox = getFrameBoundingBox(frame);
+		debugC(8, kDebugGraphics, "%s: %s: frame %d (%d, %d, %d, %d)",
+			__func__, debugName(), frame->index, PRINT_RECT(bbox));
 
 		switch (frame->blitType) {
 		case kUncompressedMovieBlit:
@@ -427,12 +429,11 @@ void StreamMovieActor::readChunk(Chunk &chunk) {
 void StreamMovieActor::parseMovieHeader(Chunk &chunk) {
 	_chunkCount = chunk.readTypedUint16();
 	_frameRate = chunk.readTypedDouble();
-	debugC(5, kDebugLoading, "%s: chunkCount = 0x%x, frameRate = %f (@0x%llx)", __func__, _chunkCount, _frameRate, static_cast<long long int>(chunk.pos()));
+	debugC(5, kDebugLoading, "[%s] %s: chunkCount: 0x%x, frameRate: %f", debugName(), __func__, _chunkCount, _frameRate);
 
 	Common::Array<uint> chunkLengths;
 	for (uint i = 0; i < _chunkCount; i++) {
 		uint chunkLength = chunk.readTypedUint32();
-		debugC(5, kDebugLoading, "StreamMovieActor::readSubfile(): chunkLength = 0x%x (@0x%llx)", chunkLength, static_cast<long long int>(chunk.pos()));
 		chunkLengths.push_back(chunkLength);
 	}
 }

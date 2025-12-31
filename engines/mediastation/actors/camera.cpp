@@ -336,7 +336,7 @@ void CameraActor::drawUsingCamera(DisplayContext &displayContext, const Common::
 
 void CameraActor::drawObject(DisplayContext &sourceContext, DisplayContext &destContext, SpatialEntity *objectToDraw) {
 	if (_parentStage == nullptr) {
-		warning("%s: No parent stage", __func__);
+		warning("[%s] %s: No parent stage", debugName(), __func__);
 		return;
 	}
 
@@ -347,11 +347,11 @@ void CameraActor::drawObject(DisplayContext &sourceContext, DisplayContext &dest
 	}
 
 	if (_parentStage->cylindricalX()) {
-		warning("%s: CylindricalX not handled yet", __func__);
+		warning("[%s] %s: CylindricalX not handled yet", debugName(), __func__);
 	}
 
 	if (_parentStage->cylindricalY()) {
-		warning("%s: CylindricalY not handled yet", __func__);
+		warning("[%s] %s: CylindricalY not handled yet", debugName(), __func__);
 	}
 	objectToDraw->setAdjustedBounds(kWrapNone);
 }
@@ -359,7 +359,7 @@ void CameraActor::drawObject(DisplayContext &sourceContext, DisplayContext &dest
 void CameraActor::setXYDelta(uint xDelta, uint yDelta) {
 	_panDelta.x = xDelta;
 	_panDelta.y = yDelta;
-	debugC(6, kDebugCamera, "%s: (%d, %d)", __func__, _panDelta.x, _panDelta.y);
+	debugC(6, kDebugCamera, "[%s] %s: (%d, %d)", debugName(), __func__, _panDelta.x, _panDelta.y);
 }
 
 void CameraActor::setXYDelta() {
@@ -376,7 +376,7 @@ void CameraActor::setXYDelta() {
 	} else if (_panDest.y < _panStart.y) {
 		_panDelta.y = -1;
 	}
-	debugC(6, kDebugCamera, "%s: (%d, %d)", __func__, _panDelta.x, _panDelta.y);
+	debugC(6, kDebugCamera, "[%s] %s: (%d, %d)", debugName(), __func__, _panDelta.x, _panDelta.y);
 }
 
 void CameraActor::panToByTime(int16 x, int16 y, double duration) {
@@ -387,8 +387,8 @@ void CameraActor::panToByTime(int16 x, int16 y, double duration) {
 	_currentPanStep = 1;
 	_startTime = g_system->getMillis();
 	_nextPanStepTime = 0;
-	debugC(6, kDebugCamera, "%s: panStart: (%d, %d); panDest: (%d, %d); panDuration: %f",
-		__func__, _panStart.x, _panStart.y, _panDest.x, _panDest.y, _panDuration);
+	debugC(6, kDebugCamera, "[%s] %s: panStart: (%d, %d); panDest: (%d, %d); panDuration: %f",
+		debugName(), __func__, _panStart.x, _panStart.y, _panDest.x, _panDest.y, _panDuration);
 	setXYDelta();
 	calcNewViewportOrigin();
 }
@@ -402,8 +402,8 @@ void CameraActor::panToByStepCount(int16 x, int16 y, uint panSteps, double durat
 	_maxPanStep = panSteps;
 	_startTime = g_system->getMillis();
 	_nextPanStepTime = 0;
-	debugC(6, kDebugCamera, "%s: panStart: (%d, %d); panDest: (%d, %d); panDuration: %f; maxPanStep: %d",
-		__func__, _panStart.x, _panStart.y, _panDest.x, _panDest.y, _panDuration, _maxPanStep);
+	debugC(6, kDebugCamera, "[%s] %s: panStart: (%d, %d); panDest: (%d, %d); panDuration: %f; maxPanStep: %d",
+		debugName(), __func__, _panStart.x, _panStart.y, _panDest.x, _panDest.y, _panDuration, _maxPanStep);
 	setXYDelta();
 	calcNewViewportOrigin();
 }
@@ -416,7 +416,7 @@ void CameraActor::startPan(uint xOffset, uint yOffset, double duration) {
 	_currentPanStep = 0;
 	_maxPanStep = 0;
 	setXYDelta(xOffset, yOffset);
-	debugC(6, kDebugCamera, "%s: xOffset: %u, yOffset: %u, duration: %f", __func__, xOffset, yOffset, duration);
+	debugC(6, kDebugCamera, "[%s] %s: xOffset: %u, yOffset: %u, duration: %f", debugName(), __func__, xOffset, yOffset, duration);
 }
 
 void CameraActor::stopPan() {
@@ -426,8 +426,8 @@ void CameraActor::stopPan() {
 	_nextPanStepTime = 0;
 	_currentPanStep = 0;
 	_maxPanStep = 0;
-	debugC(6, kDebugCamera, "%s: nextViewportOrigin: (%d, %d); actualViewportOrigin: (%d, %d)",
-		__func__,  _nextViewportOrigin.x, _nextViewportOrigin.y, _currentViewportOrigin.x, _currentViewportOrigin.y);
+	debugC(6, kDebugCamera, "[%s] %s: nextViewportOrigin: (%d, %d); actualViewportOrigin: (%d, %d)",
+		debugName(), __func__,  _nextViewportOrigin.x, _nextViewportOrigin.y, _currentViewportOrigin.x, _currentViewportOrigin.y);
 }
 
 bool CameraActor::continuePan() {
@@ -441,7 +441,7 @@ bool CameraActor::continuePan() {
 			panShouldContinue = false;
 		}
 	}
-	debugC(6, kDebugCamera, "%s: %s", __func__, panShouldContinue ? "true": "false");
+	debugC(6, kDebugCamera, "[%s] %s: %s", debugName(), __func__, panShouldContinue ? "true": "false");
 	return panShouldContinue;
 }
 
@@ -536,24 +536,24 @@ void CameraActor::processNextPanStep() {
 
 void CameraActor::adjustCameraViewport(Common::Point &viewportToAdjust) {
 	if (_parentStage == nullptr) {
-		warning("%s: No parent stage", __func__);
+		warning("[%s] %s: No parent stage", debugName(), __func__);
 		return;
 	}
 
 	if (_parentStage->cylindricalX()) {
-		warning("%s: CylindricalX not handled yet", __func__);
+		warning("[%s] %s: CylindricalX not handled yet", debugName(), __func__);
 	}
 
 	if (_parentStage->cylindricalY()) {
-		warning("%s: CylindricalY not handled yet", __func__);
+		warning("[%s] %s: CylindricalY not handled yet", debugName(), __func__);
 	}
 }
 
 void CameraActor::calcNewViewportOrigin() {
 	if (_panState == kCameraPanningStarted) {
 		_nextViewportOrigin = _currentViewportOrigin + _panDelta;
-		debugC(6, kDebugCamera, "%s: (%d, %d) [panDelta: (%d, %d)]",
-			__func__, _nextViewportOrigin.x, _nextViewportOrigin.y, _panDelta.x, _panDelta.y);
+		debugC(6, kDebugCamera, "[%s] %s: (%d, %d) [panDelta: (%d, %d)]",
+			debugName(), __func__, _nextViewportOrigin.x, _nextViewportOrigin.y, _panDelta.x, _panDelta.y);
 	} else {
 		// Interpolate from the start to the dest based on percent complete.
 		double progress = percentComplete();
@@ -566,8 +566,8 @@ void CameraActor::calcNewViewportOrigin() {
 		double endY = static_cast<double>(_panDest.y);
 		double interpolatedY = startY + (endY - startY) * progress + 0.5;
 		_nextViewportOrigin.y = static_cast<int16>(interpolatedY);
-		debugC(6, kDebugCamera, "%s: (%d, %d) [panStart: (%d, %d); panDest: (%d, %d); percentComplete: %f]",
-			__func__, _nextViewportOrigin.x, _nextViewportOrigin.y, _panStart.x, _panStart.y, _panDest.x, _panDest.y, progress);
+		debugC(6, kDebugCamera, "[%s] %s: (%d, %d) [panStart: (%d, %d); panDest: (%d, %d); percentComplete: %f]",
+			debugName(), __func__, _nextViewportOrigin.x, _nextViewportOrigin.y, _panStart.x, _panStart.y, _panDest.x, _panDest.y, progress);
 	}
 }
 
@@ -588,7 +588,7 @@ bool CameraActor::cameraWithinStage(const Common::Point &candidate) {
 		} else if (candidate.x < 0) {
 			result = false;
 		}
-		debugC(6, kDebugCamera, "%s: %s [rightBoundary: %d, extent: %d]", __func__, result ? "true" : "false", candidateRightBoundary, _parentStage->extent().x);
+		debugC(6, kDebugCamera, "[%s] %s: %s [rightBoundary: %d, extent: %d]", debugName(), __func__, result ? "true" : "false", candidateRightBoundary, _parentStage->extent().x);
 	}
 
 	// We can only be out of vertical bounds if we have a requested delta and
@@ -602,7 +602,7 @@ bool CameraActor::cameraWithinStage(const Common::Point &candidate) {
 		} else if (candidate.y < 0) {
 			result = false;
 		}
-		debugC(6, kDebugCamera, "%s: %s [bottomBoundary: %d, extent: %d]", __func__, result ? "true" : "false", candidateBottomBoundary, _parentStage->extent().y);
+		debugC(6, kDebugCamera, "[%s] %s: %s [bottomBoundary: %d, extent: %d]", debugName(), __func__, result ? "true" : "false", candidateBottomBoundary, _parentStage->extent().y);
 	}
 	return result;
 }

@@ -21,13 +21,13 @@
 
 #include "mediastation/mediascript/eventhandler.h"
 #include "mediastation/debugchannels.h"
+#include "mediastation/mediastation.h"
 
 namespace MediaStation {
 
 EventHandler::EventHandler(Chunk &chunk) {
 	_type = static_cast<EventType>(chunk.readTypedUint16());
-	debugC(5, kDebugLoading, "EventHandler::EventHandler(): Type %s (%d) (@0x%llx)",
-		eventTypeToStr(_type), static_cast<uint>(_type), static_cast<long long int>(chunk.pos()));
+	debugC(5, kDebugLoading, "%s: %s (%d)", __func__, eventTypeToStr(_type), static_cast<uint>(_type));
 
 	_argumentValue = ScriptValue(&chunk);
 	_code = new CodeChunk(chunk);
@@ -36,7 +36,8 @@ EventHandler::EventHandler(Chunk &chunk) {
 ScriptValue EventHandler::execute(uint actorId) {
 	// TODO: The actorId is only passed in for debug visibility, there should be
 	// a better way to handle that.
-	Common::String actorAndType = Common::String::format("(actor %d) (type = %s)", actorId, eventTypeToStr(_type));
+	Common::String actorName = g_engine->formatActorName(actorId, true);
+	Common::String actorAndType = Common::String::format("%s (%s)", actorName.c_str(), eventTypeToStr(_type));
 	Common::String argValue = Common::String::format("(%s)", _argumentValue.getDebugString().c_str());
 	debugC(5, kDebugScript, "\n********** EVENT HANDLER %s %s **********", actorAndType.c_str(), argValue.c_str());
 

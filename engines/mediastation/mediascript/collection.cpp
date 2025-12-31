@@ -47,12 +47,22 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 
 	case kDeleteFirstMethod:
 		assert(args.empty());
-		returnValue = remove_at(0);
+		if (size() > 0) {
+			returnValue = remove_at(0);
+			debugC(7, kDebugScript, "%s: %s", __func__, returnValue.getDebugString().c_str());
+		} else {
+			warning("%s: Array is empty", __func__);
+		}
 		break;
 
 	case kDeleteLastMethod:
 		assert(args.empty());
-		returnValue = remove_at(size() - 1);
+		if (size() > 0) {
+			returnValue = remove_at(size() - 1);
+			debugC(7, kDebugScript, "%s: %s", __func__, returnValue.getDebugString().c_str());
+		} else {
+			warning("%s: Array is empty", __func__);
+		}
 		break;
 
 	case kEmptyMethod:
@@ -63,7 +73,11 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	case kGetAtMethod: {
 		assert(args.size() == 1);
 		uint index = static_cast<uint>(args[0].asFloat());
-		returnValue = operator[](index);
+		if (index < size()) {
+			returnValue = operator[](index);
+		} else {
+			warning("%s: Index %d out of bounds %d", __func__, index, size());
+		}
 		break;
 	}
 
@@ -91,21 +105,34 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	case kDeleteAtMethod: {
 		assert(args.size() == 1);
 		uint index = static_cast<uint>(args[0].asFloat());
-		returnValue = remove_at(index);
+		if (index < size()) {
+			returnValue = remove_at(index);
+			debugC(7, kDebugScript, "%s: %s", __func__, returnValue.getDebugString().c_str());
+		} else {
+			warning("%s: Index %d out of bounds %d", __func__, index, size());
+		}
 		break;
 	}
 
 	case kInsertAtMethod: {
 		assert(args.size() == 2);
 		uint index = static_cast<uint>(args[1].asFloat());
-		insert_at(index, args[0]);
+		if (index <= size()) {
+			insert_at(index, args[0]);
+		} else {
+			warning("%s: Index %d out of bounds %d", __func__, index, size());
+		}
 		break;
 	}
 
 	case kReplaceAtMethod: {
 		assert(args.size() == 2);
 		uint index = static_cast<uint>(args[1].asFloat());
-		operator[](index) = args[0];
+		if (index < size()) {
+			operator[](index) = args[0];
+		} else {
+			warning("%s: Index %d out of bounds %d", __func__, index, size());
+		}
 		break;
 	}
 
@@ -130,6 +157,7 @@ void Collection::apply(const Common::Array<ScriptValue> &args) {
 	uint functionId = args[0].asFunctionId();
 	for (const ScriptValue &item : *this) {
 		argsToApply[0] = item;
+		debugC(7, kDebugScript, "%s: %s: %s", __func__, g_engine->formatFunctionName(functionId).c_str(), item.getDebugString().c_str());
 		g_engine->getFunctionManager()->call(functionId, argsToApply);
 	}
 }
@@ -148,15 +176,19 @@ void Collection::send(const Common::Array<ScriptValue> &args) {
 		uint actorId = item.asActorId();
 		Actor *targetActor = g_engine->getActorById(actorId);
 		if (targetActor != nullptr) {
+			debugC(7, kDebugScript, "%s: %s: %d", __func__, builtInMethodToStr(methodToSend), actorId);
 			targetActor->callMethod(methodToSend, argsToSend);
 		}
 	}
 }
 
-int Collection::seek(const ScriptValue &item) {
+int Collection::seek(const ScriptValue &lhs) {
 	// Search from back to front.
 	for (int i = size() - 1; i >= 0; i--) {
-		if (item == operator[](i)) {
+		const ScriptValue &rhs = operator[](i);
+		debugC(7, kDebugScript, "%s: %d of %d: Checking (%s) == (%s)",
+			__func__, i, size(), lhs.getDebugString().c_str(), rhs.getDebugString().c_str());
+		if (lhs == rhs) {
 			return i;
 		}
 	}

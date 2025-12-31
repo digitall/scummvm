@@ -43,6 +43,7 @@
 #include "mediastation/actor.h"
 #include "mediastation/cursors.h"
 #include "mediastation/graphics.h"
+#include "mediastation/profile.h"
 #include "mediastation/mediascript/function.h"
 #include "mediastation/actors/stage.h"
 
@@ -107,6 +108,14 @@ public:
 	StreamFeedManager *getStreamFeedManager() { return _streamFeedManager; }
 	Document *getDocument() { return _document; }
 
+	Common::String formatActorName(uint actorId, bool attemptToGetType = false) { return _profile->formatActorName(actorId, attemptToGetType); }
+	Common::String formatActorName(const Actor *actor) { return _profile->formatActorName(actor); }
+	Common::String formatFunctionName(uint functionId) { return _profile->formatFunctionName(functionId); }
+	Common::String formatFileName(uint fileId) { return _profile->formatFileName(fileId); }
+	Common::String formatVariableName(uint variableId) { return _profile->formatVariableName(variableId); }
+	Common::String formatParamTokenName(uint paramToken) { return _profile->formatParamTokenName(paramToken); }
+	Common::String formatAssetNameForChannelIdent(uint channelIdent) { return _profile->formatAssetNameForChannelIdent(channelIdent); }
+
 	const FileInfo &fileInfoForIdent(uint fileId) { return _fileMap.getValOrDefault(fileId); }
 	const StreamInfo &streamInfoForIdent(uint streamId) { return _streamMap.getValOrDefault(streamId); }
 	const ScreenReference &screenRefWithId(uint screenActorId) { return _screenReferences.getValOrDefault(screenActorId); }
@@ -144,6 +153,7 @@ private:
 	DeviceOwner *_deviceOwner = nullptr;
 	StageDirector *_stageDirector = nullptr;
 	StreamFeedManager *_streamFeedManager = nullptr;
+	Profile *_profile = nullptr;
 
 	Common::HashMap<uint, Actor *> _actors;
 	SpatialEntity *_mouseInsideHotspot = nullptr;
@@ -169,6 +179,7 @@ private:
 	void initDeviceOwner();
 	void initStageDirector();
 	void initStreamFeedManager();
+	void initProfile();
 	void setupInitialStreamMap();
 
 	void runEventLoop();

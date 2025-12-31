@@ -443,7 +443,7 @@ const char *operandTypeToStr(OperandType type) {
 	case kOperandTypeString:
 		return "String";
 	case kOperandTypeParamToken:
-		return "DollarSignVariable";
+		return "ParamToken";
 	case kOperandTypeActorId:
 		return "ActorId";
 	case kOperandTypeTime:

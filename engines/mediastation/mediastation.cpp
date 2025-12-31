@@ -87,6 +87,9 @@ MediaStationEngine::~MediaStationEngine() {
 	delete _streamFeedManager;
 	_streamFeedManager = nullptr;
 
+	delete _profile;
+	_profile = nullptr;
+
 	_contextReferences.clear();
 	_streamMap.clear();
 	_engineResourceDeclarations.clear();
@@ -103,7 +106,7 @@ SpatialEntity *MediaStationEngine::getSpatialEntityById(uint spatialEntityId) {
 	Actor *actor = getActorById(spatialEntityId);
 	if (actor != nullptr) {
 		if (!actor->isSpatialActor()) {
-			error("%s: Actor %d is not a spatial actor", __func__, spatialEntityId);
+			error("[%s] %s: Not a spatial actor", formatActorName(spatialEntityId).c_str(), __func__);
 		}
 		return static_cast<SpatialEntity *>(actor);
 	}
@@ -152,6 +155,7 @@ Common::Error MediaStationEngine::run() {
 	initDeviceOwner();
 	initStageDirector();
 	initStreamFeedManager();
+	initProfile();
 	setupInitialStreamMap();
 
 	if (ConfMan.hasKey("entry_context")) {
@@ -176,12 +180,12 @@ void MediaStationEngine::runEventLoop() {
 		}
 		_document->process();
 
-		debugC(5, kDebugGraphics, "***** START SCREEN UPDATE ***");
+		debugC(9, kDebugGraphics, "***** START SCREEN UPDATE ***");
 		for (auto it = _actors.begin(); it != _actors.end(); ++it) {
 			it->_value->process();
 		}
 		draw();
-		debugC(5, kDebugGraphics, "***** END SCREEN UPDATE ***");
+		debugC(9, kDebugGraphics, "***** END SCREEN UPDATE ***");
 
 		g_system->delayMillis(10);
 	}
@@ -229,6 +233,11 @@ void MediaStationEngine::initStageDirector() {
 void MediaStationEngine::initStreamFeedManager() {
 	_streamFeedManager = new StreamFeedManager;
 	registerWithStreamManager();
+}
+
+void MediaStationEngine::initProfile() {
+	_profile = new Profile();
+	_profile->load("PROFILE._ST");
 }
 
 void MediaStationEngine::setupInitialStreamMap() {
@@ -299,7 +308,7 @@ void MediaStationEngine::draw(bool dirtyOnly) {
 
 void MediaStationEngine::registerActor(Actor *actorToAdd) {
 	if (getActorById(actorToAdd->id())) {
-		error("%s: Actor with ID 0x%d was already defined in this title", __func__, actorToAdd->id());
+		error("[%s] %s: Already defined in this title", formatActorName(actorToAdd).c_str(), __func__);
 	}
 	_actors.setVal(actorToAdd->id(), actorToAdd);
 }
@@ -310,15 +319,16 @@ void MediaStationEngine::destroyActor(uint actorId) {
 		delete _actors[actorId];
 		_actors.erase(actorId);
 	} else {
-		warning("%s: Actor %d is not currently loaded", __func__, actorId);
+		warning("[%s] %s: Not currently loaded", formatActorName(actorId).c_str(), __func__);
 	}
 }
 
 void MediaStationEngine::destroyContext(uint contextId, bool eraseFromLoadedContexts) {
-	debugC(5, kDebugScript, "%s: Destroying context %d", __func__, contextId);
+	debugC(5, kDebugScript, "%s: Context %d", __func__, contextId);
 	Context *context = _loadedContexts.getValOrDefault(contextId);
 	if (context == nullptr) {
-		error("%s: Attempted to unload context %d that is not currently loaded", __func__, contextId);
+		warning("%s: Attempted to unload context %d that is not currently loaded", __func__, contextId);
+		return;
 	}
 
 	getRootStage()->deleteChildrenFromContextId(contextId);
@@ -374,7 +384,7 @@ void MediaStationEngine::readUnrecognizedFromStream(Chunk &chunk, uint sectionTy
 	}
 
 	if (!paramHandled) {
-		warning("%s: Parameter %d not handled", __func__, sectionType);
+		warning("%s: Parameter %d not handled (0x%llx)", __func__, sectionType, static_cast<long long int>(chunk.pos()));
 	}
 }
 
@@ -390,7 +400,7 @@ void MediaStationEngine::readChunk(Chunk &chunk) {
 		break;
 
 	default:
-		error("%s: Unhandled section type 0x%x", __func__, static_cast<uint>(streamType));
+		error("%s: Unhandled section type 0x%x (0x%llx)", __func__, static_cast<uint>(streamType), static_cast<long long int>(chunk.pos()));
 	}
 }
 

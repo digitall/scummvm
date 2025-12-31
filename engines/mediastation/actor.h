@@ -64,6 +64,7 @@ enum ActorType {
 	kActorTypeRecorder = 0x0021,
 	kActorTypeFunction = 0x0069 // FUN
 };
+const char *actorTypeToStr(ActorType type);
 
 enum ActorHeaderSectionType {
 	kActorHeaderEmptySection = 0x0000,
@@ -186,14 +187,17 @@ public:
 	ActorType type() const { return _type; }
 	uint id() const { return _id; }
 	uint contextId() const { return _contextId; }
-	void setId(uint id) { _id = id; }
+	void setId(uint id);
 	void setContextId(uint id) { _contextId = id; }
+	const char *debugName() const;
+	void updateDebugName();
 
 protected:
 	ActorType _type = kActorTypeEmpty;
 	bool _loadIsComplete = false;
 	uint _id = 0;
 	uint _contextId = 0;
+	Common::String _debugName;
 
 	uint _startTime = 0;
 	uint _lastProcessedTime = 0;

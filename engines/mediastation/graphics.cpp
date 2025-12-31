@@ -228,6 +228,7 @@ bool VideoDisplayManager::attemptToReadFromStream(Chunk &chunk, uint sectionType
 		break;
 
 	case kVideoDisplayManagerSetTime:
+		debugC(5, kDebugGraphics, "%s", __func__);
 		_defaultTransitionTime = chunk.readTypedTime();
 		break;
 
@@ -253,6 +254,7 @@ void VideoDisplayManager::readAndEffectTransition(Chunk &chunk) {
 }
 
 void VideoDisplayManager::readAndRegisterPalette(Chunk &chunk) {
+	debugC(5, kDebugGraphics, "%s", __func__);
 	byte *buffer = new byte[Graphics::PALETTE_SIZE];
 	chunk.read(buffer, Graphics::PALETTE_SIZE);
 	if (_registeredPalette != nullptr) {
@@ -330,10 +332,12 @@ void VideoDisplayManager::doTransitionOnSync() {
 }
 
 void VideoDisplayManager::performUpdateDirty() {
+	debugC(5, kDebugGraphics, "%s", __func__);
 	g_engine->draw();
 }
 
 void VideoDisplayManager::performUpdateAll() {
+	debugC(5, kDebugGraphics, "%s", __func__);
 	g_engine->draw(false);
 }
 
@@ -350,6 +354,7 @@ void VideoDisplayManager::fadeToBlack(Common::Array<ScriptValue> &args) {
 		colorCount = static_cast<uint>(args[3].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: fadeTime: %f, paletteRange: [%d, %d]", __func__, fadeTime, startIndex, startIndex + colorCount);
 	_fadeToColor(0, 0, 0, fadeTime, startIndex, colorCount);
 }
 
@@ -366,6 +371,7 @@ void VideoDisplayManager::fadeToRegisteredPalette(Common::Array<ScriptValue> &ar
 		colorCount = static_cast<uint>(args[3].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: fadeTime: %f, paletteRange: [%d, %d]", __func__, fadeTime, startIndex, startIndex + colorCount);
 	_fadeToRegisteredPalette(fadeTime, startIndex, colorCount);
 }
 
@@ -378,6 +384,7 @@ void VideoDisplayManager::setToRegisteredPalette(Common::Array<ScriptValue> &arg
 		colorCount = static_cast<uint>(args[2].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: colors: [%d, %d]", __func__, startIndex, startIndex + colorCount);
 	_setToRegisteredPalette(startIndex, colorCount);
 }
 
@@ -390,6 +397,7 @@ void VideoDisplayManager::setToBlack(Common::Array<ScriptValue> &args) {
 		colorCount = static_cast<uint>(args[2].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: colors: [%d, %d]", __func__, startIndex, startIndex + colorCount);
 	_setToColor(0, 0, 0, startIndex, colorCount);
 }
 
@@ -411,6 +419,8 @@ void VideoDisplayManager::fadeToColor(Common::Array<ScriptValue> &args) {
 		colorCount = static_cast<uint>(args[7].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: (%d, %d, %d), fadeTime: %f, paletteRange: [%d, %d]",
+		__func__, r, g, b, fadeTime, startIndex, startIndex + colorCount);
 	_fadeToColor(r, g, b, fadeTime, startIndex, colorCount);
 }
 
@@ -425,6 +435,8 @@ void VideoDisplayManager::setToColor(Common::Array<ScriptValue> &args) {
 	uint startIndex = static_cast<uint>(args[4].asFloat());
 	uint colorCount = static_cast<uint>(args[5].asFloat());
 
+	debugC(5, kDebugGraphics, "%s: (%d, %d, %d), paletteRange: [%d, %d]",
+		__func__, r, g, b, startIndex, startIndex + colorCount);
 	_setToColor(r, g, b, startIndex, colorCount);
 }
 
@@ -440,6 +452,8 @@ void VideoDisplayManager::setToPercentOfPalette(Common::Array<ScriptValue> &args
 	uint startIndex = static_cast<uint>(args[5].asFloat());
 	uint colorCount = static_cast<uint>(args[6].asFloat());
 
+	debugC(5, kDebugGraphics, "%s: %f of (%d, %d, %d), paletteRange: [%d, %d]",
+		__func__, percent, r, g, b, startIndex, startIndex + colorCount);
 	_setPercentToColor(percent, r, g, b, startIndex, colorCount);
 }
 
@@ -463,6 +477,8 @@ void VideoDisplayManager::fadeToPaletteObject(Common::Array<ScriptValue> &args) 
 		colorCount = static_cast<uint>(args[4].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: %d, fadeTime: %f, paletteRange: [%d, %d]",
+		__func__, paletteId, fadeTime, startIndex, startIndex + colorCount);
 	_fadeToPaletteObject(paletteId, fadeTime, startIndex, colorCount);
 }
 
@@ -482,6 +498,8 @@ void VideoDisplayManager::setToPaletteObject(Common::Array<ScriptValue> &args) {
 		colorCount = static_cast<uint>(args[3].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: %d, paletteRange: [%d, %d]",
+		__func__, paletteId, startIndex, startIndex + colorCount);
 	_setToPaletteObject(paletteId, startIndex, colorCount);
 }
 
@@ -503,6 +521,8 @@ void VideoDisplayManager::setToPercentOfPaletteObject(Common::Array<ScriptValue>
 		colorCount = static_cast<uint>(args[4].asFloat());
 	}
 
+	debugC(5, kDebugGraphics, "%s: %f of %d, paletteRange: [%d, %d]",
+		__func__, percent, paletteId, startIndex, startIndex + colorCount);
 	_setPercentToPaletteObject(percent, paletteId, startIndex, colorCount);
 }
 
@@ -516,6 +536,8 @@ void VideoDisplayManager::colorShiftCurrentPalette(Common::Array<ScriptValue> &a
 	uint startIndex = static_cast<uint>(args[2].asFloat());
 	uint colorCount = static_cast<uint>(args[3].asFloat());
 
+	debugC(5, kDebugGraphics, "%s: shift: %d, paletteRange: [%d, %d]",
+		__func__, shift, startIndex, startIndex + colorCount);
 	_colorShiftCurrentPalette(startIndex, shift, colorCount);
 }
 

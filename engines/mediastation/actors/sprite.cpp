@@ -276,7 +276,7 @@ void SpriteMovieActor::setCurrentClip(uint clipId) {
 			_activeClip = _clips.getVal(clipId);
 		} else {
 			_activeClip.id = clipId;
-			warning("%s: Sprite clip %d not found in sprite %d", __func__, clipId, _id);
+			warning("%s: Sprite clip %d not found in sprite %s", __func__, clipId, debugName());
 		}
 	}
 
@@ -304,7 +304,6 @@ void SpriteMovieActor::process() {
 
 void SpriteMovieActor::readChunk(Chunk &chunk) {
 	// Reads one frame from the sprite.
-	debugC(5, kDebugLoading, "Sprite::readFrame(): Reading sprite frame (@0x%llx)", static_cast<long long int>(chunk.pos()));
 	SpriteFrameHeader *header = new SpriteFrameHeader(chunk);
 	SpriteFrame *frame = new SpriteFrame(chunk, header);
 	_asset->frames.push_back(frame);

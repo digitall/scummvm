@@ -21,6 +21,7 @@
 
 #include "mediastation/mediascript/scriptvalue.h"
 #include "mediastation/mediascript/function.h"
+#include "mediastation/mediastation.h"
 
 namespace MediaStation {
 
@@ -232,7 +233,7 @@ BuiltInMethod ScriptValue::asMethodId() const {
 	}
 }
 
-Common::String ScriptValue::getDebugString() {
+Common::String ScriptValue::getDebugString() const {
 	switch (getType()) {
 	case kScriptValueTypeEmpty:
 		return "empty";
@@ -240,14 +241,21 @@ Common::String ScriptValue::getDebugString() {
 	case kScriptValueTypeFloat:
 		return Common::String::format("float: %f", asFloat());
 
-	case kScriptValueTypeActorId:
-		return Common::String::format("actor: %d", asActorId());
+	case kScriptValueTypeActorId: {
+		Common::String actorName = g_engine->formatActorName(asActorId(), true);
+		return Common::String::format("actor: %s", actorName.c_str());
+	}
 
 	case kScriptValueTypeTime:
 		return Common::String::format("time: %f", asTime());
 
-	case kScriptValueTypeParamToken:
-		return Common::String::format("token: %d", asParamToken());
+	case kScriptValueTypeParamToken: {
+		Common::String tokenName = g_engine->formatParamTokenName(asParamToken());
+		return Common::String::format("token: %s", tokenName.c_str());
+	}
+
+	case kScriptValueTypeString:
+		return Common::String::format("string: \"%s\"", asString().c_str());
 
 	default:
 		return Common::String::format("arg type %s", scriptValueTypeToStr(getType()));
@@ -256,52 +264,56 @@ Common::String ScriptValue::getDebugString() {
 
 bool ScriptValue::compare(Opcode op, const ScriptValue &lhs, const ScriptValue &rhs) {
 	if (lhs.getType() != rhs.getType()) {
-		warning("%s: Attempt to compare mismatched types %s and %s", __func__, scriptValueTypeToStr(lhs.getType()), scriptValueTypeToStr(rhs.getType()));
+		warning("%s: Attempt to compare mismatched values: %s; %s",
+			__func__, lhs.getDebugString().c_str(), rhs.getDebugString().c_str());
 	}
 
+	bool result = false;
 	switch (lhs.getType()) {
 	case kScriptValueTypeEmpty:
-		return compareEmptyValues(op);
+		result = compareEmptyValues(op);
+		break;
 
 	case kScriptValueTypeFloat:
-		return compare(op, lhs.asFloat(), rhs.asFloat());
+		result = compare(op, lhs.asFloat(), rhs.asFloat());
 		break;
 
 	case kScriptValueTypeBool:
-		return compare(op, lhs.asBool(), rhs.asBool());
+		result = compare(op, lhs.asBool(), rhs.asBool());
 		break;
 
 	case kScriptValueTypeTime:
-		return compare(op, lhs.asTime(), rhs.asTime());
+		result = compare(op, lhs.asTime(), rhs.asTime());
 		break;
 
 	case kScriptValueTypeParamToken:
-		return compare(op, lhs.asParamToken(), rhs.asParamToken());
+		result = compare(op, lhs.asParamToken(), rhs.asParamToken());
 		break;
 
 	case kScriptValueTypeActorId:
-		return compare(op, lhs.asActorId(), rhs.asActorId());
+		result = compare(op, lhs.asActorId(), rhs.asActorId());
 		break;
 
 	case kScriptValueTypeString:
-		return compareStrings(op, lhs.asString(), rhs.asString());
+		result = compareStrings(op, lhs.asString(), rhs.asString());
 		break;
 
 	case kScriptValueTypeCollection:
-		return compare(op, lhs.asCollection(), rhs.asCollection());
+		result = compare(op, lhs.asCollection(), rhs.asCollection());
 		break;
 
 	case kScriptValueTypeFunctionId:
-		return compare(op, lhs.asFunctionId(), rhs.asFunctionId());
+		result = compare(op, lhs.asFunctionId(), rhs.asFunctionId());
 		break;
 
 	case kScriptValueTypeMethodId:
-		return compare(op, static_cast<uint>(lhs.asMethodId()), static_cast<uint>(rhs.asMethodId()));
+		result = compare(op, static_cast<uint>(lhs.asMethodId()), static_cast<uint>(rhs.asMethodId()));
 		break;
 
 	default:
 		error("%s: Got unknown script value type %d", __func__, lhs.getType());
 	}
+	return result;
 }
 
 bool ScriptValue::compareEmptyValues(Opcode op) {

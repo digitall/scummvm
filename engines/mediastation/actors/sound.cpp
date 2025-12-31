@@ -41,7 +41,7 @@ void SoundActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		// as the ID we have already read.
 		uint32 duplicateActorId = chunk.readTypedUint16();
 		if (duplicateActorId != _id) {
-			warning("Duplicate actor ID %d does not match original ID %d", duplicateActorId, _id);
+			warning("[%s] %s: Duplicate actor ID %s does not match", debugName(), __func__, g_engine->formatActorName(duplicateActorId).c_str());
 		}
 		break;
 	}

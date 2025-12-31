@@ -30,6 +30,76 @@
 
 namespace MediaStation {
 
+const char *actorTypeToStr(ActorType type) {
+	switch (type) {
+	case kActorTypeEmpty:
+		return "Empty";
+	case kActorTypeScreen:
+		return "Screen";
+	case kActorTypeStage:
+		return "Stage";
+	case kActorTypePath:
+		return "Path";
+	case kActorTypeSound:
+		return "Sound";
+	case kActorTypeTimer:
+		return "Timer";
+	case kActorTypeImage:
+		return "Image";
+	case kActorTypeHotspot:
+		return "Hotspot";
+	case kActorTypeCursor:
+		return "Cursor";
+	case kActorTypeSprite:
+		return "Sprite";
+	case kActorTypeLKZazu:
+		return "LKZazu";
+	case kActorTypeLKConstellations:
+		return "LKConstellations";
+	case kActorTypeDocument:
+		return "Document";
+	case kActorTypeImageSet:
+		return "ImageSet";
+	case kActorTypeMovie:
+		return "Movie";
+	case kActorTypePalette:
+		return "Palette";
+	case kActorTypePrinter:
+		return "Printer";
+	case kActorTypeText:
+		return "Text";
+	case kActorTypeFont:
+		return "Font";
+	case kActorTypeCamera:
+		return "Camera";
+	case kActorTypeCanvas:
+		return "Canvas";
+	case kActorTypeXsnd:
+		return "Xsnd";
+	case kActorTypeXsndMidi:
+		return "XsndMidi";
+	case kActorTypeRecorder:
+		return "Recorder";
+	case kActorTypeFunction:
+		return "Function";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+void Actor::setId(uint id) {
+	_id = id;
+	updateDebugName();
+}
+
+void Actor::updateDebugName() {
+	_debugName = g_engine->formatActorName(this);
+}
+
+const char *Actor::debugName() const {
+	return _debugName.c_str();
+}
+
 Actor::~Actor() {
 	for (auto it = _eventHandlers.begin(); it != _eventHandlers.end(); ++it) {
 		Common::Array<EventHandler *> &handlersForType = it->_value;
@@ -62,8 +132,8 @@ void Actor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		// This is not a hashmap because we don't want to have to hash ScriptValues.
 		for (EventHandler *existingEventHandler : eventHandlersForType) {
 			if (existingEventHandler->_argumentValue == eventHandler->_argumentValue) {
-				error("%s: Event handler for %s (%s) already exists", __func__,
-					  eventTypeToStr(eventHandler->_type), eventHandler->_argumentValue.getDebugString().c_str());
+				error("[%s] %s: Event handler for %s (%s) already exists", debugName(), __func__,
+					eventTypeToStr(eventHandler->_type), eventHandler->_argumentValue.getDebugString().c_str());
 			}
 		}
 		eventHandlersForType.push_back(eventHandler);
@@ -71,19 +141,20 @@ void Actor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 	}
 
 	default:
-		error("Got unimplemented actor parameter 0x%x", static_cast<uint>(paramType));
+		error("[%s] %s: Got unimplemented actor parameter 0x%x", debugName(), __func__, static_cast<uint>(paramType));
 	}
 }
 
 void Actor::loadIsComplete() {
 	if (_loadIsComplete) {
-		warning("%s: Called more than once for actor %d", __func__, _id);
+		warning("[%s] %s: Already loaded", debugName(), __func__);
 	}
 	_loadIsComplete = true;
 }
 
 ScriptValue Actor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
-	warning("%s: Got unimplemented method call 0x%x (%s)", __func__, static_cast<uint>(methodId), builtInMethodToStr(methodId));
+	warning("[%s] %s: Got unimplemented method call 0x%x (%s)",
+		debugName(), __func__, static_cast<uint>(methodId), builtInMethodToStr(methodId));
 	return ScriptValue();
 }
 
@@ -112,18 +183,19 @@ void Actor::runEventHandlerIfExists(EventType eventType, const ScriptValue &arg)
 		const ScriptValue &argToCheck = eventHandler->_argumentValue;
 
 		if (arg.getType() != argToCheck.getType()) {
-			warning("Got event handler arg type %s, expected %s",
-					scriptValueTypeToStr(arg.getType()), scriptValueTypeToStr(argToCheck.getType()));
+			warning("[%s] %s: Got event handler arg type %s, expected %s", debugName(), __func__,
+				scriptValueTypeToStr(arg.getType()), scriptValueTypeToStr(argToCheck.getType()));
 			continue;
 		}
 
 		if (arg == argToCheck) {
-			debugC(5, kDebugScript, "Executing handler for event type %s on actor %d", eventTypeToStr(eventType), _id);
+			debugC(5, kDebugScript, "[%s] %s: Executing handler for event type %s", debugName(), __func__, eventTypeToStr(eventType));
 			eventHandler->execute(_id);
 			return;
 		}
 	}
-	debugC(5, kDebugScript, "No event handler for event type %s on actor %d", eventTypeToStr(eventType), _id);
+
+	debugC(5, kDebugScript, "[%s] %s: No event handler for event type %s", debugName(), __func__, eventTypeToStr(eventType));
 }
 
 void Actor::runEventHandlerIfExists(EventType eventType) {
@@ -335,6 +407,9 @@ void SpatialEntity::invalidateMouse() {
 
 void SpatialEntity::moveTo(int16 x, int16 y) {
 	Common::Point dest(x, y);
+	debugC(3, kDebugGraphics, "[%s] %s: (%d, %d) -> (%d, %d)", debugName(), __func__,
+		_originalBoundingBox.origin().x, _originalBoundingBox.origin().y, x, y);
+
 	if (dest == _boundingBox.origin()) {
 		// We aren't actually moving anywhere.
 		return;
@@ -356,6 +431,7 @@ void SpatialEntity::moveTo(int16 x, int16 y) {
 void SpatialEntity::moveToCentered(int16 x, int16 y) {
 	int16 targetX = x - (_boundingBox.width() / 2);
 	int16 targetY = y - (_boundingBox.height() / 2);
+	debugC(3, kDebugGraphics, "[%s] %s: (%d, %d)", debugName(), __func__, targetX, targetY);
 	moveTo(targetX, targetY);
 }
 
@@ -410,12 +486,12 @@ void SpatialEntity::invalidateLocalBounds() {
 		_parentStage->setAdjustedBounds(kWrapNone);
 		_parentStage->invalidateRect(getBbox());
 	} else {
-		error("%s: No parent stage for entity %d", __func__, _id);
+		warning("[%s] %s: No parent stage", debugName(), __func__);
 	}
 }
 
 void SpatialEntity::invalidateLocalZIndex() {
-	warning("STUB: %s", __func__);
+	warning("[%s] %s: STUB", debugName(), __func__);
 }
 
 void SpatialEntity::setAdjustedBounds(CylindricalWrapMode alignmentMode) {
@@ -483,12 +559,13 @@ void SpatialEntity::setAdjustedBounds(CylindricalWrapMode alignmentMode) {
 
 	if (alignmentMode != kWrapNone) {
 		// TODO: Implement this once we have a title that actually uses it.
-		warning("%s: Actor %d: Wrapping mode %d not handled yet: (%d, %d, %d, %d) -= (%d, %d)", __func__, _id, static_cast<uint>(alignmentMode), PRINT_RECT(_boundingBox), offset.x, offset.y);
+		warning("[%s] %s: Wrapping mode %d not handled yet: (%d, %d, %d, %d) -= (%d, %d)", debugName(),  __func__,
+			static_cast<uint>(alignmentMode), PRINT_RECT(_boundingBox), offset.x, offset.y);
 	}
 
 	if (_scaleX != 0.0 || _scaleY != 0.0) {
 		// TODO: Implement this once we have a title that actually uses it.
-		warning("%s: Scale not handled yet (scaleX: %f, scaleY: %f)", __func__, _scaleX, _scaleY);
+		warning("[%s] %s: Scale not handled yet (scaleX: %f, scaleY: %f)", debugName(), __func__, _scaleX, _scaleY);
 	}
 }
 
