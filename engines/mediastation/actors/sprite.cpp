@@ -30,6 +30,10 @@ SpriteFrameHeader::SpriteFrameHeader(Chunk &chunk) : BitmapHeader(chunk) {
 	_offset = chunk.readTypedPoint();
 }
 
+Common::String SpriteMovieClip::getDebugString() const {
+	return Common::String::format("%s: [%d, %d]", g_engine->formatParamTokenName(id).c_str(), firstFrameIndex, lastFrameIndex);
+}
+
 SpriteFrame::SpriteFrame(Chunk &chunk, SpriteFrameHeader *header) : Bitmap(chunk, header) {
 	_bitmapHeader = header;
 }
@@ -88,33 +92,22 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		_isVisible = static_cast<bool>(chunk.readTypedByte());
 		break;
 
-	case kActorHeaderSpriteChunkCount: {
-		_frameCount = chunk.readTypedUint16();
-
-		// Set the default clip.
-		SpriteClip clip;
-		clip.id = DEFAULT_CLIP_ID;
-		clip.firstFrameIndex = 0;
-		clip.lastFrameIndex = _frameCount - 1;
-		_clips.setVal(clip.id, clip);
-		setCurrentClip(clip.id);
+	case kActorHeaderSpriteChunkCount:
+		_asset->_frameCount = chunk.readTypedUint16();
 		break;
-	}
 
 	case kActorHeaderSpriteClip: {
-		SpriteClip spriteClip;
-		spriteClip.id = chunk.readTypedUint16();
-		spriteClip.firstFrameIndex = chunk.readTypedUint16();
-		spriteClip.lastFrameIndex = chunk.readTypedUint16();
-		_clips.setVal(spriteClip.id, spriteClip);
+		SpriteMovieClip clip;
+		clip.id = chunk.readTypedUint16();
+		clip.firstFrameIndex = chunk.readTypedUint16();
+		clip.lastFrameIndex = chunk.readTypedUint16();
+		_clips.setVal(clip.id, clip);
 		break;
 	}
 
-	case kActorHeaderCurrentSpriteClip: {
-		uint clipId = chunk.readTypedUint16();
-		setCurrentClip(clipId);
+	case kActorHeaderDefaultSpriteClip:
+		_defaultClipId = chunk.readTypedUint16();
 		break;
-	}
 
 	case kActorHeaderActorReference: {
 		_actorReference = chunk.readTypedUint16();
@@ -133,6 +126,23 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 	default:
 		SpatialEntity::readParameter(chunk, paramType);
 	}
+}
+
+void SpriteMovieActor::loadIsComplete() {
+	// This clip goes forward through all the sprite's frames.
+	SpriteMovieClip forwardClip(DEFAULT_FORWARD_CLIP_ID, 0, _asset->_frameCount - 1);
+	if (!_clips.contains(DEFAULT_FORWARD_CLIP_ID)) {
+		_clips.setVal(forwardClip.id, forwardClip);
+	}
+
+	// This clip goes backward through all the sprite's frames.
+	SpriteMovieClip backwardClip(DEFAULT_BACKWARD_CLIP_ID, _asset->_frameCount - 1, 0);
+	if (!_clips.contains(DEFAULT_BACKWARD_CLIP_ID)) {
+		_clips.setVal(backwardClip.id, backwardClip);
+	}
+
+	SpatialEntity::loadIsComplete();
+	setCurrentClip(_defaultClipId);
 }
 
 ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
@@ -171,7 +181,7 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 
 	case kSetCurrentClipMethod: {
 		assert(args.size() <= 1);
-		uint clipId = DEFAULT_CLIP_ID;
+		uint clipId = DEFAULT_FORWARD_CLIP_ID;
 		if (args.size() == 1) {
 			clipId = args[0].asParamToken();
 		}
@@ -226,19 +236,53 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 }
 
 bool SpriteMovieActor::activateNextFrame() {
-	if (_currentFrameIndex < _activeClip.lastFrameIndex) {
-		_currentFrameIndex++;
-		dirtyIfVisible();
-		return true;
+	bool clipMovesForward = _activeClip.firstFrameIndex <= _activeClip.lastFrameIndex;
+	if (clipMovesForward) {
+		debugC(3, kDebugSpriteMovie, "[%s] %s: FORWARD: currentFrameIndex: %d; activeClip.lastFrameIndex: %d",
+			debugName(), __func__, _currentFrameIndex, _activeClip.lastFrameIndex);
+
+		bool canMoveForward = _currentFrameIndex < _activeClip.lastFrameIndex;
+		if (canMoveForward) {
+			dirtyIfVisible();
+			_currentFrameIndex++;
+			dirtyIfVisible();
+			return true;
+		}
+
+	} else {
+		debugC(3, kDebugSpriteMovie, "[%s] %s: BACKWARD: currentFrameIndex: %d; activeClip.lastFrameIndex: %d",
+			debugName(), __func__, _currentFrameIndex, _activeClip.lastFrameIndex);
+
+		bool canMoveBackward = _currentFrameIndex > _activeClip.lastFrameIndex;
+		if (canMoveBackward) {
+			dirtyIfVisible();
+			_currentFrameIndex--;
+			dirtyIfVisible();
+			return true;
+		}
 	}
 	return false;
 }
 
 bool SpriteMovieActor::activatePreviousFrame() {
-	if (_currentFrameIndex > _activeClip.firstFrameIndex) {
-		_currentFrameIndex--;
-		dirtyIfVisible();
-		return true;
+	bool clipMovesBackward = _activeClip.lastFrameIndex < _activeClip.firstFrameIndex;
+	if (clipMovesBackward) {
+		bool canMoveTowardFirst = _currentFrameIndex < _activeClip.firstFrameIndex;
+		if (canMoveTowardFirst) {
+			dirtyIfVisible();
+			_currentFrameIndex++;
+			dirtyIfVisible();
+			return true;
+		}
+
+	} else {
+		bool canMoveTowardFirst = _activeClip.firstFrameIndex < _currentFrameIndex;
+		if (canMoveTowardFirst) {
+			dirtyIfVisible();
+			_currentFrameIndex--;
+			dirtyIfVisible();
+			return true;
+		}
 	}
 	return false;
 }
@@ -263,35 +307,46 @@ void SpriteMovieActor::play() {
 	_nextFrameTime = 0;
 
 	scheduleNextFrame();
+	debugC(3, kDebugSpriteMovie, "[%s] %s", debugName(), __func__);
 }
 
 void SpriteMovieActor::stop() {
 	_nextFrameTime = 0;
 	_isPlaying = false;
+	debugC(3, kDebugSpriteMovie, "[%s] %s", debugName(), __func__);
 }
 
 void SpriteMovieActor::setCurrentClip(uint clipId) {
 	if (_activeClip.id != clipId) {
 		if (_clips.contains(clipId)) {
+			SpriteMovieClip newClip = _clips.getVal(clipId);
+			debugC(3, kDebugSpriteMovie, "[%s] %s: (frameCount: %d) activeClip: %s; newClip: %s",
+				debugName(), __func__, _asset->_frameCount, _activeClip.getDebugString().c_str(), newClip.getDebugString().c_str());
 			_activeClip = _clips.getVal(clipId);
 		} else {
 			_activeClip.id = clipId;
-			warning("%s: Sprite clip %d not found in sprite %s", __func__, clipId, debugName());
+			warning("[%s] %s: Clip %s not found", debugName(), __func__, _activeClip.getDebugString().c_str());
 		}
-	}
 
-	setCurrentFrameToInitial();
+		setCurrentFrameToInitial();
+	}
 }
 
 void SpriteMovieActor::setCurrentFrameToInitial() {
+	debugC(3, kDebugSpriteMovie, "[%s] %s: currentFrameIndex: %d, activeClip.firstFrameIndex: %d",
+		debugName(), __func__, _currentFrameIndex, _activeClip.firstFrameIndex);
 	if (_currentFrameIndex != _activeClip.firstFrameIndex) {
+		dirtyIfVisible();
 		_currentFrameIndex = _activeClip.firstFrameIndex;
 		dirtyIfVisible();
 	}
 }
 
 void SpriteMovieActor::setCurrentFrameToFinal() {
+	debugC(3, kDebugSpriteMovie, "[%s] %s: currentFrameIndex: %d, activeClip.lastFrameIndex: %d",
+		debugName(), __func__, _currentFrameIndex, _activeClip.lastFrameIndex);
 	if (_currentFrameIndex != _activeClip.lastFrameIndex) {
+		dirtyIfVisible();
 		_currentFrameIndex = _activeClip.lastFrameIndex;
 		dirtyIfVisible();
 	}
@@ -320,16 +375,36 @@ void SpriteMovieActor::scheduleNextFrame() {
 		return;
 	}
 
-	if (_currentFrameIndex < _activeClip.lastFrameIndex) {
-		scheduleNextTimerEvent();
+	debugC(3, kDebugSpriteMovie, "[%s] %s: currentFrame: %d; activeClip: [%d, %d]",
+		debugName(), __func__, _currentFrameIndex,
+		_activeClip.firstFrameIndex, _activeClip.lastFrameIndex);
+	int firstFrameIndex = _activeClip.firstFrameIndex;
+	int lastFrameIndex = _activeClip.lastFrameIndex;
+
+	// For backward clips, we've "passed" the last frame when currentFrameIndex <= lastFrameIndex.
+	bool clipMovesBackward = lastFrameIndex < firstFrameIndex;
+	bool currentIsAtOrBeyondLast = lastFrameIndex <= _currentFrameIndex;
+	bool needsStopEvaluation = clipMovesBackward || currentIsAtOrBeyondLast;
+	bool backwardClipContinues = clipMovesBackward && currentIsAtOrBeyondLast;
+
+	if (needsStopEvaluation) {
+		if (backwardClipContinues) {
+			// Backward clip still has frames to show (current > last).
+			scheduleNextTimerEvent();
+		} else {
+			// We reached the end of the clip, regardless of which direction we were moving.
+			stop();
+		}
 	} else {
-		stop();
+		// The forward clip still in progress.
+		scheduleNextTimerEvent();
 	}
 }
 
 void SpriteMovieActor::scheduleNextTimerEvent() {
 	uint frameDuration = 1000 / _frameRate;
 	_nextFrameTime += frameDuration;
+	debugC(3, kDebugSpriteMovie, "[%s] %s", debugName(), __func__);
 }
 
 void SpriteMovieActor::updateFrameState() {
@@ -339,7 +414,8 @@ void SpriteMovieActor::updateFrameState() {
 
 	uint currentTime = g_system->getMillis() - _startTime;
 	bool drawNextFrame = currentTime >= _nextFrameTime;
-	debugC(kDebugGraphics, "nextFrameTime: %d; startTime: %d, currentTime: %d", _nextFrameTime, _startTime, currentTime);
+	debugC(3, kDebugSpriteMovie, "[%s] %s: nextFrameTime: %d; startTime: %d, currentTime: %d",
+		debugName(), __func__, _nextFrameTime, _startTime, currentTime);
 	if (drawNextFrame) {
 		timerEvent();
 	}
@@ -347,16 +423,16 @@ void SpriteMovieActor::updateFrameState() {
 
 void SpriteMovieActor::timerEvent() {
 	if (!_isPlaying) {
-		error("%s: Attempt to activate sprite frame when sprite is not playing", __func__);
+		warning("[%s] %s: Not playing", debugName(), __func__);
 		return;
 	}
 
-	bool result = activateNextFrame();
-	if (!result) {
-		stop();
-	} else {
+	bool moreFramesToShow = activateNextFrame();
+	if (moreFramesToShow) {
 		postMovieEndEventIfNecessary();
 		scheduleNextFrame();
+	} else {
+		stop();
 	}
 }
 
@@ -368,6 +444,7 @@ void SpriteMovieActor::postMovieEndEventIfNecessary() {
 	_isPlaying = false;
 	_startTime = 0;
 	_nextFrameTime = 0;
+	debugC(3, kDebugSpriteMovie, "[%s] %s: Posting movie end", debugName(), __func__);
 
 	ScriptValue value;
 	value.setToParamToken(_activeClip.id);
@@ -375,10 +452,18 @@ void SpriteMovieActor::postMovieEndEventIfNecessary() {
 }
 
 void SpriteMovieActor::draw(DisplayContext &displayContext) {
+	if (static_cast<uint>(_currentFrameIndex) >= _asset->frames.size()) {
+		warning("[%s] %s: Requested frame %d, but we only have %d frames. Showing last frame",
+			debugName(), __func__, _currentFrameIndex, _asset->frames.size());
+		_currentFrameIndex = _asset->frames.size() - 1;
+	}
+
 	SpriteFrame *activeFrame = _asset->frames[_currentFrameIndex];
 	if (_isVisible) {
 		Common::Rect frameBbox = activeFrame->boundingBox();
 		frameBbox.translate(_boundingBox.left, _boundingBox.top);
+		debugC(8, kDebugSpriteMovie, "[%s] %s: frame %d",
+			debugName(), __func__, _currentFrameIndex);
 		g_engine->getDisplayManager()->imageBlit(frameBbox.origin(), activeFrame, _dissolveFactor, &displayContext);
 	}
 }

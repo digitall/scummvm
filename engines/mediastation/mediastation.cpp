@@ -302,6 +302,7 @@ void MediaStationEngine::draw(bool dirtyOnly) {
 	} else {
 		_stageDirector->drawAll();
 	}
+	_stageDirector->clearDirtyRegion();
 	_displayManager->updateScreen();
 	_displayManager->doTransitionOnSync();
 }

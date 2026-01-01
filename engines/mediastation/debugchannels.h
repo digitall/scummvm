@@ -38,6 +38,7 @@ enum DebugChannels {
 	kDebugScript,
 	kDebugEvents,
 	kDebugLoading,
+	kDebugSpriteMovie,
 };
 
 } // End of namespace MediaStation

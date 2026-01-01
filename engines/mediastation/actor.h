@@ -134,7 +134,7 @@ enum ActorHeaderSectionType {
 
 	// SPRITE FIELDS.
 	kActorHeaderSpriteClip = 0x03e9,
-	kActorHeaderCurrentSpriteClip = 0x03ea
+	kActorHeaderDefaultSpriteClip = 0x03ea
 };
 
 enum CylindricalWrapMode : int;

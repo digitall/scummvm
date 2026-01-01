@@ -34,10 +34,15 @@
 
 namespace MediaStation {
 
-struct SpriteClip {
+struct SpriteMovieClip {
 	uint id = 0;
-	uint firstFrameIndex = 0;
-	uint lastFrameIndex = 0;
+	int firstFrameIndex = 0;
+	int lastFrameIndex = 0;
+
+	SpriteMovieClip() = default;
+	SpriteMovieClip(uint clipId, int first, int last)
+		: id(clipId), firstFrameIndex(first), lastFrameIndex(last) {}
+	Common::String getDebugString() const;
 };
 
 class SpriteFrameHeader : public BitmapHeader {
@@ -68,6 +73,7 @@ private:
 struct SpriteAsset {
 	~SpriteAsset();
 
+	uint _frameCount = 0;
 	Common::Array<SpriteFrame *> frames;
 };
 
@@ -82,24 +88,25 @@ public:
 	virtual void draw(DisplayContext &displayContext) override;
 
 	virtual void readParameter(Chunk &chunk, ActorHeaderSectionType paramType) override;
+	virtual void loadIsComplete() override;
 	virtual ScriptValue callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) override;
-
-	virtual bool isVisible() const override { return _isVisible; }
 
 	virtual void readChunk(Chunk &chunk) override;
 
 private:
-	static const uint DEFAULT_CLIP_ID = 1200;
+	const uint DEFAULT_FORWARD_CLIP_ID = 0x4B0;
+	const uint DEFAULT_BACKWARD_CLIP_ID = 0x4B1;
+
 	uint _loadType = 0;
 	uint _frameRate = 0;
-	uint _frameCount = 0;
 	uint _actorReference = 0;
-	Common::HashMap<uint, SpriteClip> _clips;
+	Common::HashMap<uint, SpriteMovieClip> _clips;
 	Common::SharedPtr<SpriteAsset> _asset;
 	bool _isPlaying = false;
 	uint _currentFrameIndex = 0;
 	uint _nextFrameTime = 0;
-	SpriteClip _activeClip;
+	uint _defaultClipId = DEFAULT_FORWARD_CLIP_ID;
+	SpriteMovieClip _activeClip;
 
 	void play();
 	void stop();
