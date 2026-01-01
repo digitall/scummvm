@@ -96,9 +96,10 @@ void Actor::processTimeEventHandlers() {
 		double timeEventInFractionalSeconds = timeEvent->_argumentValue.asFloat();
 		uint timeEventInMilliseconds = timeEventInFractionalSeconds * 1000;
 		bool timeEventAlreadyProcessed = timeEventInMilliseconds < _lastProcessedTime;
-		bool timeEventNeedsToBeProcessed = timeEventInMilliseconds <= currentTime - _startTime;
+		bool timeEventNeedsToBeProcessed = timeEventInMilliseconds < currentTime - _startTime;
 		if (!timeEventAlreadyProcessed && timeEventNeedsToBeProcessed) {
-			debugC(5, kDebugScript, "Actor::processTimeEventHandlers(): Running On Time handler for time %d ms", timeEventInMilliseconds);
+			debugC(5, kDebugScript, "%s: Running On Time handler for time %d ms (lastProcessedTime: %d, currentTime: %d)",
+				__func__, timeEventInMilliseconds, _lastProcessedTime, currentTime);
 			timeEvent->execute(_id);
 		}
 	}
