@@ -696,39 +696,21 @@ void VideoDisplayManager::_colorShiftCurrentPalette(uint startIndex, uint shiftA
 }
 
 void VideoDisplayManager::_fadeToPaletteObject(uint paletteId, double fadeTime, uint startIndex, uint colorCount) {
-	Actor *actor = _vm->getActorById(paletteId);
-	if (actor == nullptr) {
-		error("%s: Got null target palette", __func__);
-	} else if (actor->type() != kActorTypePalette) {
-		error("%s: Actor %d is not a palette", __func__, paletteId);
-	}
-
-	Graphics::Palette *palette = static_cast<PaletteActor *>(actor)->_palette;
+	PaletteActor *paletteActor = static_cast<PaletteActor *>(_vm->getActorByIdAndType(paletteId, kActorTypePalette));
+	Graphics::Palette *palette = paletteActor->_palette;
 	_fadeToPalette(fadeTime, *palette, startIndex, colorCount);
 }
 
 void VideoDisplayManager::_setToPaletteObject(uint paletteId, uint startIndex, uint colorCount) {
-	Actor *actor = _vm->getActorById(paletteId);
-	if (actor == nullptr) {
-		error("%s: Got null target palette", __func__);
-	} else if (actor->type() != kActorTypePalette) {
-		error("%s: Actor %d is not a palette", __func__, paletteId);
-	}
-
-	Graphics::Palette *palette = static_cast<PaletteActor *>(actor)->_palette;
+	PaletteActor *paletteActor = static_cast<PaletteActor *>(_vm->getActorByIdAndType(paletteId, kActorTypePalette));
+	Graphics::Palette *palette = paletteActor->_palette;
 	_setPalette(*palette, startIndex, colorCount);
 }
 
 void VideoDisplayManager::_setPercentToPaletteObject(double percent, uint paletteId, uint startIndex, uint colorCount) {
-	Actor *actor = _vm->getActorById(paletteId);
-	if (actor == nullptr) {
-		error("%s: Got null target palette", __func__);
-	} else if (actor->type() != kActorTypePalette) {
-		error("%s: Actor %d is not a palette", __func__, paletteId);
-	}
-
-	Graphics::Palette *targetPalette = static_cast<PaletteActor *>(actor)->_palette;
-	_setToPercentPalette(percent, *_registeredPalette, *targetPalette, startIndex, colorCount);
+	PaletteActor *paletteActor = static_cast<PaletteActor *>(_vm->getActorByIdAndType(paletteId, kActorTypePalette));
+	Graphics::Palette *palette = paletteActor->_palette;
+	_setToPercentPalette(percent, *_registeredPalette, *palette, startIndex, colorCount);
 }
 
 void VideoDisplayManager::imageBlit(

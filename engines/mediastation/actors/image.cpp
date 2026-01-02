@@ -60,14 +60,7 @@ void ImageActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 
 	case kActorHeaderActorReference: {
 		_actorReference = chunk.readTypedUint16();
-		Actor *referencedActor = g_engine->getActorById(_actorReference);
-		if (referencedActor == nullptr) {
-			error("%s: Referenced actor %d doesn't exist or has not been read yet in this title", __func__, _actorReference);
-		}
-		if (referencedActor->type() != kActorTypeImage) {
-			error("%s: Type mismatch of referenced actor %d", __func__, _actorReference);
-		}
-		ImageActor *referencedImage = static_cast<ImageActor *>(referencedActor);
+		ImageActor *referencedImage = static_cast<ImageActor *>(g_engine->getActorByIdAndType(_actorReference, kActorTypeImage));
 		_asset = referencedImage->_asset;
 		break;
 	}

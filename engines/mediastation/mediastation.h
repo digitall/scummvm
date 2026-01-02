@@ -98,6 +98,7 @@ public:
 	void readHeaderSections(Subfile &subfile, Chunk &chunk);
 
 	Actor *getActorById(uint actorId);
+	Actor *getActorByIdAndType(uint actorId, ActorType expectedType);
 	SpatialEntity *getSpatialEntityById(uint spatialEntityId);
 	ChannelClient *getChannelClientByChannelIdent(uint channelIdent);
 	ScriptValue *getVariable(uint variableId);

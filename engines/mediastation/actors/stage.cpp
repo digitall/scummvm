@@ -45,7 +45,7 @@ void StageActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		// In stages, this basically has the oppose meaning it has outside of stages. Here,
 		// it specifies an actor that is a parent of this stage.
 		uint parentActorId = chunk.readTypedUint16();
-		_pendingParent = g_engine->getSpatialEntityById(parentActorId);
+		_pendingParent = static_cast<SpatialEntity *>(g_engine->getActorByIdAndType(parentActorId, kActorTypeStage));
 		break;
 	}
 
@@ -265,9 +265,6 @@ void StageActor::loadIsComplete() {
 	Actor::loadIsComplete();
 
 	if (_pendingParent != nullptr) {
-		if (_pendingParent->type() != kActorTypeStage) {
-			error("%s: Parent must be a stage", __func__);
-		}
 		StageActor *parentStage = static_cast<StageActor *>(_pendingParent);
 		parentStage->addChildSpatialEntity(this);
 		_pendingParent = nullptr;

@@ -385,13 +385,7 @@ void SpatialEntity::readParameter(Chunk &chunk, ActorHeaderSectionType paramType
 void SpatialEntity::loadIsComplete() {
 	Actor::loadIsComplete();
 	if (_stageId != 0) {
-		Actor *pendingParentStageActor = g_engine->getActorById(_stageId);
-		if (pendingParentStageActor == nullptr) {
-			error("%s: Actor %d doesn't exist", __func__, _stageId);
-		} else if (pendingParentStageActor->type() != kActorTypeStage) {
-			error("%s: Requested parent stage %d is not a stage", __func__, _stageId);
-		}
-		StageActor *pendingParentStage = static_cast<StageActor *>(pendingParentStageActor);
+		StageActor *pendingParentStage = static_cast<StageActor *>(g_engine->getActorByIdAndType(_stageId, kActorTypeStage));
 		pendingParentStage->addChildSpatialEntity(this);
 	}
 }

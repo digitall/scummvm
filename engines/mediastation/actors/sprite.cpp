@@ -111,14 +111,7 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 
 	case kActorHeaderActorReference: {
 		_actorReference = chunk.readTypedUint16();
-		Actor *referencedActor = g_engine->getActorById(_actorReference);
-		if (referencedActor == nullptr) {
-			error("%s: Referenced actor %d doesn't exist or has not been read yet in this title", __func__, _actorReference);
-		}
-		if (referencedActor->type() != kActorTypeSprite) {
-			error("%s: Type mismatch of referenced actor %d", __func__, _actorReference);
-		}
-		SpriteMovieActor *referencedSprite = static_cast<SpriteMovieActor *>(referencedActor);
+		SpriteMovieActor *referencedSprite = static_cast<SpriteMovieActor *>(g_engine->getActorByIdAndType(_actorReference, kActorTypeSprite));
 		_asset = referencedSprite->_asset;
 		break;
 	}

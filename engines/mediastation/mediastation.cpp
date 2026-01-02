@@ -102,11 +102,21 @@ Actor *MediaStationEngine::getActorById(uint actorId) {
 	return _actors.getValOrDefault(actorId);
 }
 
+Actor *MediaStationEngine::getActorByIdAndType(uint actorId, ActorType expectedType) {
+	Actor *actor = getActorById(actorId);
+	if (actor == nullptr) {
+		error("[%s] %s: Actor doesn't exist", g_engine->formatActorName(actorId).c_str(), __func__);
+	} else if (actor->type() != expectedType) {
+		error("[%s] %s: Expected type %s, got %s", actor->debugName(), __func__, actorTypeToStr(actor->type()), actorTypeToStr(expectedType));
+	}
+	return actor;
+}
+
 SpatialEntity *MediaStationEngine::getSpatialEntityById(uint spatialEntityId) {
 	Actor *actor = getActorById(spatialEntityId);
 	if (actor != nullptr) {
 		if (!actor->isSpatialActor()) {
-			error("[%s] %s: Not a spatial actor", formatActorName(spatialEntityId).c_str(), __func__);
+			error("[%s] %s: Not a spatial actor", actor->debugName(), __func__);
 		}
 		return static_cast<SpatialEntity *>(actor);
 	}
@@ -309,7 +319,7 @@ void MediaStationEngine::draw(bool dirtyOnly) {
 
 void MediaStationEngine::registerActor(Actor *actorToAdd) {
 	if (getActorById(actorToAdd->id())) {
-		error("[%s] %s: Already defined in this title", formatActorName(actorToAdd).c_str(), __func__);
+		error("[%s] %s: Already defined in this title", actorToAdd->debugName(), __func__);
 	}
 	_actors.setVal(actorToAdd->id(), actorToAdd);
 }
