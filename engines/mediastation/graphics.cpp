@@ -719,7 +719,8 @@ void VideoDisplayManager::imageBlit(
 	const PixMapImage *sourceImage,
 	double dissolveFactor,
 	DisplayContext *displayContext,
-	Graphics::ManagedSurface *targetImage) {
+	Graphics::ManagedSurface *targetImage,
+	bool useTransBlit) {
 
 	byte blitFlags = kClipEnabled;
 	switch (sourceImage->getCompressionType()) {
@@ -787,7 +788,7 @@ void VideoDisplayManager::imageBlit(
 		// non-transparent blitting, but we will just use simpleBlitFrom in both
 		// cases. It will pick the better method if there is no transparent
 		// color set.
-		blitRectsClip(targetImage, destinationPoint, sourceImage->_image, dirtyRegion);
+		blitRectsClip(targetImage, destinationPoint, sourceImage->_image, dirtyRegion, useTransBlit);
 		break;
 
 	case kRle8Blit | kClipEnabled:
@@ -819,7 +820,8 @@ void VideoDisplayManager::blitRectsClip(
 	Graphics::ManagedSurface *dest,
 	const Common::Point &destLocation,
 	const Graphics::ManagedSurface &source,
-	const Common::Array<Common::Rect> &dirtyRegion) {
+	const Common::Array<Common::Rect> &dirtyRegion,
+	bool useTransBlit) {
 
 	for (const Common::Rect &dirtyRect : dirtyRegion) {
 		Common::Rect destRect(destLocation, source.w, source.h);
@@ -829,7 +831,11 @@ void VideoDisplayManager::blitRectsClip(
 			// Calculate source coordinates (relative to source image).
 			Common::Point originOnScreen(areaToRedraw.origin());
 			areaToRedraw.translate(-destLocation.x, -destLocation.y);
-			dest->simpleBlitFrom(source, areaToRedraw, originOnScreen);
+			if (useTransBlit) {
+				dest->transBlitFrom(source, areaToRedraw, originOnScreen);
+			} else {
+				dest->simpleBlitFrom(source, areaToRedraw, originOnScreen);
+			}
 		}
 	}
 }

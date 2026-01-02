@@ -96,7 +96,6 @@ enum ActorHeaderSectionType {
 	kActorHeaderScaleXAndY = 0x77a,
 	kActorHeaderScaleX = 0x77c,
 	kActorHeaderScaleY = 0x77d,
-	kActorHeaderUnk0 = 0x7d0,
 	kActorHeaderActorName = 0x0bb8,
 	kStreamMovieProxyInfo = 0x06ac,
 
@@ -113,10 +112,8 @@ enum ActorHeaderSectionType {
 	kActorHeaderCameraImageActor = 0x77b,
 
 	// CANVAS FIELDS.
-	kActorHeaderCanvasUnk1 = 0x491,
 	kActorHeaderCanvasDissolveFactor = 0x493,
-	kActorHeaderCanvasUnk2 = 0x494,
-	kActorHeaderCanvasUnk3 = 0x495,
+	kActorHeaderCanvasTransparency = 0x7d0,
 
 	// STAGE FIELDS.
 	kActorHeaderStageExtent = 0x0771,
@@ -125,14 +122,16 @@ enum ActorHeaderSectionType {
 
 	// TEXT FIELDS.
 	kActorHeaderEditable = 0x03eb,
-	kActorHeaderFontId = 0x0258,
+	kActorHeaderFontActorId = 0x0258,
 	kActorHeaderInitialText = 0x0259,
 	kActorHeaderTextMaxLength = 0x25a,
 	kActorHeaderTextJustification = 0x025b,
 	kActorHeaderTextPosition = 0x25f,
-	kActorHeaderTextUnk1 = 0x262,
-	kActorHeaderTextUnk2 = 0x263,
-	kActorHeaderTextCharacterClass = 0x0266,
+	kActorHeaderTextCursorIsVisible = 0x262,
+	kActorHeaderTextConstrainToWidth = 0x263,
+	kActorHeaderTextOverwriteMode = 0x264,
+	kActorHeaderTextAcceptedCharRange = 0x265,
+	kActorHeaderTextAcceptedCharRangeWithOffset = 0x0266,
 
 	// SPRITE FIELDS.
 	kActorHeaderSpriteClip = 0x03e9,
@@ -243,6 +242,7 @@ public:
 	virtual bool isVisible() const { return _isVisible; }
 	virtual Common::Rect getBbox() const { return _boundingBox; }
 	int zIndex() const { return _zIndex; }
+	void moveTo(int16 x, int16 y);
 
 	virtual void currentMousePosition(Common::Point &point);
 	virtual void invalidateMouse();
@@ -276,7 +276,7 @@ public:
 protected:
 	uint _stageId = 0;
 	int _zIndex = 0;
-	double _dissolveFactor = 0.0;
+	double _dissolveFactor = 1.0;
 	double _scaleX = 0.0;
 	double _scaleY = 0.0;
 	Common::Rect _boundingBox;
@@ -286,7 +286,6 @@ protected:
 	bool _getOffstageEvents = false;
 	StageActor *_parentStage = nullptr;
 
-	void moveTo(int16 x, int16 y);
 	void moveToCentered(int16 x, int16 y);
 	void setBounds(const Common::Rect &bounds);
 	void setZIndex(int zIndex);

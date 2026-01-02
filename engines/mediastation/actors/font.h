@@ -30,12 +30,17 @@
 
 namespace MediaStation {
 
-class FontGlyph : public PixMapImage {
+class FontCharacter : public PixMapImage {
 public:
-	FontGlyph(Chunk &chunk, uint asciiCode, int unk1, int unk2, const ImageInfo &header);
-	uint _asciiCode = 0;
-	int _unk1 = 0;
-	int _unk2 = 0;
+	FontCharacter(Chunk &chunk, uint charCode, int horizontalSpacing, int baselineOffset, const ImageInfo &header);
+
+	// Returns the ascent (baseline position). Falls back to full height if baseline offset is not specified.
+	int16 ascent() const { return (_baselineOffset != 0) ? _baselineOffset : height(); }
+	uint _charCode = 0;
+	int16 _horizontalSpacing = 0; // Additional horizontal spacing added after the glyph width to get total advance
+
+private:
+	int16 _baselineOffset = 0;    // Baseline position within the glyph bitmap (ascent - distance from top edge to baseline)
 };
 
 class FontActor : public Actor, public ChannelClient {
@@ -45,9 +50,19 @@ public:
 
 	virtual void readParameter(Chunk &chunk, ActorHeaderSectionType paramType) override;
 	virtual void readChunk(Chunk &chunk) override;
+	virtual void loadIsComplete() override;
+
+	FontCharacter *lookupCharacter(uint charCode) { return _characters.getValOrDefault(charCode); }
+
+	int16 _totalWidthOfAllChars = 0;
+	int16 _totalHeightOfAllChars = 0;
+	int16 _averageCharWidth = 0;
+	int16 _averageCharHeight = 0;
+	int16 _maxAscent = 0;  // Maximum ascent (distance from top to baseline) across all glyphs.
+	int16 _maxDescent = 0; // Maximum descent (distance from baseline to bottom) across all glyphs.
 
 private:
-	Common::HashMap<uint, FontGlyph *> _glyphs;
+	Common::HashMap<uint, FontCharacter *> _characters;
 };
 
 } // End of namespace MediaStation

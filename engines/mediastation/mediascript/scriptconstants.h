@@ -209,7 +209,10 @@ enum BuiltInMethod {
 	kPanToMethod = 0x172,
 
 	// CANVAS METHODS.
-	kClearToPaletteMethod = 0x17B,
+	kCanvasClearToTransparencyMethod = 0x172,
+	kCanvasStampImageMethod = 0x179,
+	kCanvasCopyScreenToMethod = 0x17A,
+	kCanvasClearToPaletteMethod = 0x17B,
 
 	// DOCUMENT METHODS.
 	kDocumentBranchToScreenMethod = 0xC9,
@@ -230,9 +233,32 @@ enum BuiltInMethod {
 	kPathSetStepRateMethod = 0xf5,
 
 	// TEXT METHODS.
-	kTextMethod = 0x122,
-	kSetTextMethod = 0x123,
-	kSetMaximumTextLengthMethod = 0x125,
+	kTextSetEditableMethod = 0xD2,
+	kTextSetNonEditableMethod = 0xD3,
+	kTextGetFontActorMethod = 0x120,
+	kTextSetFontActorMethod = 0x121,
+	kTextGetTextMethod = 0x122,
+	kTextSetTextMethod = 0x123,
+	kTextGetMaxLengthMethod = 0x124,
+	kTextSetMaxLengthMethod = 0x125,
+	kGetLastPressedCharCodeMethod = 0x126,
+	kTextGetCursorPositionMethod = 0x127,
+	kTextSetCursorPositionMethod = 0x128,
+	kTextGetJustificationMethod = 0x14b,
+	kTextSetJustificationMethod = 0x14c,
+	kTextGetPositionMethod = 0x14d,
+	kTextSetPositionMethod = 0x14e,
+	kTextGetConstrainToWidthMethod = 0x150,
+	kTextSetConstrainToWidthMethod = 0x151,
+	kTextGetCursorIsVisibleMethod = 0x152,
+	kTextSetCursorIsVisibleMethod = 0x153,
+	kTextGetOverwriteModeMethod = 0x154,
+	kTextSetOverwriteModeMethod = 0x155,
+	kTextGetTranslatedCharCode = 0x156,
+	kTextAddAcceptedCharsMethod = 0x157,
+	kTextIsCharacterAcceptedMethod = 0x158,
+	kTextEnableDisableCharacterMethod = 0x159,
+	kTextIsEditableMethod = 0x173,
 
 	// COLLECTION METHODS.
 	// These are arrays used in Media Script.

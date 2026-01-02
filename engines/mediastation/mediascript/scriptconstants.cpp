@@ -221,10 +221,11 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "IsPlaying/SetMultipleStreams";
 	case kSetDissolveFactorMethod:
 		return "SetDissolveFactor";
+	// NOTE: IDs 0xD2 and 0xD3 are double-assigned between hotspot, stage, and text methods.
 	case kMouseActivateMethod:
-		return "MouseActivate";
+		return "Activate";
 	case kMouseDeactivateMethod:
-		return "MouseDeactivate";
+		return "Deactivate";
 	case kGetLeftXMethod:
 		return "GetLeftX";
 	case kGetTopYMethod:
@@ -233,8 +234,9 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "TriggerAbsXPosition";
 	case kTriggerAbsYPositionMethod:
 		return "TriggerAbsYPosition";
+	// NOTE: ID 0x173 is double-assigned between hotspot and text methods.
 	case kIsActiveMethod:
-		return "IsActive";
+		return "IsActive/IsEditable";
 	case kGetWidthMethod:
 		return "GetWidth";
 	case kGetHeightMethod:
@@ -325,8 +327,12 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 	case kYViewportPositionMethod:
 		return "YViewportPosition";
 	case kPanToMethod:
-		return "PanTo";
-	case kClearToPaletteMethod:
+		return "PanTo/CanvasClearToTransparency";
+	case kCanvasStampImageMethod:
+		return "CanvasStampImage";
+	case kCanvasCopyScreenToMethod:
+		return "CanvasCopyScreenTo";
+	case kCanvasClearToPaletteMethod:
 		return "ClearToPalette";
 	case kStreamMovieMoveProxyToStageMethod:
 		return "MoveProxyToStage";
@@ -356,12 +362,52 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "SetTotalSteps";
 	case kPathSetStepRateMethod:
 		return "SetStepRate";
-	case kTextMethod:
+	case kTextGetFontActorMethod:
+		return "GetFontActor";
+	case kTextSetFontActorMethod:
+		return "SetFontActor";
+	case kTextGetTextMethod:
 		return "Text";
-	case kSetTextMethod:
+	case kTextSetTextMethod:
 		return "SetText";
-	case kSetMaximumTextLengthMethod:
-		return "SetMaximumTextLength";
+	case kTextGetMaxLengthMethod:
+		return "GetMaxLength";
+	case kTextSetMaxLengthMethod:
+		return "SetMaxLength";
+	case kGetLastPressedCharCodeMethod:
+		return "GetLastPressedCharCode";
+	case kTextGetCursorPositionMethod:
+		return "GetCursorPosition";
+	case kTextSetCursorPositionMethod:
+		return "SetCursorPosition";
+	case kTextGetJustificationMethod:
+		return "GetJustification";
+	case kTextSetJustificationMethod:
+		return "SetJustification";
+	case kTextGetPositionMethod:
+		return "GetPosition";
+	case kTextSetPositionMethod:
+		return "SetPosition";
+	case kTextGetConstrainToWidthMethod:
+		return "GetConstrainToWidth";
+	case kTextSetConstrainToWidthMethod:
+		return "SetConstrainToWidth";
+	case kTextGetCursorIsVisibleMethod:
+		return "GetCursorIsVisible";
+	case kTextSetCursorIsVisibleMethod:
+		return "SetCursorIsVisible";
+	case kTextGetOverwriteModeMethod:
+		return "GetOverwriteMode";
+	case kTextSetOverwriteModeMethod:
+		return "SetOverwriteMode";
+	case kTextGetTranslatedCharCode:
+		return "GetTranslatedCharCode";
+	case kTextAddAcceptedCharsMethod:
+		return "AddAcceptedChars";
+	case kTextIsCharacterAcceptedMethod:
+		return "IsCharacterAccepted";
+	case kTextEnableDisableCharacterMethod:
+		return "EnableDisableCharacter";
 	case kAppendMethod:
 		return "Append";
 	case kApplyMethod:

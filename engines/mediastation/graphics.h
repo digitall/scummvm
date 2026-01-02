@@ -140,7 +140,8 @@ public:
 		const PixMapImage *image,
 		double dissolveFactor,
 		DisplayContext *displayContext,
-		Graphics::ManagedSurface *destinationImage = nullptr);
+		Graphics::ManagedSurface *destinationImage = nullptr,
+		bool useTransBlit = false);
 
 	void imageDeltaBlit(
 		Common::Point deltaFramePos,
@@ -185,7 +186,8 @@ private:
 		Graphics::ManagedSurface *dest,
 		const Common::Point &destLocation,
 		const Graphics::ManagedSurface &source,
-		const Common::Array<Common::Rect> &dirtyRegion);
+		const Common::Array<Common::Rect> &dirtyRegion,
+		bool useTransBlit = false);
 	void rleBlitRectsClip(
 		Graphics::ManagedSurface *dest,
 		const Common::Point &destLocation,
