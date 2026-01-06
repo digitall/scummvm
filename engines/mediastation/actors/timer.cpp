@@ -31,19 +31,19 @@ ScriptValue TimerActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 
 	switch (methodId) {
 	case kTimePlayMethod: {
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		timePlay();
 		return returnValue;
 	}
 
 	case kTimeStopMethod: {
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		timeStop();
 		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isPlaying);
 		return returnValue;
 	}

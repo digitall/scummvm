@@ -63,26 +63,26 @@ ScriptValue PathActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptVa
 
 	switch (methodId) {
 	case kTimePlayMethod: {
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		timePlay();
 		return returnValue;
 	}
 
 	case kSetDurationMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint durationInMilliseconds = static_cast<uint>(args[0].asTime() * 1000);
 		setDuration(durationInMilliseconds);
 		return returnValue;
 	}
 
 	case kPercentCompleteMethod: {
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(percentComplete());
 		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isPlaying);
 		return returnValue;
 	}

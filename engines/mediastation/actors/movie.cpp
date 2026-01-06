@@ -151,45 +151,45 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 
 	switch (methodId) {
 	case kTimePlayMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		timePlay();
 		return returnValue;
 	}
 
 	case kSpatialShowMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		setVisibility(true);
 		updateFrameState();
 		return returnValue;
 	}
 
 	case kTimeStopMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		timeStop();
 		return returnValue;
 	}
 
 	case kSpatialHideMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		setVisibility(false);
 		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isPlaying);
 		return returnValue;
 	}
 
 	case kGetLeftXMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		double left = static_cast<double>(_boundingBox.left);
 		returnValue.setToFloat(left);
 		return returnValue;
 	}
 
 	case kGetTopYMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		double top = static_cast<double>(_boundingBox.top);
 		returnValue.setToFloat(top);
 		return returnValue;

@@ -23,6 +23,8 @@
 #include "mediastation/mediascript/function.h"
 #include "mediastation/mediastation.h"
 
+#define VALUETYPEMISMATCH(expectedType) warning("%s: Script value type mismatch: Expected %s, got %s", __func__, scriptValueTypeToStr(expectedType), scriptValueTypeToStr(_type))
+
 namespace MediaStation {
 
 ScriptValue::ScriptValue(ParameterReadStream *stream) {
@@ -117,7 +119,7 @@ double ScriptValue::asFloat() const {
 	if (_type == kScriptValueTypeFloat) {
 		return _u.d;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeFloat);
+		VALUETYPEMISMATCH(kScriptValueTypeFloat);
 		return 0.0;
 	}
 }
@@ -131,7 +133,7 @@ bool ScriptValue::asBool() const {
 	if (_type == kScriptValueTypeBool) {
 		return _u.b;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeBool);
+		VALUETYPEMISMATCH(kScriptValueTypeBool);
 		return false;
 	}
 }
@@ -145,7 +147,7 @@ double ScriptValue::asTime() const {
 	if (_type == kScriptValueTypeTime) {
 		return _u.d;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeTime);
+		VALUETYPEMISMATCH(kScriptValueTypeTime);
 		return 0.0;
 	}
 }
@@ -159,7 +161,7 @@ uint ScriptValue::asParamToken() const {
 	if (_type == kScriptValueTypeParamToken) {
 		return _u.paramToken;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeParamToken);
+		VALUETYPEMISMATCH(kScriptValueTypeParamToken);
 		return 0;
 	}
 }
@@ -173,7 +175,7 @@ uint ScriptValue::asActorId() const {
 	if (_type == kScriptValueTypeActorId) {
 		return _u.actorId;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeActorId);
+		VALUETYPEMISMATCH(kScriptValueTypeActorId);
 		return 0;
 	}
 }
@@ -200,7 +202,7 @@ Common::SharedPtr<Collection> ScriptValue::asCollection() const {
 	if (_type == kScriptValueTypeCollection) {
 		return _collection;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeCollection);
+		VALUETYPEMISMATCH(kScriptValueTypeCollection);
 		return nullptr;
 	}
 }
@@ -214,7 +216,7 @@ uint ScriptValue::asFunctionId() const {
 	if (_type == kScriptValueTypeFunctionId) {
 		return _u.functionId;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeFunctionId);
+		VALUETYPEMISMATCH(kScriptValueTypeFunctionId);
 		return 0;
 	}
 }
@@ -228,7 +230,7 @@ BuiltInMethod ScriptValue::asMethodId() const {
 	if (_type == kScriptValueTypeMethodId) {
 		return _u.methodId;
 	} else {
-		issueValueMismatchWarning(kScriptValueTypeMethodId);
+		VALUETYPEMISMATCH(kScriptValueTypeMethodId);
 		return kInvalidMethod;
 	}
 }
@@ -574,13 +576,6 @@ ScriptValue ScriptValue::operator-() const {
 		error("%s: Attempted to negate type %s", __func__, scriptValueTypeToStr(getType()));
 	}
 	return returnValue;
-}
-
-void ScriptValue::issueValueMismatchWarning(ScriptValueType expectedType) const {
-	// The original just blithely returns 0 (or equivalent) when you call a
-	// getter for the wrong type (for instance, calling asFloat() on a bool),
-	// but for debugging purposes we'll issue a warning.
-	warning("%s: Script value type mismatch: Expected %s, got %s", __func__, scriptValueTypeToStr(expectedType), scriptValueTypeToStr(_type));
 }
 
 } // End of namespace MediaStation

@@ -24,6 +24,25 @@
 #include "mediastation/mediastation.h"
 
 namespace MediaStation {
+
+// For exact argument count.
+#define FUNCARGCHECK(n) \
+	if (args.size() != (n)) { \
+		warning("%s: expected %d argument%s, got %d", builtInFunctionToStr(static_cast<BuiltInFunction>(functionId)), (n), ((n) == 1 ? "" : "s"), args.size()); \
+	}
+
+// For a range of valid argument counts (min to max).
+#define FUNCARGRANGE(min, max) \
+	if (args.size() < (min) || args.size() > (max)) { \
+		warning("%s: expected %d to %d argument, got %d", builtInFunctionToStr(static_cast<BuiltInFunction>(functionId)), (min), (max), args.size()); \
+	}
+
+// For minimum argument count (no maximum).
+#define FUNCARGMIN(min) \
+	if (args.size() < (min)) { \
+		warning("%s: expected at least %d argument%s, got %d", builtInFunctionToStr(static_cast<BuiltInFunction>(functionId)), (min), ((min) == 1 ? "" : "s"), args.size()); \
+	}
+
 ScriptFunction::ScriptFunction(Chunk &chunk) {
 	_contextId = chunk.readTypedUint16();
 	_id = chunk.readTypedUint16();
@@ -84,12 +103,13 @@ ScriptValue FunctionManager::call(uint functionId, Common::Array<ScriptValue> &a
 	switch (functionId) {
 	case kRandomFunction:
 	case kLegacy_RandomFunction:
-		assert(args.size() == 2);
+		FUNCARGCHECK(2);
 		script_Random(args, returnValue);
 		break;
 
 	case kTimeOfDayFunction:
 	case kLegacy_TimeOfDayFunction:
+		FUNCARGCHECK(0);
 		script_TimeOfDay(args, returnValue);
 		break;
 
@@ -105,45 +125,49 @@ ScriptValue FunctionManager::call(uint functionId, Common::Array<ScriptValue> &a
 
 	case kPlatformFunction:
 	case kLegacy_PlatformFunction:
-		assert(args.empty());
+		FUNCARGCHECK(0);
 		script_GetPlatform(args, returnValue);
 		break;
 
 	case kSquareRootFunction:
 	case kLegacy_SquareRootFunction:
-		assert(args.size() == 1);
+		FUNCARGCHECK(1);
 		script_SquareRoot(args, returnValue);
 		break;
 
 	case kGetUniqueRandomFunction:
 	case kLegacy_GetUniqueRandomFunction:
-		assert(args.size() >= 2);
+		FUNCARGMIN(2);
 		script_GetUniqueRandom(args, returnValue);
 		break;
 
 	case kCurrentRunTimeFunction:
+		FUNCARGCHECK(0);
 		script_CurrentRunTime(args, returnValue);
 		break;
 
 	case kSetGammaCorrectionFunction:
+		FUNCARGRANGE(1, 3);
 		script_SetGammaCorrection(args, returnValue);
 		break;
 
 	case kGetDefaultGammaCorrectionFunction:
+		FUNCARGCHECK(0);
 		script_GetDefaultGammaCorrection(args, returnValue);
 		break;
 
 	case kGetCurrentGammaCorrectionFunction:
+		FUNCARGCHECK(0);
 		script_GetCurrentGammaCorrection(args, returnValue);
 		break;
 
 	case kSetAudioVolumeFunction:
-		assert(args.size() == 1);
+		FUNCARGCHECK(1);
 		script_SetAudioVolume(args, returnValue);
 		break;
 
 	case kGetAudioVolumeFunction:
-		assert(args.empty());
+		FUNCARGCHECK(0);
 		script_GetAudioVolume(args, returnValue);
 		break;
 
@@ -189,6 +213,7 @@ ScriptValue FunctionManager::call(uint functionId, Common::Array<ScriptValue> &a
 		break;
 
 	case kLegacy_DebugPrintFunction:
+		// We don't need to check arg counts here. This just prints however many args we have.
 		script_DebugPrint(args, returnValue);
 		break;
 
@@ -371,11 +396,6 @@ void FunctionManager::script_CurrentRunTime(Common::Array<ScriptValue> &args, Sc
 }
 
 void FunctionManager::script_SetGammaCorrection(Common::Array<ScriptValue> &args, ScriptValue &returnValue) {
-	if (args.size() != 1 && args.size() != 3) {
-		warning("%s: Expected 1 or 3 arguments, got %u", __func__, args.size());
-		return;
-	}
-
 	double red = 1.0;
 	double green = 1.0;
 	double blue = 1.0;

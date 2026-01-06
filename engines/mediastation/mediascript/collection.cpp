@@ -27,9 +27,9 @@
 
 namespace MediaStation {
 
-ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptValue> &args) {
+ScriptValue Collection::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
 	ScriptValue returnValue;
-	switch (method) {
+	switch (methodId) {
 	case kAppendMethod:
 		for (ScriptValue value : args) {
 			push_back(value);
@@ -41,12 +41,12 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 		break;
 
 	case kCountMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(size());
 		break;
 
 	case kDeleteFirstMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		if (size() > 0) {
 			returnValue = remove_at(0);
 			debugC(7, kDebugScript, "%s: %s", __func__, returnValue.getDebugString().c_str());
@@ -56,7 +56,7 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 		break;
 
 	case kDeleteLastMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		if (size() > 0) {
 			returnValue = remove_at(size() - 1);
 			debugC(7, kDebugScript, "%s: %s", __func__, returnValue.getDebugString().c_str());
@@ -66,12 +66,12 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 		break;
 
 	case kEmptyMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		clear();
 		break;
 
 	case kGetAtMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint index = static_cast<uint>(args[0].asFloat());
 		if (index < size()) {
 			returnValue = operator[](index);
@@ -82,28 +82,29 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	}
 
 	case kIsEmptyMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(empty());
 		break;
 
 	case kJumbleMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		jumble();
 		break;
 
 	case kSeekMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		int index = seek(args[0]);
 		returnValue.setToFloat(index);
 		break;
 	}
 
 	case kSendMethod:
+		ARGCOUNTMIN(1);
 		send(args);
 		break;
 
 	case kDeleteAtMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint index = static_cast<uint>(args[0].asFloat());
 		if (index < size()) {
 			returnValue = remove_at(index);
@@ -115,7 +116,7 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	}
 
 	case kInsertAtMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		uint index = static_cast<uint>(args[1].asFloat());
 		if (index <= size()) {
 			insert_at(index, args[0]);
@@ -126,7 +127,7 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	}
 
 	case kReplaceAtMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		uint index = static_cast<uint>(args[1].asFloat());
 		if (index < size()) {
 			operator[](index) = args[0];
@@ -137,16 +138,17 @@ ScriptValue Collection::callMethod(BuiltInMethod method, Common::Array<ScriptVal
 	}
 
 	case kPrependListMethod:
+		ARGCOUNTMIN(1);
 		insert_at(0, args);
 		break;
 
 	case kSortMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		Common::sort(begin(), end());
 		break;
 
 	default:
-		error("%s: Attempt to call unimplemented method %s (%d)", __func__, builtInMethodToStr(method), static_cast<uint>(method));
+		error("%s: Attempt to call unimplemented method %s (%d)", __func__, builtInMethodToStr(methodId), static_cast<uint>(methodId));
 	}
 	return returnValue;
 }

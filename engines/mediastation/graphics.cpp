@@ -264,11 +264,6 @@ void VideoDisplayManager::readAndRegisterPalette(Chunk &chunk) {
 }
 
 void VideoDisplayManager::effectTransition(Common::Array<ScriptValue> &args) {
-	if (args.empty()) {
-		warning("%s: Script args cannot be empty", __func__);
-		return;
-	}
-
 	TransitionType transitionType = static_cast<TransitionType>(args[0].asParamToken());
 	switch (transitionType) {
 	case kTransitionFadeToBlack:
@@ -426,7 +421,8 @@ void VideoDisplayManager::fadeToColor(Common::Array<ScriptValue> &args) {
 
 void VideoDisplayManager::setToColor(Common::Array<ScriptValue> &args) {
 	if (args.size() < 6) {
-		error("%s: Too few script args", __func__);
+		warning("%s: Too few script args", __func__);
+		return;
 	}
 
 	byte r = static_cast<byte>(args[1].asFloat());
@@ -442,7 +438,8 @@ void VideoDisplayManager::setToColor(Common::Array<ScriptValue> &args) {
 
 void VideoDisplayManager::setToPercentOfPalette(Common::Array<ScriptValue> &args) {
 	if (args.size() < 7) {
-		error("%s: Too few script args", __func__);
+		warning("%s: Too few script args", __func__);
+		return;
 	}
 
 	double percent = args[1].asFloat();
@@ -513,7 +510,7 @@ void VideoDisplayManager::setToPercentOfPaletteObject(Common::Array<ScriptValue>
 		percent = args[1].asFloat();
 		paletteId = args[2].asActorId();
 	} else {
-		error("%s: Too few script args", __func__);
+		warning("%s: Too few script args", __func__);
 		return;
 	}
 	if (args.size() >= 5) {

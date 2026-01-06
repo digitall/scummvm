@@ -96,30 +96,32 @@ ScriptValue HotspotActor::callMethod(BuiltInMethod methodId, Common::Array<Scrip
 
 	switch (methodId) {
 	case kMouseActivateMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		activate();
 		return returnValue;
 	}
 
 	case kMouseDeactivateMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		deactivate();
 		return returnValue;
 	}
 
 	case kIsActiveMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isActive);
 		return returnValue;
 	}
 
 	case kTriggerAbsXPositionMethod: {
+		ARGCOUNTCHECK(0);
 		double mouseX = static_cast<double>(g_system->getEventManager()->getMousePos().x);
 		returnValue.setToFloat(mouseX);
 		return returnValue;
 	}
 
 	case kTriggerAbsYPositionMethod: {
+		ARGCOUNTCHECK(0);
 		double mouseY = static_cast<double>(g_system->getEventManager()->getMousePos().y);
 		returnValue.setToFloat(mouseY);
 		return returnValue;

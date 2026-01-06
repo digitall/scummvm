@@ -213,7 +213,7 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	ScriptValue returnValue;
 	switch (methodId) {
 	case kSpatialMoveToMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 		moveTo(x, y);
@@ -221,7 +221,7 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	}
 
 	case kSpatialMoveToByOffsetMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 dx = static_cast<int16>(args[0].asFloat());
 		int16 dy = static_cast<int16>(args[1].asFloat());
 		int16 newX = _boundingBox.left + dx;
@@ -231,14 +231,14 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	}
 
 	case kSpatialZMoveToMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		int zIndex = static_cast<int>(args[0].asFloat());
 		setZIndex(zIndex);
 		break;
 	}
 
 	case kSpatialCenterMoveToMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 		moveToCentered(x, y);
@@ -246,58 +246,58 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	}
 
 	case kGetLeftXMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.left);
 		break;
 
 	case kGetTopYMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.top);
 		break;
 
 	case kGetWidthMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.width());
 		break;
 
 	case kGetHeightMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.height());
 		break;
 
 	case kGetCenterXMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		int centerX = _boundingBox.left + (_boundingBox.width() / 2);
 		returnValue.setToFloat(centerX);
 		break;
 	}
 
 	case kGetCenterYMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		int centerY = _boundingBox.top + (_boundingBox.height() / 2);
 		returnValue.setToFloat(centerY);
 		break;
 	}
 
 	case kGetZCoordinateMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_zIndex);
 		break;
 
 	case kSetDissolveFactorMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		double dissolveFactor = args[0].asFloat();
 		setDissolveFactor(dissolveFactor);
 		break;
 	}
 
 	case kIsVisibleMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(isVisible());
 		break;
 
 	case kSetMousePositionMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 		setMousePosition(x, y);
@@ -306,31 +306,31 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 
 	case kGetXScaleMethod1:
 	case kGetXScaleMethod2:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_scaleX);
 		break;
 
 	case kSetScaleMethod:
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		invalidateLocalBounds();
 		_scaleX = _scaleY = args[0].asFloat();
 		invalidateLocalBounds();
 		break;
 
 	case kSetXScaleMethod:
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		invalidateLocalBounds();
 		_scaleX = args[0].asFloat();
 		invalidateLocalBounds();
 		break;
 
 	case kGetYScaleMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_scaleY);
 		break;
 
 	case kSetYScaleMethod:
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		invalidateLocalBounds();
 		_scaleY = args[0].asFloat();
 		invalidateLocalBounds();

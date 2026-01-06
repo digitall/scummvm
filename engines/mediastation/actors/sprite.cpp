@@ -143,37 +143,37 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 
 	switch (methodId) {
 	case kSpatialShowMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		setVisibility(true);
 		return returnValue;
 	}
 
 	case kSpatialHideMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		setVisibility(false);
 		return returnValue;
 	}
 
 	case kTimePlayMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		play();
 		return returnValue;
 	}
 
 	case kTimeStopMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		stop();
 		return returnValue;
 	}
 
 	case kMovieResetMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		setCurrentFrameToInitial();
 		return returnValue;
 	}
 
 	case kSetCurrentClipMethod: {
-		assert(args.size() <= 1);
+		ARGCOUNTRANGE(0, 1);
 		uint clipId = DEFAULT_FORWARD_CLIP_ID;
 		if (args.size() == 1) {
 			clipId = args[0].asParamToken();
@@ -183,7 +183,7 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 	}
 
 	case kIncrementFrameMethod: {
-		assert(args.size() <= 1);
+		ARGCOUNTRANGE(0, 1);
 		bool loopAround = false;
 		if (args.size() == 1) {
 			loopAround = args[0].asBool();

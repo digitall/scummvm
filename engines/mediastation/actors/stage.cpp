@@ -318,21 +318,21 @@ ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 	ScriptValue returnValue;
 	switch (methodId) {
 	case kAddActorToStageMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		addActorToStage(actorId);
 		return returnValue;
 	}
 
 	case kRemoveActorFromStageMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		removeActorFromStage(actorId);
 		return returnValue;
 	}
 
 	case kSetBoundsMethod: {
-		assert(args.size() == 4);
+		ARGCOUNTCHECK(4);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 		int16 width = static_cast<int16>(args[2].asFloat());
@@ -343,16 +343,18 @@ ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 	}
 
 	case kStageSetSizeMethod:
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		_boundingBox.setWidth(static_cast<int16>(args[0].asFloat()));
 		_boundingBox.setHeight(static_cast<int16>(args[1].asFloat()));
 		return returnValue;
 
 	case kStageGetWidthMethod:
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.width());
 		return returnValue;
 
 	case kStageGetHeightMethod:
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.height());
 		return returnValue;
 

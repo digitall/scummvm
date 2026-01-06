@@ -94,17 +94,17 @@ ScriptValue SoundActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		// timer_6c06_AnsweringMachine, which calls SpatialShow on a sound.
 		// Since the engine is currently flagging errors on unimplemented
 		// methods for easier debugging, a no-op is used here to avoid the error.
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		return returnValue;
 
 	case kTimePlayMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		timePlay();
 		return returnValue;
 	}
 
 	case kTimeStopMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		timeStop();
 		return returnValue;
 	}

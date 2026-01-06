@@ -95,7 +95,7 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 		break;
 
 	case kAddToStageMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		addToStage();
 		break;
 
@@ -109,12 +109,12 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kAddedToStageMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_addedToStage);
 		break;
 
 	case kStartPanMethod: {
-		assert(args.size() == 3);
+		ARGCOUNTCHECK(3);
 		int16 deltaX = static_cast<uint16>(args[0].asFloat());
 		int16 deltaY = static_cast<int16>(args[1].asFloat());
 		double duration = args[2].asTime();
@@ -125,17 +125,17 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kStopPanMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		stopPan();
 		break;
 
 	case kIsPanningMethod:
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_panState);
 		break;
 
 	case kViewportMoveToMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 		_nextViewportOrigin = Common::Point(x, y);
@@ -151,7 +151,7 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kAdjustCameraViewportMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 xDiff = static_cast<int16>(args[0].asFloat());
 		int16 yDiff = static_cast<int16>(args[1].asFloat());
 		Common::Point viewportDelta(xDiff, yDiff);
@@ -169,7 +169,7 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kAdjustCameraViewportSpatialCenterMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 xDiff = static_cast<int16>(args[0].asFloat());
 		int16 yDiff = static_cast<int16>(args[1].asFloat());
 
@@ -192,7 +192,7 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kSetCameraBoundsMethod: {
-		assert(args.size() == 2);
+		ARGCOUNTCHECK(2);
 		int16 width = static_cast<int16>(args[0].asFloat());
 		int16 height = static_cast<int16>(args[1].asFloat());
 		Common::Rect newBounds(_originalBoundingBox.origin(), width, height);
@@ -206,17 +206,17 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 	}
 
 	case kXViewportPositionMethod:
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(getViewportOrigin().x);
 		break;
 
 	case kYViewportPositionMethod:
-		assert(args.size() == 0);
+		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(getViewportOrigin().y);
 		break;
 
 	case kPanToMethod: {
-		assert(args.size() >= 3);
+		ARGCOUNTRANGE(3, 4);
 		int16 x = static_cast<int16>(args[0].asFloat());
 		int16 y = static_cast<int16>(args[1].asFloat());
 
@@ -224,11 +224,9 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 			uint panSteps = static_cast<uint>(args[2].asFloat());
 			double duration = args[3].asFloat();
 			panToByStepCount(x, y, panSteps, duration);
-		} else if (args.size() == 3) {
+		} else {
 			double duration = args[2].asFloat();
 			panToByTime(x, y, duration);
-		} else {
-			error("%s: Incorrect number of args for method %s", __func__, builtInMethodToStr(methodId));
 		}
 		break;
 	}

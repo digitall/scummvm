@@ -30,15 +30,17 @@ ScriptValue DocumentActor::callMethod(BuiltInMethod methodId, Common::Array<Scri
 	ScriptValue returnValue;
 	switch (methodId) {
 	case kDocumentBranchToScreenMethod:
+		ARGCOUNTMIN(1);
 		processBranch(args);
 		break;
 
 	case kDocumentQuitMethod:
+		ARGCOUNTCHECK(0);
 		g_engine->quitGame();
 		break;
 
 	case kDocumentContextLoadInProgressMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint contextId = args[0].asActorId();
 		bool isLoading = g_engine->getDocument()->isContextLoadInProgress(contextId);
 		returnValue.setToBool(isLoading);
@@ -47,28 +49,28 @@ ScriptValue DocumentActor::callMethod(BuiltInMethod methodId, Common::Array<Scri
 
 	case kDocumentSetMultipleStreamsMethod:
 	case kDocumentSetMultipleSoundsMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		bool value = args[0].asBool();
 		warning("[%s] %s: STUB: %s: %d", debugName(), __func__, builtInMethodToStr(methodId), value);
 		break;
 	}
 
 	case kDocumentLoadContextMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint contextId = args[0].asActorId();
 		g_engine->getDocument()->startContextLoad(contextId);
 		break;
 	}
 
 	case kDocumentReleaseContextMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint contextId = args[0].asActorId();
 		g_engine->getDocument()->scheduleContextRelease(contextId);
 		break;
 	}
 
 	case kDocumentContextIsLoadedMethod: {
-		assert(args.size() == 1);
+		ARGCOUNTCHECK(1);
 		uint contextId = args[0].asActorId();
 
 		// We are looking for the screen actor with the same ID as the context.
@@ -86,7 +88,6 @@ ScriptValue DocumentActor::callMethod(BuiltInMethod methodId, Common::Array<Scri
 }
 
 void DocumentActor::processBranch(Common::Array<ScriptValue> &args) {
-	assert(args.size() >= 1);
 	uint contextId = args[0].asActorId();
 	if (args.size() > 1) {
 		bool disableUpdates = static_cast<bool>(args[1].asParamToken());

@@ -163,6 +163,25 @@ enum MouseEventFlag {
 	// There is no key up event.
 };
 
+// Argument count validation macros for built-in script methods.
+// For exact argument count.
+#define ARGCOUNTCHECK(n) \
+	if (args.size() != (n)) { \
+		warning("%s: Expected %d arguments, got %d", builtInMethodToStr(methodId), (n), args.size()); \
+	}
+
+// For a range of valid argument counts (min to max).
+#define ARGCOUNTRANGE(min, max) \
+	if (args.size() < (size_t)(min) || args.size() > (max)) { \
+		warning("%s: Expected %d to %d arguments, got %d", builtInMethodToStr(methodId), (min), (max), args.size()); \
+	}
+
+// For minimum argument count (no maximum).
+#define ARGCOUNTMIN(min) \
+	if (args.size() < (min)) { \
+		warning("%s: Expected at least %d arguments, got %d", builtInMethodToStr(methodId), (min), args.size()); \
+	}
+
 class Actor {
 public:
 	Actor(ActorType type) : _type(type) {};

@@ -74,13 +74,13 @@ ScriptValue ImageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 	ScriptValue returnValue;
 	switch (methodId) {
 	case kSpatialShowMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		spatialShow();
 		return returnValue;
 	}
 
 	case kSpatialHideMethod: {
-		assert(args.empty());
+		ARGCOUNTCHECK(0);
 		spatialHide();
 		return returnValue;
 	}

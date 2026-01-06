@@ -113,8 +113,6 @@ private:
 
 	static ScriptValue evalMathOperation(Opcode op, const ScriptValue &left, const ScriptValue &right);
 	static double binaryMathOperation(Opcode op, double left, double right);
-
-	void issueValueMismatchWarning(ScriptValueType actualType) const;
 };
 
 } // End of namespace MediaStation
