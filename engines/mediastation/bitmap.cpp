@@ -57,6 +57,10 @@ PixMapImage::PixMapImage(Chunk &chunk, const ImageInfo &imageInfo) : _imageInfo(
 	}
 }
 
+PixMapImage::PixMapImage(const ImageInfo &imageInfo) : _imageInfo(imageInfo) {
+	_image.create(stride(), height(), Graphics::PixelFormat::createFormatCLUT8());
+}
+
 PixMapImage::~PixMapImage() {
 	delete _compressedStream;
 	_compressedStream = nullptr;

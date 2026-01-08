@@ -51,6 +51,7 @@ public:
 class PixMapImage {
 public:
 	PixMapImage(Chunk &chunk, const ImageInfo &imageInfo);
+	PixMapImage(const ImageInfo &imageInfo);
 	virtual ~PixMapImage();
 
 	bool isCompressed() const;

@@ -104,6 +104,7 @@ public:
 	bool rectIsInClip(const Common::Rect &rect);
 	void setClipTo(Region region);
 	void emptyCurrentClip();
+	void deleteClips();
 
 	void addClip();
 	Clip *currentClip();

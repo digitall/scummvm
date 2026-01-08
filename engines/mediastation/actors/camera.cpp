@@ -34,6 +34,9 @@ CameraActor::~CameraActor() {
 		_parentStage->removeCamera(this);
 		_parentStage->removeChildSpatialEntity(this);
 	}
+	delete _childrenWithOverlaySurface;
+	_childrenWithOverlaySurface = nullptr;
+	_childrenWithOverlayContext._destImage = nullptr;
 }
 
 void CameraActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
@@ -41,7 +44,7 @@ void CameraActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) 
 	case kActorHeaderChannelIdent:
 		_channelIdent = chunk.readTypedChannelIdent();
 		registerWithStreamManager();
-		_image = Common::SharedPtr<ImageAsset>(new ImageAsset);
+		_overlayImage = Common::SharedPtr<ImageAsset>(new ImageAsset);
 		break;
 
 	case kActorHeaderStartup:
@@ -69,7 +72,7 @@ void CameraActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) 
 	case kActorHeaderCameraImageActor: {
 		uint actorReference = chunk.readTypedUint16();
 		CameraActor *referencedCamera = static_cast<CameraActor *>(g_engine->getActorByIdAndType(actorReference, kActorTypeCamera));
-		_image = referencedCamera->_image;
+		_overlayImage = referencedCamera->_overlayImage;
 		break;
 	}
 
@@ -80,7 +83,7 @@ void CameraActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) 
 
 void CameraActor::readChunk(Chunk &chunk) {
 	ImageInfo bitmapHeader(chunk);
-	_image->bitmap = new PixMapImage(chunk, bitmapHeader);
+	_overlayImage->bitmap = new PixMapImage(chunk, bitmapHeader);
 }
 
 ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
@@ -170,15 +173,17 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 
 	case kAdjustCameraViewportSpatialCenterMethod: {
 		ARGCOUNTCHECK(2);
-		int16 xDiff = static_cast<int16>(args[0].asFloat());
-		int16 yDiff = static_cast<int16>(args[1].asFloat());
+		int16 x = static_cast<int16>(args[0].asFloat());
+		int16 y = static_cast<int16>(args[1].asFloat());
 
 		// Apply centering adjustment, which is indeed based on the entire camera actor's
 		// bounds, not just the current viewport bounds.
-		int16 centeredXDiff = xDiff - (getBbox().width() / 2);
-		int16 centeredYDiff = yDiff - (getBbox().height() / 2);
-		Common::Point viewportDelta(centeredXDiff, centeredYDiff);
-		_nextViewportOrigin = getViewportOrigin() + viewportDelta;
+		int16 centeredX = x - (getBbox().width() / 2);
+		int16 centeredY = y - (getBbox().height() / 2);
+		_nextViewportOrigin = Common::Point(centeredX, centeredY);
+		debugC(6, kDebugCamera, "%s: currentViewportOrigin: (%d, %d); nextViewportOrigin: (%d, %d)",
+			__func__, _currentViewportOrigin.x, _currentViewportOrigin.y, _nextViewportOrigin.x, _nextViewportOrigin.y);
+
 		adjustCameraViewport(_nextViewportOrigin);
 		if (!_addedToStage) {
 			_currentViewportOrigin = _nextViewportOrigin;
@@ -233,7 +238,6 @@ ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<Script
 
 	default:
 		returnValue = SpatialEntity::callMethod(methodId, args);
-		break;
 	}
 	return returnValue;
 }
@@ -250,8 +254,21 @@ void CameraActor::loadIsComplete() {
 		addToStage();
 	}
 
-	if (_image != nullptr) {
-		warning("%s: STUB: Camera image asset not handled yet", __func__);
+	if (_overlayImage != nullptr) {
+		// Create the intermediate surface where we'll draw the actors and the overlay.
+		ImageInfo imageInfo;
+		imageInfo._dimensions = Common::Point(getBbox().width(), getBbox().height());
+		imageInfo._stride = getBbox().width();
+		_childrenWithOverlaySurface = new PixMapImage(imageInfo);
+		_childrenWithOverlayContext._destImage = &_childrenWithOverlaySurface->_image;
+		_childrenWithOverlayContext.verifyClipSize();
+
+		// Mark this whole region dirty.
+		Region region;
+		Common::Rect cameraRect(0, 0, getBbox().width(), getBbox().height());
+		region.addRect(cameraRect);
+		_childrenWithOverlayContext.addClip();
+		_childrenWithOverlayContext.setClipTo(region);
 	}
 }
 
@@ -287,42 +304,62 @@ Common::Rect CameraActor::getViewportBounds() {
 	return viewportBounds;
 }
 
-void CameraActor::drawUsingCamera(DisplayContext &displayContext, const Common::Array<SpatialEntity *> &entitiesToDraw) {
-	Clip *currentClip = displayContext.currentClip();
+void CameraActor::drawUsingCamera(DisplayContext &destContext, const Common::Array<SpatialEntity *> &entitiesToDraw) {
+	// Establish the initial clipping region.
+	Clip *currentClip = destContext.currentClip();
 	if (currentClip != nullptr) {
-		Clip *previousClip = displayContext.previousClip();
+		Clip *previousClip = destContext.previousClip();
 		if (previousClip == nullptr) {
+			// Initialize the clip.
 			currentClip->addToRegion(currentClip->_bounds);
 		} else {
+			// Copy the previous clip to the current clip.
 			*currentClip = *previousClip;
 		}
 	}
 
-	Common::Rect cameraBounds = getBbox();
-	displayContext.intersectClipWith(cameraBounds);
-	displayContext.pushOrigin();
-
+	destContext.intersectClipWith(getBbox());
+	destContext.pushOrigin();
 	Common::Point viewportOrigin = getViewportOrigin();
-	Common::Point viewportOffset(
-		-viewportOrigin.x + cameraBounds.left,
-		-viewportOrigin.y + cameraBounds.top
-	);
-	displayContext._origin.x += viewportOffset.x;
-	displayContext._origin.y += viewportOffset.y;
+	destContext._origin += (getBbox().origin() - viewportOrigin);
 
-	if (_image != nullptr) {
-		// TODO: Handle image asset stuff.
-		warning("%s: Camera image asset not handled yet", __func__);
+	if (_overlayImage != nullptr) {
+		// Make sure we are ready to draw the overlay image.
+		_childrenWithOverlayContext.pushOrigin();
+		_childrenWithOverlayContext._origin -= _offset;
+		_childrenWithOverlayContext._origin -= viewportOrigin;
 	}
 
 	for (SpatialEntity *entityToDraw : entitiesToDraw) {
+		debugCN(6, kDebugGraphics, "[%s] %s: %s (viewport: %d, %d) (bounds: %d, %d, %d, %d) ", debugName(), __func__, entityToDraw->debugName(),
+			_currentViewportOrigin.x, _currentViewportOrigin.y, PRINT_RECT(entityToDraw->getBbox()));
+
 		if (entityToDraw->isVisible()) {
-			drawObject(displayContext, displayContext, entityToDraw);
+			if (_overlayImage == nullptr) {
+				// Draw this image directly to the provided display context.
+				debugC(6, kDebugGraphics, "(no overlay)");
+				drawObject(destContext, destContext, entityToDraw);
+			} else {
+				// Draw this image to our internal display context, so we can apply the
+				// overlay to the drawn items afterward.
+				debugC(6, kDebugGraphics, "(overlay)");
+				drawObject(destContext, _childrenWithOverlayContext, entityToDraw);
+			}
 		}
 	}
 
-	displayContext.popOrigin();
-	displayContext.emptyCurrentClip();
+	if (_overlayImage != nullptr) {
+		// Now actually apply the overlay.
+		destContext._origin += _offset;
+		g_engine->getDisplayManager()->imageDeltaBlit(
+			getViewportOrigin(), Common::Point(0, 0), _overlayImage->bitmap, _childrenWithOverlaySurface, 1.0, &destContext
+		);
+
+		_childrenWithOverlayContext.popOrigin();
+	}
+
+	destContext.popOrigin();
+	destContext.emptyCurrentClip();
 }
 
 void CameraActor::drawObject(DisplayContext &sourceContext, DisplayContext &destContext, SpatialEntity *objectToDraw) {

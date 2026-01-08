@@ -161,6 +161,10 @@ void DisplayContext::verifyClipSize() {
 	}
 }
 
+void DisplayContext::deleteClips() {
+	_clips.empty();
+}
+
 bool DisplayContext::clipIsEmpty() {
 	Clip *clip = currentClip();
 	if (clip != nullptr) {
@@ -757,18 +761,19 @@ void VideoDisplayManager::imageBlit(
 	Common::Array<Common::Rect> dirtyRegion;
 	if (displayContext == nullptr) {
 		if (targetImage == nullptr) {
-			warning("%s: Neither display context nor target image was provided", __func__);
+			warning("%s: Neither display context nor target image was provided. Drawing cannot continue", __func__);
+			return;
 		}
 		Common::Rect targetImageBounds(0, 0, targetImage->w, targetImage->h);
 		dirtyRegion.push_back(targetImageBounds);
 	} else {
 		Clip *currentClip = displayContext->currentClip();
 		dirtyRegion = currentClip->_region._rects;
-		destinationPoint += _displayContext._origin;
-	}
+		destinationPoint += displayContext->_origin;
 
-	if (targetImage == nullptr) {
-		targetImage = _screen;
+		if (targetImage == nullptr) {
+			targetImage = displayContext->_destImage;
+		}
 	}
 
 	// In the disasm, this whole function has complex blit flag logic
@@ -792,7 +797,7 @@ void VideoDisplayManager::imageBlit(
 	case kCccBlit | kClipEnabled:
 	case kCccTransparentBlit | kClipEnabled:
 		// CCC blitting is unimplemented for now because few, if any, titles actually use it.
-		error("%s: CCC blitting not implemented yet", __func__);
+		warning("%s: CCC blitting not implemented yet", __func__);
 		break;
 
 	case kPartialDissolve | kClipEnabled:
@@ -945,36 +950,23 @@ void VideoDisplayManager::imageDeltaBlit(
 	const double dissolveFactor,
 	DisplayContext *displayContext) {
 
-	if (deltaFrame->getCompressionType() != kRle8BitmapCompression) {
-		error("%s: Unsupported delta frame compression type for delta blit: %d",
-			__func__, static_cast<uint>(keyFrame->getCompressionType()));
-	} else if (dissolveFactor != 1.0) {
+	Common::Array<Common::Rect> dirtyRegion;
+	if (displayContext != nullptr) {
+		Clip *currentClip = displayContext->currentClip();
+		dirtyRegion = currentClip->_region._rects;
+		deltaFramePos += displayContext->_origin;
+	} else {
+		warning("%s: Display context must be provided", __func__);
+		return;
+	}
+
+	if (dissolveFactor != 1.0) {
 		warning("%s: Delta blit does not support dissolving", __func__);
 	}
 
-	Common::Array<Common::Rect> dirtyRegion;
-	if (displayContext == nullptr) {
-		error("%s: Display context must be provided", __func__);
-	} else {
-		Clip *currentClip = displayContext->currentClip();
-		dirtyRegion = currentClip->_region._rects;
-		deltaFramePos += _displayContext._origin;
-	}
-
-	switch (keyFrame->getCompressionType()) {
-	case kUncompressedBitmap:
-	case kUncompressedTransparentBitmap:
-		deltaRleBlitRectsClip(_screen, deltaFramePos, deltaFrame, keyFrame, dirtyRegion);
-		break;
-
-	case kRle8BitmapCompression:
-		fullDeltaRleBlitRectsClip(_screen, deltaFramePos, keyFrameOffset, deltaFrame, keyFrame, dirtyRegion);
-		break;
-
-	default:
-		error("%s: Unsupported keyframe image type for delta blit: %d",
-			__func__, static_cast<uint>(deltaFrame->getCompressionType()));
-	}
+	// This is deliberately simplified logic for now. If we are trying to use an incorrect blitting
+	// mode, we will get an error in this call, rather than checking the blitting mode here.
+	fullDeltaRleBlitRectsClip(displayContext->_destImage, deltaFramePos, keyFrameOffset, deltaFrame, keyFrame, dirtyRegion);
 }
 
 void VideoDisplayManager::fullDeltaRleBlitRectsClip(
@@ -1045,7 +1037,7 @@ Graphics::ManagedSurface VideoDisplayManager::decompressRle8Bitmap(
 
 	Common::SeekableReadStream *chunk = source->_compressedStream;
 	if (chunk == nullptr) {
-		warning("%s: Got empty image", __func__);
+		warning("%s: No image to decompress", __func__);
 		return dest;
 	}
 
@@ -1077,38 +1069,41 @@ Graphics::ManagedSurface VideoDisplayManager::decompressRle8Bitmap(
 
 				} else if (operation == 0x02) {
 					// Copy from the keyframe region.
-					assert((keyFrame != nullptr) && (keyFrameOffset != nullptr));
 					byte xToCopy = chunk->readByte();
 					byte yToCopy = chunk->readByte();
 
-					// If we requested to copy multiple lines, do that first.
-					for (int lineOffset = 0; lineOffset < yToCopy; lineOffset++) {
-						Common::Point keyFramePos = sourcePos - *keyFrameOffset + Common::Point(0, lineOffset);
-						Common::Point destPos = sourcePos + Common::Point(0, lineOffset);
+					if ((keyFrame == nullptr) || (keyFrameOffset == nullptr)) {
+						warning("%s: Keyframe copy (%d, %d) requested but keyframe or offset is null", __func__, xToCopy, yToCopy);
+					} else {
+						// If we requested to copy multiple lines, do that first.
+						for (int lineOffset = 0; lineOffset < yToCopy; lineOffset++) {
+							Common::Point keyFramePos = sourcePos - *keyFrameOffset + Common::Point(0, lineOffset);
+							Common::Point destPos = sourcePos + Common::Point(0, lineOffset);
 
+							bool sourceXInBounds = (keyFramePos.x >= 0) && (keyFramePos.x + xToCopy <= keyFrame->w);
+							bool sourceYInBounds = (keyFramePos.y >= 0) && (keyFramePos.y < keyFrame->h);
+							bool destInBounds = (destPos.y * dest.w) + (destPos.x + xToCopy) <= destSizeInBytes;
+							if (sourceXInBounds && sourceYInBounds && destInBounds) {
+								const byte *srcPtr = static_cast<const byte *>(keyFrame->getBasePtr(keyFramePos.x, keyFramePos.y));
+								byte *destPtr = static_cast<byte *>(dest.getBasePtr(destPos.x, destPos.y));
+								memcpy(destPtr, srcPtr, xToCopy);
+							} else {
+								warning("%s: Keyframe copy (multi-line) exceeds bounds", __func__);
+							}
+						}
+
+						// Then copy the pixels in the same line.
+						Common::Point keyFramePos = sourcePos - *keyFrameOffset;
 						bool sourceXInBounds = (keyFramePos.x >= 0) && (keyFramePos.x + xToCopy <= keyFrame->w);
 						bool sourceYInBounds = (keyFramePos.y >= 0) && (keyFramePos.y < keyFrame->h);
-						bool destInBounds = (destPos.y * dest.w) + (destPos.x + xToCopy) <= destSizeInBytes;
+						bool destInBounds = (sourcePos.y * dest.w) + (sourcePos.x + xToCopy) <= destSizeInBytes;
 						if (sourceXInBounds && sourceYInBounds && destInBounds) {
 							const byte *srcPtr = static_cast<const byte *>(keyFrame->getBasePtr(keyFramePos.x, keyFramePos.y));
-							byte *destPtr = static_cast<byte *>(dest.getBasePtr(destPos.x, destPos.y));
+							byte *destPtr = static_cast<byte *>(dest.getBasePtr(sourcePos.x, sourcePos.y));
 							memcpy(destPtr, srcPtr, xToCopy);
 						} else {
-							warning("%s: Keyframe copy (multi-line) exceeds bounds", __func__);
+							warning("%s: Keyframe copy (same line) exceeds bounds", __func__);
 						}
-					}
-
-					// Then copy the pixels in the same line.
-					Common::Point keyFramePos = sourcePos - *keyFrameOffset;
-					bool sourceXInBounds = (keyFramePos.x >= 0) && (keyFramePos.x + xToCopy <= keyFrame->w);
-					bool sourceYInBounds = (keyFramePos.y >= 0) && (keyFramePos.y < keyFrame->h);
-					bool destInBounds = (sourcePos.y * dest.w) + (sourcePos.x + xToCopy) <= destSizeInBytes;
-					if (sourceXInBounds && sourceYInBounds && destInBounds) {
-						const byte *srcPtr = static_cast<const byte *>(keyFrame->getBasePtr(keyFramePos.x, keyFramePos.y));
-						byte *destPtr = static_cast<byte *>(dest.getBasePtr(sourcePos.x, sourcePos.y));
-						memcpy(destPtr, srcPtr, xToCopy);
-					} else {
-						warning("%s: Keyframe copy (same line) exceeds bounds", __func__);
 					}
 
 					sourcePos += Common::Point(xToCopy, yToCopy);

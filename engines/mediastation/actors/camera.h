@@ -44,7 +44,7 @@ struct ImageAsset;
 class CameraActor : public SpatialEntity, public ChannelClient {
 public:
 	CameraActor() : SpatialEntity(kActorTypeCamera) {};
-	~CameraActor();
+	virtual ~CameraActor() override;
 
 	virtual void readParameter(Chunk &chunk, ActorHeaderSectionType paramType) override;
 	virtual void readChunk(Chunk &chunk) override;
@@ -73,8 +73,12 @@ private:
 	Common::Point _panStart;
 	Common::Point _panDest;
 	Common::Point _panDelta;
-	Common::SharedPtr<ImageAsset> _image;
-	DisplayContext _displayContext;
+
+	// A camera can have an image that overlays its contents. To do this, we need a
+	// surface on which to put the actors shown through the camera before we draw the overlay.
+	Common::SharedPtr<ImageAsset> _overlayImage;
+	PixMapImage *_childrenWithOverlaySurface = nullptr;
+	DisplayContext _childrenWithOverlayContext;
 
 	void addToStage();
 	void removeFromStage(bool stopPan);
