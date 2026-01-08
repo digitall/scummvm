@@ -145,7 +145,7 @@ Chunk::Chunk(Common::SeekableReadStream *stream) : _parentStream(stream) {
 	_length = _parentStream->readUint32LE();
 	_dataStartOffset = pos();
 	_dataEndOffset = _dataStartOffset + _length;
-	debugC(5, kDebugLoading, "Chunk::Chunk(): Got chunk with ID \"%s\" and size 0x%x", tag2str(_id), _length);
+	debugC(5, kDebugLoading, "%s: Got chunk with ID \"%s\" and size 0x%x", __func__, tag2str(_id), _length);
 }
 
 uint32 Chunk::bytesRemaining() {

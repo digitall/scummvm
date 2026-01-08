@@ -62,6 +62,8 @@ const char *actorTypeToStr(ActorType type) {
 		return "ImageSet";
 	case kActorTypeMovie:
 		return "Movie";
+	case kActorTypeStreamMovieProxy:
+		return "StreamMovieProxy";
 	case kActorTypePalette:
 		return "Palette";
 	case kActorTypePrinter:

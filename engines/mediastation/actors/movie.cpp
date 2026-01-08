@@ -25,9 +25,38 @@
 
 namespace MediaStation {
 
+StreamMovieProxy::StreamMovieProxy(Chunk &chunk, StreamMovieActor *parent) : SpatialEntity(kActorTypeStreamMovieProxy) {
+	_layerId = chunk.readTypedUint32();
+	_scriptId = chunk.readTypedUint16();
+	uint zIndex = chunk.readTypedSint16();
+	setZIndex(zIndex);
+	setBounds(parent->getBbox());
+	debugC(5, kDebugLoading, "[%s] %s: layerId: %d; scriptId: %d; zIndex: %d",
+		parent->debugName(), __func__, _layerId, _scriptId, zIndex);
+	_isVisible = true;
+	_parent = parent;
+}
+
+void StreamMovieProxy::draw(DisplayContext &displayContext) {
+	if (_parent != nullptr) {
+		_parent->drawLayer(displayContext, _layerId);
+	} else {
+		warning("[%s] %s: Stream movie proxy has no parent", debugName(), __func__);
+	}
+}
+
+bool StreamMovieProxy::isVisible() const {
+	if (_isVisible) {
+		if (_parentStage != nullptr) {
+			return _parentStage->isVisible();
+		}
+	}
+	return false;
+}
+
 MovieFrameInfo::MovieFrameInfo(Chunk &chunk) : ImageInfo(chunk) {
 	_index = chunk.readTypedUint32();
-	debugC(5, kDebugLoading, "MovieFrameInfo::MovieFrameInfo(): _index = 0x%x (@0x%llx)", _index, static_cast<long long int>(chunk.pos()));
+	debugC(5, kDebugLoading, "%s: frame 0x%x", __func__, _index);
 	_keyframeEndInMilliseconds = chunk.readTypedUint32();
 }
 
@@ -59,11 +88,6 @@ MovieFrame::MovieFrame(Chunk &chunk) {
 		index = chunk.readTypedUint32();
 		keyframeIndex = chunk.readTypedUint32();
 		keepAfterEnd = chunk.readTypedByte();
-		debugC(5, kDebugLoading, "MovieFrame::MovieFrame(): _blitType = %d, _startInMilliseconds = %d, \
-			_endInMilliseconds = %d, _left = %d, _top = %d, _zIndex = %d, _diffBetweenKeyframeAndFrameX = %d, \
-			_diffBetweenKeyframeAndFrameY = %d, _index = %d, _keyframeIndex = %d, _keepAfterEnd = %d (@0x%llx)",
-			blitType, startInMilliseconds, endInMilliseconds, leftTop.x, leftTop.y, zIndex, diffBetweenKeyframeAndFrame.x, \
-			diffBetweenKeyframeAndFrame.y, index, keyframeIndex, keepAfterEnd, static_cast<long long int>(chunk.pos()));
 	}
 }
 
@@ -82,6 +106,11 @@ StreamMovieActor::~StreamMovieActor() {
 
 	delete _streamSound;
 	_streamSound = nullptr;
+
+	for (StreamMovieProxy *proxy : _proxies) {
+		delete proxy;
+	}
+	_proxies.clear();
 }
 
 void StreamMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
@@ -91,7 +120,7 @@ void StreamMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		// as the ID we have already read.
 		uint32 duplicateActorId = chunk.readTypedUint16();
 		if (duplicateActorId != _id) {
-			warning("%s: Duplicate actor ID %d does not match original ID %d", __func__, duplicateActorId, _id);
+			warning("[%s] %s: Duplicate actor ID %d does not match original ID %d", debugName(), __func__, duplicateActorId, _id);
 		}
 		break;
 	}
@@ -135,6 +164,12 @@ void StreamMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		_streamSound->_audioSequence.readParameters(chunk);
 		break;
 
+	case kStreamMovieProxyInfo: {
+		StreamMovieProxy *proxy = new StreamMovieProxy(chunk, this);
+		_proxies.push_back(proxy);
+		break;
+	}
+
 	default:
 		SpatialEntity::readParameter(chunk, paramType);
 	}
@@ -144,16 +179,51 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 	ScriptValue returnValue;
 
 	switch (methodId) {
-	case kTimePlayMethod: {
-		ARGCOUNTCHECK(0);
-		timePlay();
+	case kSpatialShowMethod: {
+		if (args.empty()) {
+			// Set our visibility directly.
+			setVisibility(true);
+			updateFrameState();
+		} else {
+			// Set the visibility of a proxy.
+			uint scriptId = args[0].asParamToken();
+			StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+			if (proxy != nullptr) {
+				if (!proxy->isVisible()) {
+					proxy->_isVisible = true;
+				}
+			} else {
+				warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+					debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			}
+		}
 		return returnValue;
 	}
 
-	case kSpatialShowMethod: {
+	case kSpatialHideMethod: {
+		if (args.empty()) {
+			// Set our visibility directly.
+			setVisibility(false);
+			updateFrameState();
+		} else {
+			// Set the visibility of a proxy.
+			uint scriptId = args[0].asParamToken();
+			StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+			if (proxy != nullptr) {
+				if (proxy->isVisible()) {
+					proxy->_isVisible = false;
+				}
+			} else {
+				warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+					debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			}
+		}
+		return returnValue;
+	}
+
+	case kTimePlayMethod: {
 		ARGCOUNTCHECK(0);
-		setVisibility(true);
-		updateFrameState();
+		timePlay();
 		return returnValue;
 	}
 
@@ -163,9 +233,30 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 		return returnValue;
 	}
 
-	case kSpatialHideMethod: {
-		ARGCOUNTCHECK(0);
-		setVisibility(false);
+	case kStreamMovieSetProxyZIndex: {
+		ARGCOUNTCHECK(2);
+		uint scriptId = args[0].asParamToken();
+		int zIndex = static_cast<int>(args[1].asFloat());
+		StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+		if (proxy != nullptr) {
+			proxy->setZIndex(zIndex);
+		} else {
+			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+		}
+		return returnValue;
+	}
+
+	case kStreamMovieGetProxyZIndex: {
+		ARGCOUNTCHECK(2);
+		uint scriptId = args[0].asParamToken();
+		StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+		if (proxy != nullptr) {
+			returnValue.setToFloat(proxy->zIndex());
+		} else {
+			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+		}
 		return returnValue;
 	}
 
@@ -186,6 +277,52 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 		ARGCOUNTCHECK(0);
 		double top = static_cast<double>(_boundingBox.top);
 		returnValue.setToFloat(top);
+		return returnValue;
+	}
+
+	case kStreamMovieMoveProxyToStageMethod: {
+		ARGCOUNTCHECK(2);
+		uint scriptId = args[0].asParamToken();
+		uint targetStageId = args[1].asActorId();
+		StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+		if (proxy == nullptr) {
+			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			return returnValue;
+		}
+		StageActor *parentStage = static_cast<StageActor *>(g_engine->getActorByIdAndType(targetStageId, kActorTypeStage));
+		if (parentStage == nullptr) {
+			warning("[%s] %s: Stream movie proxy with script ID %s has null parent stage",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			return returnValue;
+		}
+
+		proxy->getParentStage()->removeChildSpatialEntity(proxy);
+		parentStage->addChildSpatialEntity(proxy);
+		return returnValue;
+	}
+
+	case kStreamMovieMoveProxyToRootStageMethod: {
+		ARGCOUNTCHECK(2);
+		uint scriptId = args[0].asParamToken();
+		uint sourceStageId = args[1].asActorId();
+		StreamMovieProxy *proxy = proxyOfScriptId(scriptId);
+		if (proxy == nullptr) {
+			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			return returnValue;
+		}
+
+		RootStage *rootStage = g_engine->getRootStage();
+		StageActor *sourceStage = static_cast<StageActor *>(g_engine->getActorByIdAndType(sourceStageId, kActorTypeStage));
+		if (sourceStage == nullptr) {
+			warning("[%s] %s: Stream movie proxy with script ID %s has null parent stage",
+				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
+			return returnValue;
+		}
+
+		sourceStage->removeChildSpatialEntity(proxy);
+		rootStage->addChildSpatialEntity(proxy);
 		return returnValue;
 	}
 
@@ -314,10 +451,19 @@ void StreamMovieActor::updateFrameState() {
 }
 
 void StreamMovieActor::draw(DisplayContext &displayContext) {
+	const uint DEFAULT_LAYER_ID = 0;
+	drawLayer(displayContext, DEFAULT_LAYER_ID);
+}
+
+void StreamMovieActor::drawLayer(DisplayContext &displayContext, uint layerId) {
 	for (MovieFrame *frame : _framesOnScreen) {
+		if (frame->layerId != layerId) {
+			continue;
+		}
+
 		Common::Rect bbox = getFrameBoundingBox(frame);
-		debugC(8, kDebugGraphics, "%s: %s: frame %d (%d, %d, %d, %d)",
-			__func__, debugName(), frame->index, PRINT_RECT(bbox));
+		debugC(8, kDebugGraphics, "[%s] %s: layer %d, frame %d (%d, %d, %d, %d)",
+			debugName(), __func__, layerId, frame->index, PRINT_RECT(bbox));
 
 		switch (frame->blitType) {
 		case kUncompressedMovieBlit:
@@ -345,6 +491,15 @@ void StreamMovieActor::draw(DisplayContext &displayContext) {
 	}
 }
 
+void StreamMovieActor::invalidateLocalBounds() {
+	for (StreamMovieProxy *proxy : _proxies) {
+		// Our bounds might have changed, so pass that on to the proxies.
+		proxy->setBounds(getBbox());
+	}
+	SpatialEntity::invalidateLocalBounds();
+}
+
+
 Common::Rect StreamMovieActor::getFrameBoundingBox(MovieFrame *frame) {
 	// Use _boundingBox directly (which may be temporarily offset by camera rendering)
 	// The camera offset is already applied to _boundingBox by pushBoundingBoxOffset()
@@ -369,7 +524,7 @@ StreamMovieActorFrames::~StreamMovieActorFrames() {
 
 void StreamMovieActorFrames::readChunk(Chunk &chunk) {
 	uint sectionType = chunk.readTypedUint16();
-	switch ((MovieSectionType)sectionType) {
+	switch (static_cast<MovieSectionType>(sectionType)) {
 	case kMovieImageDataSection:
 		readImageData(chunk);
 		break;
@@ -394,6 +549,11 @@ void StreamMovieActorFrames::readChunk(Chunk &chunk) {
 	if (_parent->_hasStill) {
 		_parent->_framesNotYetShown = _frames;
 	}
+}
+
+void StreamMovieActor::loadIsComplete() {
+	SpatialEntity::loadIsComplete();
+	updateFrameState();
 }
 
 StreamMovieActorSound::~StreamMovieActorSound() {
@@ -461,6 +621,9 @@ void StreamMovieActorFrames::readFrameData(Chunk &chunk) {
 	uint frameDataToRead = chunk.readTypedUint16();
 	for (uint i = 0; i < frameDataToRead; i++) {
 		MovieFrame *frame = new MovieFrame(chunk);
+		if (!_parent->isLayerInSeparateZPlane(frame->layerId)) {
+			frame->layerId = 0;
+		}
 
 		// We cannot use a hashmap here because multiple frames can have the
 		// same index, and frames are not necessarily in index order. So we'll
@@ -483,6 +646,31 @@ void StreamMovieActorFrames::readFrameData(Chunk &chunk) {
 
 		_frames.push_back(frame);
 	}
+}
+
+StreamMovieProxy *StreamMovieActor::proxyOfId(uint layerId) {
+	// TODO: Why can this not be a hashmap?
+	for (StreamMovieProxy *proxy : _proxies) {
+		if (proxy->_layerId == layerId) {
+			return proxy;
+		}
+	}
+	return nullptr;
+}
+
+StreamMovieProxy *StreamMovieActor::proxyOfScriptId(uint scriptId) {
+	// TODO: Why can this not be a hashmap?
+	for (StreamMovieProxy *proxy : _proxies) {
+		if (proxy->_scriptId == scriptId) {
+			return proxy;
+		}
+	}
+	return nullptr;
+}
+
+bool StreamMovieActor::isLayerInSeparateZPlane(uint layerId) {
+	bool proxyExistsForLayer = proxyOfId(layerId) != nullptr;
+	return proxyExistsForLayer;
 }
 
 int StreamMovieActor::compareFramesByZIndex(const MovieFrame *a, const MovieFrame *b) {

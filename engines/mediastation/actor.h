@@ -54,6 +54,7 @@ enum ActorType {
 	kActorTypePrinter = 0x0019, // PRT
 	kActorTypeMovie = 0x0016, // MOV
 	kActorTypePalette = 0x0017,
+	kActorTypeStreamMovieProxy = 0x18,
 	kActorTypeText = 0x001a, // TXT
 	kActorTypeFont = 0x001b, // FON
 	kActorTypeCamera = 0x001c, // CAM
@@ -97,6 +98,7 @@ enum ActorHeaderSectionType {
 	kActorHeaderScaleY = 0x77d,
 	kActorHeaderUnk0 = 0x7d0,
 	kActorHeaderActorName = 0x0bb8,
+	kStreamMovieProxyInfo = 0x06ac,
 
 	// PATH FIELDS.
 	kActorHeaderStartPoint = 0x060e,

@@ -148,6 +148,17 @@ enum BuiltInMethod {
 	kSetXScaleMethod = 0x17F,
 	kGetYScaleMethod = 0x180,
 	kSetYScaleMethod = 0x181,
+	kStartCachingMethod = 0x113,
+	kIsCachingMethod = 0x114,
+	kPauseMethod = 0xD0,
+	kResumeMethod = 0xD1,
+	kIsPausedMethod = 0x175,
+
+	// STREAM MOVIE METHODS.
+	kStreamMovieSetProxyZIndex = 0x10B,
+	kStreamMovieGetProxyZIndex = 0x10C,
+	kStreamMovieMoveProxyToStageMethod = 0x17C,
+	kStreamMovieMoveProxyToRootStageMethod = 0x17D,
 
 	// HOTSPOT METHODS.
 	// NOTE: IDs 0xD2 and 0xD3 seem to be double-assigned

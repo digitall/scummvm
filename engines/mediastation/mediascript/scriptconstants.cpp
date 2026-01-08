@@ -237,8 +237,22 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "GetMouseXOffset";
 	case kGetMouseYOffsetMethod:
 		return "GetMouseYOffset";
+	case kStreamMovieSetProxyZIndex:
+		return "SetProxyZIndex";
+	case kStreamMovieGetProxyZIndex:
+		return "GetProxyZIndex";
 	case kIsVisibleMethod:
 		return "IsVisible";
+	case kStartCachingMethod:
+		return "StartCaching";
+	case kIsCachingMethod:
+		return "IsCaching";
+	case kPauseMethod:
+		return "PauseWhileStarting";
+	case kResumeMethod:
+		return "ResumeStart";
+	case kIsPausedMethod:
+		return "SetMultipleSounds/IsPaused";
 	case kSetMousePositionMethod:
 		return "SetMousePosition";
 	case kGetXScaleMethod1:
@@ -298,6 +312,10 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "PanTo";
 	case kClearToPaletteMethod:
 		return "ClearToPalette";
+	case kStreamMovieMoveProxyToStageMethod:
+		return "MoveProxyToStage";
+	case kStreamMovieMoveProxyToRootStageMethod:
+		return "MoveProxyToRootStage";
 	case kDocumentLoadContextMethod:
 		return "LoadContext";
 	case kDocumentReleaseContextMethod:
@@ -308,8 +326,6 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "Quit";
 	case kDocumentContextLoadInProgressMethod:
 		return "ContextLoadInProgress";
-	case kDocumentSetMultipleSoundsMethod:
-		return "SetMultipleSounds";
 	case kDocumentContextIsLoadedMethod:
 		return "IsLoaded";
 	case kSetDurationMethod:
