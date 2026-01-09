@@ -30,12 +30,10 @@
 
 namespace MediaStation {
 
-class FontGlyph : public Bitmap {
+class FontGlyph : public PixMapImage {
 public:
-	FontGlyph(Chunk &chunk, uint asciiCode, uint unk1, uint unk2, BitmapHeader *header);
+	FontGlyph(Chunk &chunk, uint asciiCode, int unk1, int unk2, const ImageInfo &header);
 	uint _asciiCode = 0;
-
-private:
 	int _unk1 = 0;
 	int _unk2 = 0;
 };

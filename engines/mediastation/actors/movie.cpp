@@ -25,9 +25,9 @@
 
 namespace MediaStation {
 
-MovieFrameHeader::MovieFrameHeader(Chunk &chunk) : BitmapHeader(chunk) {
+MovieFrameInfo::MovieFrameInfo(Chunk &chunk) : ImageInfo(chunk) {
 	_index = chunk.readTypedUint32();
-	debugC(5, kDebugLoading, "MovieFrameHeader::MovieFrameHeader(): _index = 0x%x (@0x%llx)", _index, static_cast<long long int>(chunk.pos()));
+	debugC(5, kDebugLoading, "MovieFrameInfo::MovieFrameInfo(): _index = 0x%x (@0x%llx)", _index, static_cast<long long int>(chunk.pos()));
 	_keyframeEndInMilliseconds = chunk.readTypedUint32();
 }
 
@@ -67,13 +67,7 @@ MovieFrame::MovieFrame(Chunk &chunk) {
 	}
 }
 
-MovieFrameImage::MovieFrameImage(Chunk &chunk, MovieFrameHeader *header) : Bitmap(chunk, header) {
-	_bitmapHeader = header;
-}
-
-MovieFrameImage::~MovieFrameImage() {
-	// The base class destructor takes care of deleting the bitmap header, so
-	// we don't need to delete that here.
+MovieFrameImage::MovieFrameImage(Chunk &chunk, const MovieFrameInfo &header) : PixMapImage(chunk, header), _frameInfo(header) {
 }
 
 StreamMovieActor::~StreamMovieActor() {
@@ -458,7 +452,7 @@ void StreamMovieActor::decompressIntoAuxImage(MovieFrame *frame) {
 }
 
 void StreamMovieActorFrames::readImageData(Chunk &chunk) {
-	MovieFrameHeader *header = new MovieFrameHeader(chunk);
+	MovieFrameInfo header(chunk);
 	MovieFrameImage *frame = new MovieFrameImage(chunk, header);
 	_images.push_back(frame);
 }

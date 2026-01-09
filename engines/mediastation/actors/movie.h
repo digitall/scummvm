@@ -39,23 +39,24 @@ enum MovieBlitType {
 	kCompressedDeltaMovieBlit = 3,
 };
 
-class MovieFrameHeader : public BitmapHeader {
+class MovieFrameInfo : public ImageInfo {
 public:
-	MovieFrameHeader(Chunk &chunk);
+	MovieFrameInfo() = default;
+	MovieFrameInfo(Chunk &chunk);
 
 	uint _index = 0;
 	uint _keyframeEndInMilliseconds = 0;
 };
 
-class MovieFrameImage : public Bitmap {
+class MovieFrameImage : public PixMapImage {
 public:
-	MovieFrameImage(Chunk &chunk, MovieFrameHeader *header);
-	virtual ~MovieFrameImage() override;
+	MovieFrameImage(Chunk &chunk, const MovieFrameInfo &header);
+	~MovieFrameImage() = default;
 
-	uint32 index() { return _bitmapHeader->_index; }
+	uint32 index() { return _frameInfo._index; }
 
 private:
-	MovieFrameHeader *_bitmapHeader = nullptr;
+	MovieFrameInfo _frameInfo;
 };
 
 enum MovieSectionType {

@@ -114,8 +114,8 @@ Common::Rect ImageActor::getBbox() const {
 }
 
 void ImageActor::readChunk(Chunk &chunk) {
-	BitmapHeader *bitmapHeader = new BitmapHeader(chunk);
-	_asset->bitmap = new Bitmap(chunk, bitmapHeader);
+	ImageInfo bitmapHeader = ImageInfo(chunk);
+	_asset->bitmap = new PixMapImage(chunk, bitmapHeader);
 }
 
 } // End of namespace MediaStation

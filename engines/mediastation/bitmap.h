@@ -38,31 +38,32 @@ enum BitmapCompressionType {
 	kUncompressedTransparentBitmap = 7,
 };
 
-class BitmapHeader {
+class ImageInfo {
 public:
-	BitmapHeader(Chunk &chunk);
+	ImageInfo() = default;
+	ImageInfo(Chunk &chunk);
 
 	Common::Point _dimensions;
 	BitmapCompressionType _compressionType = kUncompressedBitmap;
 	int16 _stride = 0;
 };
 
-class Bitmap {
+class PixMapImage {
 public:
-	Bitmap(Chunk &chunk, BitmapHeader *bitmapHeader);
-	virtual ~Bitmap();
+	PixMapImage(Chunk &chunk, const ImageInfo &imageInfo);
+	virtual ~PixMapImage();
 
 	bool isCompressed() const;
-	BitmapCompressionType getCompressionType() const { return _bitmapHeader->_compressionType; }
-	int16 width() const { return _bitmapHeader->_dimensions.x; }
-	int16 height() const { return _bitmapHeader->_dimensions.y; }
-	int16 stride() const { return _bitmapHeader->_stride; }
+	BitmapCompressionType getCompressionType() const { return _imageInfo._compressionType; }
+	int16 width() const { return _imageInfo._dimensions.x; }
+	int16 height() const { return _imageInfo._dimensions.y; }
+	int16 stride() const { return _imageInfo._stride; }
 
 	Common::SeekableReadStream *_compressedStream = nullptr;
 	Graphics::ManagedSurface _image;
 
 private:
-	BitmapHeader *_bitmapHeader = nullptr;
+	ImageInfo _imageInfo;
 	uint _unk1 = 0;
 };
 

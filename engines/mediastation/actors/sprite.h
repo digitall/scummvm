@@ -45,18 +45,18 @@ struct SpriteMovieClip {
 	Common::String getDebugString() const;
 };
 
-class SpriteFrameHeader : public BitmapHeader {
+class SpriteFrameInfo : public ImageInfo {
 public:
-	SpriteFrameHeader(Chunk &chunk);
+	SpriteFrameInfo() = default;
+	SpriteFrameInfo(Chunk &chunk);
 
 	uint _index;
 	Common::Point _offset;
 };
 
-class SpriteFrame : public Bitmap {
+class SpriteFrame : public PixMapImage {
 public:
-	SpriteFrame(Chunk &chunk, SpriteFrameHeader *header);
-	virtual ~SpriteFrame() override;
+	SpriteFrame(Chunk &chunk, const SpriteFrameInfo &frameInfo);
 
 	uint32 left();
 	uint32 top();
@@ -65,7 +65,7 @@ public:
 	uint32 index();
 
 private:
-	SpriteFrameHeader *_bitmapHeader = nullptr;
+	SpriteFrameInfo _frameInfo;
 };
 
 // The original had a separate class that did reference counting,

@@ -712,7 +712,7 @@ void VideoDisplayManager::_setPercentToPaletteObject(double percent, uint palett
 
 void VideoDisplayManager::imageBlit(
 	Common::Point destinationPoint,
-	const Bitmap *sourceImage,
+	const PixMapImage *sourceImage,
 	double dissolveFactor,
 	DisplayContext *displayContext,
 	Graphics::ManagedSurface *targetImage) {
@@ -832,7 +832,7 @@ void VideoDisplayManager::blitRectsClip(
 void VideoDisplayManager::rleBlitRectsClip(
 	Graphics::ManagedSurface *dest,
 	const Common::Point &destLocation,
-	const Bitmap *source,
+	const PixMapImage *source,
 	const Common::Array<Common::Rect> &dirtyRegion) {
 
 	Graphics::ManagedSurface surface = decompressRle8Bitmap(source);
@@ -852,7 +852,7 @@ void VideoDisplayManager::rleBlitRectsClip(
 void VideoDisplayManager::dissolveBlitRectsClip(
 	Graphics::ManagedSurface *dest,
 	const Common::Point &destPos,
-	const Bitmap *source,
+	const PixMapImage *source,
 	const Common::Array<Common::Rect> &dirtyRegion,
 	const uint integralDissolveFactor) {
 
@@ -878,7 +878,7 @@ void VideoDisplayManager::dissolveBlit1Rect(
 	Graphics::ManagedSurface *dest,
 	const Common::Rect &areaToRedraw,
 	const Common::Point &originOnScreen,
-	const Bitmap *source,
+	const PixMapImage *source,
 	const Common::Rect &dirtyRegion,
 	const DissolvePattern &pattern) {
 
@@ -940,8 +940,8 @@ void VideoDisplayManager::dissolveBlit1Rect(
 void VideoDisplayManager::imageDeltaBlit(
 	Common::Point deltaFramePos,
 	const Common::Point &keyFrameOffset,
-	const Bitmap *deltaFrame,
-	const Bitmap *keyFrame,
+	const PixMapImage *deltaFrame,
+	const PixMapImage *keyFrame,
 	const double dissolveFactor,
 	DisplayContext *displayContext) {
 
@@ -981,8 +981,8 @@ void VideoDisplayManager::fullDeltaRleBlitRectsClip(
 	Graphics::ManagedSurface *destinationImage,
 	const Common::Point &deltaFramePos,
 	const Common::Point &keyFrameOffset,
-	const Bitmap *deltaFrame,
-	const Bitmap *keyFrame,
+	const PixMapImage *deltaFrame,
+	const PixMapImage *keyFrame,
 	const Common::Array<Common::Rect> &dirtyRegion) {
 
 	Graphics::ManagedSurface surface = decompressRle8Bitmap(deltaFrame, &keyFrame->_image, &keyFrameOffset);
@@ -1005,8 +1005,8 @@ void VideoDisplayManager::fullDeltaRleBlitRectsClip(
 void VideoDisplayManager::deltaRleBlitRectsClip(
 	Graphics::ManagedSurface *destinationImage,
 	const Common::Point &deltaFramePos,
-	const Bitmap *deltaFrame,
-	const Bitmap *keyFrame,
+	const PixMapImage *deltaFrame,
+	const PixMapImage *keyFrame,
 	const Common::Array<Common::Rect> &dirtyRegion) {
 
 	Common::Rect deltaFrameBounds = Common::Rect(deltaFramePos, deltaFrame->width(), deltaFrame->height());
@@ -1020,8 +1020,8 @@ void VideoDisplayManager::deltaRleBlitRectsClip(
 void VideoDisplayManager::deltaRleBlit1Rect(
 	Graphics::ManagedSurface *destinationImage,
 	const Common::Point &destinationPoint,
-	const Bitmap *deltaFrame,
-	const Bitmap *keyFrame,
+	const PixMapImage *deltaFrame,
+	const PixMapImage *keyFrame,
 	const Common::Rect &dirtyRect) {
 
 	// This is a very complex function that attempts to decompress the keyframe
@@ -1033,7 +1033,7 @@ void VideoDisplayManager::deltaRleBlit1Rect(
 }
 
 Graphics::ManagedSurface VideoDisplayManager::decompressRle8Bitmap(
-	const Bitmap *source,
+	const PixMapImage *source,
 	const Graphics::ManagedSurface *keyFrame,
 	const Common::Point *keyFrameOffset) {
 

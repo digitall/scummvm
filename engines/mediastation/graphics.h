@@ -35,7 +35,7 @@ namespace MediaStation {
 
 class MediaStationEngine;
 struct DissolvePattern;
-class Bitmap;
+class PixMapImage;
 
 enum BlitMode {
 	kUncompressedBlit = 0x00,
@@ -136,7 +136,7 @@ public:
 
 	void imageBlit(
 		Common::Point destinationPoint,
-		const Bitmap *image,
+		const PixMapImage *image,
 		double dissolveFactor,
 		DisplayContext *displayContext,
 		Graphics::ManagedSurface *destinationImage = nullptr);
@@ -144,8 +144,8 @@ public:
 	void imageDeltaBlit(
 		Common::Point deltaFramePos,
 		const Common::Point &keyFrameOffset,
-		const Bitmap *deltaFrame,
-		const Bitmap *keyFrame,
+		const PixMapImage *deltaFrame,
+		const PixMapImage *keyFrame,
 		const double dissolveFactor,
 		DisplayContext *displayContext);
 
@@ -188,43 +188,43 @@ private:
 	void rleBlitRectsClip(
 		Graphics::ManagedSurface *dest,
 		const Common::Point &destLocation,
-		const Bitmap *source,
+		const PixMapImage *source,
 		const Common::Array<Common::Rect> &dirtyRegion);
 	Graphics::ManagedSurface decompressRle8Bitmap(
-		const Bitmap *source,
+		const PixMapImage *source,
 		const Graphics::ManagedSurface *keyFrame = nullptr,
 		const Common::Point *keyFrameOffset = nullptr);
 	void dissolveBlitRectsClip(
 		Graphics::ManagedSurface *dest,
 		const Common::Point &destPos,
-		const Bitmap *source,
+		const PixMapImage *source,
 		const Common::Array<Common::Rect> &dirtyRegion,
 		const uint dissolveFactor);
 	void dissolveBlit1Rect(
 		Graphics::ManagedSurface *dest,
 		const Common::Rect &areaToRedraw,
 		const Common::Point &originOnScreen,
-		const Bitmap *source,
+		const PixMapImage *source,
 		const Common::Rect &dirtyRegion,
 		const DissolvePattern &pattern);
 	void fullDeltaRleBlitRectsClip(
 		Graphics::ManagedSurface *destinationImage,
 		const Common::Point &deltaFramePos,
 		const Common::Point &keyFrameOffset,
-		const Bitmap *deltaFrame,
-		const Bitmap *keyFrame,
+		const PixMapImage *deltaFrame,
+		const PixMapImage *keyFrame,
 		const Common::Array<Common::Rect> &dirtyRegion);
 	void deltaRleBlitRectsClip(
 		Graphics::ManagedSurface *destinationImage,
 		const Common::Point &deltaFramePos,
-		const Bitmap *deltaFrame,
-		const Bitmap *keyFrame,
+		const PixMapImage *deltaFrame,
+		const PixMapImage *keyFrame,
 		const Common::Array<Common::Rect> &dirtyRegion);
 	void deltaRleBlit1Rect(
 		Graphics::ManagedSurface *destinationImage,
 		const Common::Point &destinationPoint,
-		const Bitmap *sourceImage,
-		const Bitmap *deltaImage,
+		const PixMapImage *sourceImage,
+		const PixMapImage *deltaImage,
 		const Common::Rect &dirtyRect);
 
 	// Transition methods.

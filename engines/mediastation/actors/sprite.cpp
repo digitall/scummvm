@@ -25,7 +25,7 @@
 
 namespace MediaStation {
 
-SpriteFrameHeader::SpriteFrameHeader(Chunk &chunk) : BitmapHeader(chunk) {
+SpriteFrameInfo::SpriteFrameInfo(Chunk &chunk) : ImageInfo(chunk) {
 	_index = chunk.readTypedUint16();
 	_offset = chunk.readTypedPoint();
 }
@@ -34,20 +34,15 @@ Common::String SpriteMovieClip::getDebugString() const {
 	return Common::String::format("%s: [%d, %d]", g_engine->formatParamTokenName(id).c_str(), firstFrameIndex, lastFrameIndex);
 }
 
-SpriteFrame::SpriteFrame(Chunk &chunk, SpriteFrameHeader *header) : Bitmap(chunk, header) {
-	_bitmapHeader = header;
-}
-
-SpriteFrame::~SpriteFrame() {
-	// The base class destructor takes care of deleting the bitmap header.
+SpriteFrame::SpriteFrame(Chunk &chunk, const SpriteFrameInfo &header) : PixMapImage(chunk, header), _frameInfo(header) {
 }
 
 uint32 SpriteFrame::left() {
-	return _bitmapHeader->_offset.x;
+	return _frameInfo._offset.x;
 }
 
 uint32 SpriteFrame::top() {
-	return _bitmapHeader->_offset.y;
+	return _frameInfo._offset.y;
 }
 
 Common::Point SpriteFrame::topLeft() {
@@ -59,7 +54,7 @@ Common::Rect SpriteFrame::boundingBox() {
 }
 
 uint32 SpriteFrame::index() {
-	return _bitmapHeader->_index;
+	return _frameInfo._index;
 }
 
 SpriteAsset::~SpriteAsset() {
@@ -352,7 +347,7 @@ void SpriteMovieActor::process() {
 
 void SpriteMovieActor::readChunk(Chunk &chunk) {
 	// Reads one frame from the sprite.
-	SpriteFrameHeader *header = new SpriteFrameHeader(chunk);
+	SpriteFrameInfo header(chunk);
 	SpriteFrame *frame = new SpriteFrame(chunk, header);
 	_asset->frames.push_back(frame);
 

@@ -79,8 +79,8 @@ void CameraActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) 
 }
 
 void CameraActor::readChunk(Chunk &chunk) {
-	BitmapHeader *bitmapHeader = new BitmapHeader(chunk);
-	_image->bitmap = new Bitmap(chunk, bitmapHeader);
+	ImageInfo bitmapHeader(chunk);
+	_image->bitmap = new PixMapImage(chunk, bitmapHeader);
 }
 
 ScriptValue CameraActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {

@@ -24,7 +24,7 @@
 
 namespace MediaStation {
 
-FontGlyph::FontGlyph(Chunk &chunk, uint asciiCode, uint unk1, uint unk2, BitmapHeader *header) : Bitmap(chunk, header) {
+FontGlyph::FontGlyph(Chunk &chunk, uint asciiCode, int unk1, int unk2, const ImageInfo &header) : PixMapImage(chunk, header) {
 	_asciiCode = asciiCode;
 	_unk1 = unk1;
 	_unk2 = unk2;
@@ -55,7 +55,7 @@ void FontActor::readChunk(Chunk &chunk) {
 	uint asciiCode = chunk.readTypedUint16();
 	int unk1 = chunk.readTypedUint16();
 	int unk2 = chunk.readTypedUint16();
-	BitmapHeader *header = new BitmapHeader(chunk);
+	ImageInfo header(chunk);
 	FontGlyph *glyph = new FontGlyph(chunk, asciiCode, unk1, unk2, header);
 	if (_glyphs.getValOrDefault(asciiCode) != nullptr) {
 		error("%s: Glyph for ASCII code 0x%x already exists", __func__, asciiCode);

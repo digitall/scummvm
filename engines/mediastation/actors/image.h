@@ -37,7 +37,7 @@ namespace MediaStation {
 struct ImageAsset {
 	~ImageAsset();
 
-	Bitmap *bitmap = nullptr;
+	PixMapImage *bitmap = nullptr;
 };
 
 class ImageActor : public SpatialEntity, public ChannelClient {

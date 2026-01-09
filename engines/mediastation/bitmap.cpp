@@ -24,16 +24,16 @@
 
 namespace MediaStation {
 
-BitmapHeader::BitmapHeader(Chunk &chunk) {
+ImageInfo::ImageInfo(Chunk &chunk) {
 	uint headerSizeInBytes = chunk.readTypedUint16();
 	_dimensions = chunk.readTypedGraphicSize();
 	_compressionType = static_cast<BitmapCompressionType>(chunk.readTypedUint16());
 	_stride = chunk.readTypedUint16();
-	debugC(5, kDebugLoading, "BitmapHeader::BitmapHeader(): headerSize: %d, _compressionType = 0x%x, _stride = %d",
-		headerSizeInBytes, static_cast<uint>(_compressionType), _stride);
+	debugC(5, kDebugLoading, "%s: headerSize: %d, _compressionType: 0x%x, _stride: %d",
+		__func__, headerSizeInBytes, static_cast<uint>(_compressionType), _stride);
 }
 
-Bitmap::Bitmap(Chunk &chunk, BitmapHeader *bitmapHeader) : _bitmapHeader(bitmapHeader) {
+PixMapImage::PixMapImage(Chunk &chunk, const ImageInfo &imageInfo) : _imageInfo(imageInfo) {
 	if (stride() < width()) {
 		warning("%s: Got stride less than width", __func__);
 	}
@@ -57,15 +57,12 @@ Bitmap::Bitmap(Chunk &chunk, BitmapHeader *bitmapHeader) : _bitmapHeader(bitmapH
 	}
 }
 
-Bitmap::~Bitmap() {
-	delete _bitmapHeader;
-	_bitmapHeader = nullptr;
-
+PixMapImage::~PixMapImage() {
 	delete _compressedStream;
 	_compressedStream = nullptr;
 }
 
-bool Bitmap::isCompressed() const {
+bool PixMapImage::isCompressed() const {
 	return (getCompressionType() != kUncompressedBitmap) && \
 		(getCompressionType() != kUncompressedTransparentBitmap);
 }

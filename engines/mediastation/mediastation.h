@@ -52,7 +52,7 @@ namespace MediaStation {
 struct MediaStationGameDescription;
 class HotspotActor;
 class RootStage;
-class Bitmap;
+class PixMapImage;
 
 // Most Media Station titles follow this file structure from the root directory
 // of the CD-ROM:
