@@ -112,12 +112,6 @@ const char *builtInFunctionToStr(BuiltInFunction function);
 
 enum BuiltInMethod {
 	kInvalidMethod = 0,
-	// TODO: What object types does CursorSet apply to?
-	// Currently it's only in var_7be1_cursor_currentTool in
-	// IBM/Crayola.
-	kCursorSetMethod = 0xC8,
-
-	// SPATIAL ENTITY METHODS.
 	kSpatialHideMethod = 0xCB,
 	kSpatialMoveToMethod = 0xCC,
 	kSpatialMoveToByOffsetMethod = 0xCD,
@@ -250,6 +244,9 @@ enum BuiltInMethod {
 	// between two camera methods and two printer methods.
 	kOpenLensMethod = 0x15A,
 	kCloseLensMethod = 0x15B,
+
+	// CURSOR METHODS.
+	kCursorSetMethod = 0xC8,
 };
 const char *builtInMethodToStr(BuiltInMethod method);
 

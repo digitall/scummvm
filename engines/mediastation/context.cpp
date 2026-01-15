@@ -28,6 +28,7 @@
 #include "mediastation/mediascript/function.h"
 #include "mediastation/actors/camera.h"
 #include "mediastation/actors/canvas.h"
+#include "mediastation/actors/cursor.h"
 #include "mediastation/actors/palette.h"
 #include "mediastation/actors/image.h"
 #include "mediastation/actors/path.h"
@@ -153,6 +154,10 @@ void MediaStationEngine::readCreateActorData(Chunk &chunk) {
 
 	case kActorTypeText:
 		actor = new TextActor();
+		break;
+
+	case kActorTypeCursor:
+		actor = new CursorActor();
 		break;
 
 	default:
