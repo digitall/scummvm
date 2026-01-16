@@ -35,23 +35,22 @@ void PathActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		_endPoint = chunk.readTypedPoint();
 		break;
 
-	case kActorHeaderStepRate: {
-		double _stepRateFloat = chunk.readTypedDouble();
-		// This should always be an integer anyway,
-		// so we'll cast away any fractional part.
-		_stepRate = static_cast<uint32>(_stepRateFloat);
-		break;
-	}
-
-	case kActorHeaderDuration:
-		// These are stored in the file as fractional seconds,
-		// but we want milliseconds.
-		_duration = static_cast<uint32>(chunk.readTypedTime() * 1000);
-		break;
-
 	case kActorHeaderPathTotalSteps:
 		_totalSteps = chunk.readTypedUint16();
 		break;
+
+	case kActorHeaderStepRate:
+		_stepRate = chunk.readTypedDouble();
+		break;
+
+	case kActorHeaderDuration: {
+		// These are stored in the file as fractional seconds,
+		// but we want milliseconds.
+		const uint MILLISECONDS_IN_ONE_SECOND = 1000;
+		_duration = chunk.readTypedTime() * MILLISECONDS_IN_ONE_SECOND;
+		_useTimeForCompletion = true;
+		break;
+	}
 
 	default:
 		Actor::readParameter(chunk, paramType);
@@ -62,104 +61,204 @@ ScriptValue PathActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptVa
 	ScriptValue returnValue;
 
 	switch (methodId) {
-	case kTimePlayMethod: {
+	case kTimePlayMethod:
 		ARGCOUNTCHECK(0);
-		timePlay();
-		return returnValue;
+		startPath();
+		break;
+
+	case kTimeStopMethod:
+		ARGCOUNTCHECK(0);
+		stopPath();
+		break;
+
+	case kPauseMethod:
+		ARGCOUNTCHECK(0);
+		pausePath();
+		break;
+
+	case kResumeMethod: {
+		ARGCOUNTRANGE(0, 1);
+		bool shouldRestart = false;
+		if (args.size() == 1) {
+			shouldRestart = args[0].asBool();
+		}
+		resumePath(shouldRestart);
+		break;
 	}
 
-	case kSetDurationMethod: {
+	case kGetLeftXMethod:
+		ARGCOUNTCHECK(0);
+		returnValue.setToFloat(_currentPoint.x);
+		break;
+
+	case kGetTopYMethod:
+		ARGCOUNTCHECK(0);
+		returnValue.setToFloat(_currentPoint.y);
+		break;
+
+	case kPathSetStartPointMethod:
+		ARGCOUNTCHECK(2);
+		_startPoint.x = static_cast<int16>(args[0].asFloat());
+		_startPoint.y = static_cast<int16>(args[1].asFloat());
+		break;
+
+	case kPathSetEndPointMethod:
+		ARGCOUNTCHECK(2);
+		_endPoint.x = static_cast<int16>(args[0].asFloat());
+		_endPoint.y = static_cast<int16>(args[1].asFloat());
+		break;
+
+	case kPathSetTotalStepsMethod:
 		ARGCOUNTCHECK(1);
-		uint durationInMilliseconds = static_cast<uint>(args[0].asTime() * 1000);
-		setDuration(durationInMilliseconds);
-		return returnValue;
+		_totalSteps = static_cast<uint>(args[0].asFloat());
+		_useTimeForCompletion = false;
+		break;
+
+	case kPathSetStepRateMethod:
+		ARGCOUNTCHECK(1);
+		_stepRate = static_cast<uint>(args[0].asFloat());
+		break;
+
+	case kPathSetDurationMethod: {
+		ARGCOUNTCHECK(1);
+		// Convert from seconds to milliseconds.
+		const uint MILLISECONDS_IN_ONE_SECOND = 1000;
+		_duration = args[0].asTime() * MILLISECONDS_IN_ONE_SECOND;
+		_useTimeForCompletion = true;
+		break;
 	}
 
-	case kPercentCompleteMethod: {
+	case kPathGetPercentCompleteMethod:
 		ARGCOUNTCHECK(0);
-		returnValue.setToFloat(percentComplete());
-		return returnValue;
-	}
+		if (_playState == kPathPlaying) {
+			returnValue.setToFloat(getPercentComplete());
+		} else {
+			returnValue.setToFloat(1.0);
+		}
+		break;
 
-	case kIsPlayingMethod: {
+	case kIsPlayingMethod:
 		ARGCOUNTCHECK(0);
-		returnValue.setToBool(_isPlaying);
-		return returnValue;
-	}
+		returnValue.setToBool(_playState == kPathPlaying || _playState == kPathPaused);
+		break;
+
+	case kIsPausedMethod:
+		ARGCOUNTCHECK(0);
+		returnValue.setToBool(_playState == kPathPaused);
+		break;
 
 	default:
-		return Actor::callMethod(methodId, args);
+		returnValue = Actor::callMethod(methodId, args);
 	}
-}
-
-void PathActor::timePlay() {
-	if (_isPlaying) {
-		return;
-	}
-
-	if (_duration == 0) {
-		warning("%s: Got zero duration", __func__);
-	} else if (_stepRate == 0) {
-		error("%s: Got zero step rate", __func__);
-	}
-
-	_isPlaying = true;
-	_startTime = g_system->getMillis();
-	_lastProcessedTime = 0;
-	_percentComplete = 0;
-	_nextPathStepTime = 0;
-	_currentStep = 0;
-	_totalSteps = (_duration * _stepRate) / 1000;
-	_stepDurationInMilliseconds = 1000 / _stepRate;
-
-	// TODO: Run the path start event. Haven't seen one the wild yet, don't know its ID.
-	debugC(5, kDebugScript, "Path::timePlay(): No PathStart event handler");
+	return returnValue;
 }
 
 void PathActor::process() {
-	if (!_isPlaying) {
-		return;
+	if (_playState == kPathPlaying) {
+		uint currentTime = g_system->getMillis();
+		if (currentTime >= _nextPathStepTime) {
+			timerEvent();
+		}
+	}
+}
+
+void PathActor::startPath() {
+	_playState = kPathPlaying;
+	_startTime = g_system->getMillis();
+
+	if (_stepRate <= 0.0) {
+		error("[%s] %s: Got zero or negative step rate", debugName(), __func__);
 	}
 
-	uint currentTime = g_system->getMillis();
-	uint pathTime = currentTime - _startTime;
+	_currentPoint = _startPoint;
+	_stepDurationInMilliseconds = static_cast<uint>((1.0 / _stepRate) * 1000);
+	_nextPathStepTime = _startTime + _stepDurationInMilliseconds;
+	_currentStep = 0;
 
-	bool doNextStep = pathTime >= _nextPathStepTime;
-	if (!doNextStep) {
-		return;
+	// There is no path start event handler.
+}
+
+void PathActor::stopPath() {
+	if (_playState == kPathPlaying || _playState == kPathPaused) {
+		_playState = kPathStopped;
+		runEventHandlerIfExists(kPathStoppedEvent);
+	}
+}
+
+void PathActor::pausePath() {
+	if (_playState == kPathPlaying) {
+		_playState = kPathPaused;
+		_pauseTime = g_system->getMillis();
+	}
+}
+
+void PathActor::resumePath(bool shouldRestart) {
+	if (_playState == kPathPaused) {
+		// Calculate how long we were paused, to make sure we resume at the right point.
+		uint currentTime = g_system->getMillis();
+		uint pauseDuration = currentTime - _pauseTime;
+		_startTime += pauseDuration;
+		_playState = kPathPlaying;
+		scheduleNextTimerEvent();
+	} else if (_playState != kPathPlaying && shouldRestart) {
+		startPath();
+	}
+}
+
+double PathActor::getPercentComplete() {
+	double percentComplete = 1.0;
+	if (!_useTimeForCompletion) {
+		if (_totalSteps > 0) {
+			percentComplete = static_cast<double>(_currentStep) / _totalSteps;
+		}
+	} else {
+		uint currentTime = g_system->getMillis();
+		if (currentTime > _startTime && _duration > 0) {
+			double timeElapsed = currentTime - _startTime;
+			percentComplete = timeElapsed / _duration;
+			if (percentComplete > 1.0) {
+				percentComplete = 1.0;
+			}
+		}
 	}
 
-	_percentComplete = static_cast<double>(_currentStep + 1) / _totalSteps;
-	debugC(2, kDebugScript, "Path::timePlay(): Step %d of %d", _currentStep, _totalSteps);
+	return percentComplete;
+}
 
-	if (_currentStep < _totalSteps) {
-		// TODO: Actually step the path. It seems they mostly just use this for
-		// palette animation in the On Step event handler, so nothing is actually drawn on the screen now.
+bool PathActor::step() {
+	double percentComplete = getPercentComplete();
+	if (percentComplete < 1.0) {
+		double nextX = _startPoint.x + (_endPoint.x - _startPoint.x) * percentComplete;
+		double nextY = _startPoint.y + (_endPoint.y - _startPoint.y) * percentComplete;
+		_currentPoint = Common::Point(static_cast<int16>(nextX), static_cast<int16>(nextY));
+		debugC(4, kDebugEvents, "[%s] %s: %f%% complete (startPoint: (%d, %d)) (endPoint: (%d, %d)) (currentPoint: (%d, %d))",
+			debugName(), __func__, percentComplete,
+			_endPoint.x, _endPoint.y, _startPoint.x, _startPoint.y, _currentPoint.x, _currentPoint.y);
 
 		// We don't run a step event for the last step.
 		runEventHandlerIfExists(kPathStepEvent);
-		_nextPathStepTime = ++_currentStep * _stepDurationInMilliseconds;
+		return false;
+	}
+	return true;
+}
+
+void PathActor::scheduleNextTimerEvent() {
+	_nextPathStepTime += _stepDurationInMilliseconds;
+}
+
+void PathActor::timerEvent() {
+	_currentStep += 1;
+	bool finishedPlaying = step();
+	if (!finishedPlaying) {
+		scheduleNextTimerEvent();
 	} else {
-		_isPlaying = false;
+		_playState = kPathStopped;
 		_percentComplete = 0;
 		_nextPathStepTime = 0;
 		_currentStep = 0;
-		_totalSteps = 0;
 		_stepDurationInMilliseconds = 0;
-
 		runEventHandlerIfExists(kPathEndEvent);
 	}
-}
-
-void PathActor::setDuration(uint durationInMilliseconds) {
-	// TODO: Do we need to save the original duration?
-	debugC(5, kDebugScript, "Path::setDuration(): Setting duration to %d ms", durationInMilliseconds);
-	_duration = durationInMilliseconds;
-}
-
-double PathActor::percentComplete() {
-	debugC(5, kDebugScript, "Path::percentComplete(): Returning percent complete %f%%", _percentComplete * 100);
-	return _percentComplete;
 }
 
 } // End of namespace MediaStation

@@ -328,10 +328,18 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 		return "ContextLoadInProgress";
 	case kDocumentContextIsLoadedMethod:
 		return "IsLoaded";
-	case kSetDurationMethod:
+	case kPathSetDurationMethod:
 		return "SetDuration";
-	case kPercentCompleteMethod:
+	case kPathGetPercentCompleteMethod:
 		return "PercentComplete";
+	case kPathSetStartPointMethod:
+		return "SetStartPoint";
+	case kPathSetEndPointMethod:
+		return "SetEndPoint";
+	case kPathSetTotalStepsMethod:
+		return "SetTotalSteps";
+	case kPathSetStepRateMethod:
+		return "SetStepRate";
 	case kTextMethod:
 		return "Text";
 	case kSetTextMethod:

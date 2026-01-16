@@ -212,8 +212,12 @@ enum BuiltInMethod {
 	kDocumentContextIsLoadedMethod = 0x178,
 
 	// PATH METHODS.
-	kSetDurationMethod = 0x106,
-	kPercentCompleteMethod = 0x107,
+	kPathSetDurationMethod = 0x106,
+	kPathGetPercentCompleteMethod = 0x107,
+	kPathSetStartPointMethod = 0xf2,
+	kPathSetEndPointMethod = 0xf3,
+	kPathSetTotalStepsMethod = 0xf4,
+	kPathSetStepRateMethod = 0xf5,
 
 	// TEXT METHODS.
 	kTextMethod = 0x122,
