@@ -980,7 +980,7 @@ void Renderer::renderRectangle(const Math::Vector3d &originalOrigin, const Math:
 	Math::Vector3d size = originalSize;
 	Math::Vector3d origin = originalOrigin;
 
-	enableCulling(false);
+	//enableCulling(false);
 
 	if (size.x() > 0 && size.y() > 0 && size.z() > 0) {
 		/* According to https://www.shdon.com/freescape/
@@ -1069,7 +1069,7 @@ void Renderer::renderRectangle(const Math::Vector3d &originalOrigin, const Math:
 		}
 	}
 
-	enableCulling(true);
+	//enableCulling(true);
 }
 
 void Renderer::renderPolygon(const Math::Vector3d &origin, const Math::Vector3d &size, const Common::Array<float> *originalOrdinates, Common::Array<uint8> *colours, Common::Array<uint8> *ecolours, float offset) {
@@ -1084,7 +1084,7 @@ void Renderer::renderPolygon(const Math::Vector3d &origin, const Math::Vector3d 
 
 	uint color = 0;
 	uint ecolor = 0;
-	enableCulling(false);
+	//enableCulling(false);
 	if (ordinates->size() == 6) { // Line
 		color = (*colours)[0];
 		ecolor = ecolours ? (*ecolours)[0] : 0;
@@ -1173,7 +1173,7 @@ void Renderer::renderPolygon(const Math::Vector3d &origin, const Math::Vector3d 
 		}
 	}
 
-	enableCulling(true);
+	//enableCulling(true);
 	delete(ordinates);
 }
 
