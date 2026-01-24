@@ -142,31 +142,37 @@ ScriptValue FunctionManager::call(uint functionId, Common::Array<ScriptValue> &a
 		break;
 
 	case kCurrentRunTimeFunction:
+	case kLegacy_GetCurrentRunTimeFunction:
 		FUNCARGCHECK(0);
 		script_CurrentRunTime(args, returnValue);
 		break;
 
 	case kSetGammaCorrectionFunction:
+	case kLegacy_SetGammaCorrectionFunction:
 		FUNCARGRANGE(1, 3);
 		script_SetGammaCorrection(args, returnValue);
 		break;
 
 	case kGetDefaultGammaCorrectionFunction:
+	case kLegacy_GetDefaultGammaCorrectionFunction:
 		FUNCARGCHECK(0);
 		script_GetDefaultGammaCorrection(args, returnValue);
 		break;
 
 	case kGetCurrentGammaCorrectionFunction:
+	case kLegacy_GetCurrentGammaCorrectionFunction:
 		FUNCARGCHECK(0);
 		script_GetCurrentGammaCorrection(args, returnValue);
 		break;
 
 	case kSetAudioVolumeFunction:
+	case kLegacy_SetAudioVolumeFunction:
 		FUNCARGCHECK(1);
 		script_SetAudioVolume(args, returnValue);
 		break;
 
 	case kGetAudioVolumeFunction:
+	case kLegacy_GetAudioVolumeFunction:
 		FUNCARGCHECK(0);
 		script_GetAudioVolume(args, returnValue);
 		break;
@@ -321,7 +327,11 @@ void FunctionManager::script_Random(Common::Array<ScriptValue> &args, ScriptValu
 }
 
 void FunctionManager::script_TimeOfDay(Common::Array<ScriptValue> &args, ScriptValue &returnValue) {
-	warning("STUB: TimeOfDay");
+	TimeDate timeDate;
+	// Calculate seconds since midnight.
+	g_system->getTimeAndDate(timeDate);
+	uint32 secondsSinceMidnight = (timeDate.tm_hour * 60 + timeDate.tm_min) * 60 + timeDate.tm_sec;
+	returnValue.setToTime(static_cast<double>(secondsSinceMidnight));
 }
 
 void FunctionManager::script_SquareRoot(Common::Array<ScriptValue> &args, ScriptValue &returnValue) {
@@ -362,10 +372,9 @@ void FunctionManager::script_GetUniqueRandom(Common::Array<ScriptValue> &args, S
 		SWAP(top, bottom);
 	}
 
-	// Build list of unused (non-excluded) numbers in the range. For this numeric type,
-	// everything is treated as an integer (even though it's stored as a double).
+	// Build list of unused (non-excluded) integers in the range.
 	Common::Array<double> unusedNumbers;
-	for (double currentValue = bottom; currentValue < top; currentValue += 1.0) {
+	for (double currentValue = bottom; currentValue <= top; currentValue += 1.0) {
 		// Check if this value appears in the exclusion list (args 2 onwards).
 		bool isExcluded = false;
 		for (uint i = 2; i < args.size(); i++) {
@@ -381,7 +390,7 @@ void FunctionManager::script_GetUniqueRandom(Common::Array<ScriptValue> &args, S
 	}
 
 	if (unusedNumbers.size() > 0) {
-		uint randomIndex = g_engine->_randomSource.getRandomNumberRng(0, unusedNumbers.size());
+		uint randomIndex = g_engine->_randomSource.getRandomNumberRng(0, unusedNumbers.size() - 1);
 		returnValue.setToFloat(unusedNumbers[randomIndex]);
 	} else {
 		warning("%s: No unused numbers to choose from", __func__);

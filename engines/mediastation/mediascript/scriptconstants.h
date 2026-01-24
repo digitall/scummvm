@@ -105,7 +105,13 @@ enum BuiltInFunction {
 	kLegacy_PlatformFunction = 0x68,
 	kLegacy_SquareRootFunction = 0x69,
 	kLegacy_GetUniqueRandomFunction = 0x6A,
+	kLegacy_GetCurrentRunTimeFunction = 0x6B,
+	kLegacy_SetGammaCorrectionFunction = 0xAA,
+	kLegacy_GetDefaultGammaCorrectionFunction = 0xAB,
+	kLegacy_GetCurrentGammaCorrectionFunction = 0xAC,
 	kLegacy_DebugPrintFunction = 0xB4,
+	kLegacy_SetAudioVolumeFunction = 0xBE,
+	kLegacy_GetAudioVolumeFunction = 0xBF,
 	kLegacy_SystemLanguagePreferenceFunction = 0xC8,
 };
 const char *builtInFunctionToStr(BuiltInFunction function);
@@ -119,6 +125,8 @@ enum BuiltInMethod {
 	kSpatialShowMethod = 0xCA,
 	kTimePlayMethod = 0xCE,
 	kTimeStopMethod = 0xCF,
+	kTimePauseMethod = 0xD0,
+	kTimeResumeMethod = 0xD1,
 	kIsPlayingMethod = 0x174,
 	kSetDissolveFactorMethod = 0xF1,
 	kSpatialCenterMoveToMethod = 0xE6,
@@ -174,7 +182,9 @@ enum BuiltInMethod {
 	// NOTE: IDs 0xD2 and 0xD3 seem to be double-assigned
 	// between two hotspot methods and two stage methods.
 	kAddActorToStageMethod = 0xD2,
+	kAddActorToStageMethod2 = 0x170,
 	kRemoveActorFromStageMethod = 0xD3,
+	kRemoveActorFromStageMethod2 = 0x171,
 	kSetWorldSpaceExtentMethod = 0x16B,
 	kSetBoundsMethod = 0x11F,
 	kStageSetSizeMethod = 0x16B,

@@ -317,14 +317,16 @@ void StageActor::setCurrentCamera(CameraActor *camera) {
 ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
 	ScriptValue returnValue;
 	switch (methodId) {
-	case kAddActorToStageMethod: {
+	case kAddActorToStageMethod:
+	case kAddActorToStageMethod2: {
 		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		addActorToStage(actorId);
 		return returnValue;
 	}
 
-	case kRemoveActorFromStageMethod: {
+	case kRemoveActorFromStageMethod:
+	case kRemoveActorFromStageMethod2: {
 		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		removeActorFromStage(actorId);

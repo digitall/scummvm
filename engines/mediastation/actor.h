@@ -244,6 +244,7 @@ public:
 	virtual Common::Rect getBbox() const { return _boundingBox; }
 	int zIndex() const { return _zIndex; }
 
+	virtual void currentMousePosition(Common::Point &point);
 	virtual void invalidateMouse();
 	virtual bool interactsWithMouse() const { return false; }
 

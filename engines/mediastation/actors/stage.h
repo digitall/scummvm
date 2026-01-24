@@ -91,7 +91,7 @@ public:
 		uint16 asciiCode,
 		uint16 eventMask,
 		MouseActorState &state) override;
-	virtual void currentMousePosition(Common::Point &point);
+	virtual void currentMousePosition(Common::Point &point) override;
 	virtual void setMousePosition(int16 x, int16 y) override;
 
 	void invalidateZIndexOf(const SpatialEntity *entity);

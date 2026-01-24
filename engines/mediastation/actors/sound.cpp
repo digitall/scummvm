@@ -69,13 +69,13 @@ void SoundActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 }
 
 void SoundActor::process() {
-	if (!_isPlaying) {
+	if (_playState != kSoundPlaying) {
 		return;
 	}
 
 	processTimeEventHandlers();
 	if (!_sequence.isActive()) {
-		_isPlaying = false;
+		_playState = kSoundStopped;
 		_sequence.stop();
 		runEventHandlerIfExists(kSoundEndEvent);
 	}
@@ -97,53 +97,91 @@ ScriptValue SoundActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		ARGCOUNTCHECK(0);
 		return returnValue;
 
-	case kTimePlayMethod: {
+	case kTimePlayMethod:
 		ARGCOUNTCHECK(0);
-		timePlay();
+		start();
+		return returnValue;
+
+	case kTimeStopMethod:
+		ARGCOUNTCHECK(0);
+		stop();
+		return returnValue;
+
+	case kPauseMethod:
+		ARGCOUNTCHECK(0);
+		pause();
+		return returnValue;
+
+	case kResumeMethod: {
+		ARGCOUNTRANGE(0, 1);
+		bool shouldRestart = false;
+		if (args.size() == 1) {
+			shouldRestart = args[0].asBool();
+		}
+		resume(shouldRestart);
 		return returnValue;
 	}
 
-	case kTimeStopMethod: {
-		ARGCOUNTCHECK(0);
-		timeStop();
+	case kIsPlayingMethod:
+		returnValue.setToBool(_playState == kSoundPlaying || _playState == kSoundPaused);
 		return returnValue;
-	}
+
+	case kIsPausedMethod:
+		returnValue.setToBool(_playState == kSoundPaused);
+		return returnValue;
 
 	default:
 		return Actor::callMethod(methodId, args);
 	}
 }
 
-void SoundActor::timePlay() {
+void SoundActor::start() {
+	if (_loadIsComplete) {
+		if (_playState == kSoundPlaying || _playState == kSoundPaused) {
+			stop();
+		}
+
+		openStream();
+		_playState = kSoundPlaying;
+		_startTime = g_system->getMillis();
+		_lastProcessedTime = 0;
+		_sequence.play();
+		runEventHandlerIfExists(kSoundBeginEvent);
+	} else {
+		warning("[%s] %s: Attempted to play sound before it was loaded", debugName(), __func__);
+	}
+}
+
+void SoundActor::stop() {
+	if (_playState == kSoundPlaying || _playState == kSoundPaused) {
+		_playState = kSoundStopped;
+		_sequence.stop();
+		runEventHandlerIfExists(kSoundStoppedEvent);
+	}
+}
+
+void SoundActor::pause() {
+	if (_playState == kSoundPlaying) {
+		_sequence.pause();
+		_playState = kSoundPaused;
+		// There don't seem to be script events to trigger in this instance.
+	}
+}
+
+void SoundActor::resume(bool restart) {
+	if (_playState == kSoundPaused) {
+		_sequence.resume();
+	} else if (restart) {
+		start();
+	}
+	// There don't seem to be script events to trigger in this instance.
+}
+
+void SoundActor::openStream() {
 	if (_streamFeed == nullptr && !_isLoadedFromChunk) {
 		_streamFeed = g_engine->getStreamFeedManager()->openStreamFeed(_id);
 		_streamFeed->readData();
 	}
-
-	if (_isPlaying) {
-		return;
-	}
-
-	if (_sequence.isEmpty()) {
-		_isPlaying = false;
-		return;
-	}
-
-	_isPlaying = true;
-	_startTime = g_system->getMillis();
-	_lastProcessedTime = 0;
-	_sequence.play();
-	runEventHandlerIfExists(kSoundBeginEvent);
-}
-
-void SoundActor::timeStop() {
-	if (!_isPlaying) {
-		return;
-	}
-
-	_isPlaying = false;
-	_sequence.stop();
-	runEventHandlerIfExists(kSoundStoppedEvent);
 }
 
 } // End of namespace MediaStation

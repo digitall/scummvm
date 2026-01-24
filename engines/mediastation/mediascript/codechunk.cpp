@@ -305,19 +305,23 @@ ScriptValue *CodeChunk::readAndReturnVariable() {
 	}
 
 	case kVariableScopeLocal: {
+		// The ID is actually a one-based index.
 		uint index = id - 1;
 		variable = &_locals.operator[](index);
 		break;
 	}
 
 	case kVariableScopeIndirectParameter: {
+		// The ID is actually a one-based index.
+		uint baseIndex = id - 1;
 		ScriptValue indexValue = evaluateExpression();
-		uint index = static_cast<uint>(indexValue.asFloat() + id);
+		uint index = static_cast<uint>(indexValue.asFloat()) + baseIndex;
 		variable = &_args->operator[](index);
 		break;
 	}
 
 	case kVariableScopeParameter: {
+		// The ID is actually a one-based index.
 		uint index = id - 1;
 		if (_args == nullptr) {
 			error("%s: Requested a parameter in a code chunk that has no parameters", __func__);

@@ -107,9 +107,14 @@ ScriptValue HotspotActor::callMethod(BuiltInMethod methodId, Common::Array<Scrip
 		return returnValue;
 	}
 
-	case kIsActiveMethod: {
-		ARGCOUNTCHECK(0);
-		returnValue.setToBool(_isActive);
+
+	case kIsPointInsideMethod: {
+		ARGCOUNTCHECK(2);
+		int16 xToCheck = static_cast<int16>(args[0].asFloat());
+		int16 yToCheck = static_cast<int16>(args[1].asFloat());
+		Common::Point pointToCheck(xToCheck, yToCheck);
+		bool pointIsInside = isInside(pointToCheck);
+		returnValue.setToBool(pointIsInside);
 		return returnValue;
 	}
 
@@ -124,6 +129,12 @@ ScriptValue HotspotActor::callMethod(BuiltInMethod methodId, Common::Array<Scrip
 		ARGCOUNTCHECK(0);
 		double mouseY = static_cast<double>(g_system->getEventManager()->getMousePos().y);
 		returnValue.setToFloat(mouseY);
+		return returnValue;
+	}
+
+	case kIsActiveMethod: {
+		ARGCOUNTCHECK(0);
+		returnValue.setToBool(_isActive);
 		return returnValue;
 	}
 

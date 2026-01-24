@@ -174,8 +174,20 @@ const char *builtInFunctionToStr(BuiltInFunction function) {
 		return "Legacy SquareRoot";
 	case kLegacy_GetUniqueRandomFunction:
 		return "Legacy GetUniqueRandom";
+	case kLegacy_GetCurrentRunTimeFunction:
+		return "Legacy GetCurrentRunTime";
+	case kLegacy_SetGammaCorrectionFunction:
+		return "Legacy SetGammaCorrection";
+	case kLegacy_GetDefaultGammaCorrectionFunction:
+		return "Legacy GetDefaultGammaCorrection";
+	case kLegacy_GetCurrentGammaCorrectionFunction:
+		return "Legacy GetCurrentGammaCorrection";
 	case kLegacy_DebugPrintFunction:
 		return "DebugPrint";
+	case kLegacy_SetAudioVolumeFunction:
+		return "Legacy SetAudioVolume";
+	case kLegacy_GetAudioVolumeFunction:
+		return "Legacy GetAudioVolume";
 	case kLegacy_SystemLanguagePreferenceFunction:
 		return "Legacy SystemLanguagePreference";
 	default:
@@ -185,6 +197,8 @@ const char *builtInFunctionToStr(BuiltInFunction function) {
 
 const char *builtInMethodToStr(BuiltInMethod method) {
 	switch (method) {
+	case kInvalidMethod:
+		return "Invalid";
 	case kCursorSetMethod:
 		return "CursorSet";
 	case kSpatialHideMethod:
@@ -285,8 +299,10 @@ const char *builtInMethodToStr(BuiltInMethod method) {
 	case kStageGetHeightMethod:
 		return "StageGetHeight";
 	case kAddToStageMethod:
+	case kAddActorToStageMethod2:
 		return "AddToStage\\OpenLens";
 	case kRemoveFromStageMethod:
+	case kRemoveActorFromStageMethod2:
 		return "RemoveFromStage\\CloseLens";
 	case kAddedToStageMethod:
 		return "AddedToStage";

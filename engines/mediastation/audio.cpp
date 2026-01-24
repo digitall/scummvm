@@ -50,6 +50,14 @@ void AudioSequence::play() {
 	}
 }
 
+void AudioSequence::pause() {
+	g_engine->_mixer->pauseHandle(_handle, true);
+}
+
+void AudioSequence::resume() {
+	g_engine->_mixer->pauseHandle(_handle, false);
+}
+
 void AudioSequence::stop() {
 	g_engine->_mixer->stopHandle(_handle);
 	_handle = Audio::SoundHandle();

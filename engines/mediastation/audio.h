@@ -36,6 +36,8 @@ public:
 	~AudioSequence();
 
 	void play();
+	void pause();
+	void resume(); // Unpause
 	void stop();
 
 	void readParameters(Chunk &chunk);

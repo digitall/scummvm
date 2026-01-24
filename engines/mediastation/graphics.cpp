@@ -864,8 +864,8 @@ void VideoDisplayManager::dissolveBlitRectsClip(
 	byte dissolveIndex = DISSOLVE_PATTERN_COUNT;
 	if (integralDissolveFactor != 50) {
 		dissolveIndex = ((integralDissolveFactor + 2) / 4) - 1;
-		dissolveIndex = CLIP<byte>(dissolveIndex, 0, (DISSOLVE_PATTERN_COUNT - 1));
 	}
+	dissolveIndex = CLIP<byte>(dissolveIndex, 0, (DISSOLVE_PATTERN_COUNT - 1));
 
 	Common::Rect destRect(Common::Rect(destPos, source->width(), source->height()));
 	for (const Common::Rect &dirtyRect : dirtyRegion) {

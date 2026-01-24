@@ -30,6 +30,12 @@
 
 namespace MediaStation {
 
+enum SoundPlayState {
+	kSoundStopped = 1,
+	kSoundPlaying = 2,
+	kSoundPaused = 3,
+};
+
 class SoundActor : public Actor, public ChannelClient {
 public:
 	SoundActor() : Actor(kActorTypeSound) {};
@@ -46,12 +52,15 @@ private:
 	bool _isLoadedFromChunk = false;
 	uint _loadType = 0;
 	bool _hasOwnSubfile = false;
-	bool _isPlaying = false;
+	SoundPlayState _playState = kSoundStopped;
 	AudioSequence _sequence;
 
-	// Script method implementations
-	void timePlay();
-	void timeStop();
+	void start();
+	void stop();
+	void pause();
+	void resume(bool restart);
+
+	void openStream();
 };
 
 } // End of namespace MediaStation

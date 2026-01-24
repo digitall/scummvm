@@ -286,10 +286,36 @@ ScriptValue SpatialEntity::callMethod(BuiltInMethod methodId, Common::Array<Scri
 		returnValue.setToFloat(_zIndex);
 		break;
 
+	case kIsPointInsideMethod: {
+		ARGCOUNTCHECK(2);
+		int16 xToCheck = static_cast<int16>(args[0].asFloat());
+		int16 yToCheck = static_cast<int16>(args[1].asFloat());
+		Common::Point pointToCheck(xToCheck, yToCheck);
+		bool pointIsInside = getBbox().contains(pointToCheck);
+		returnValue.setToBool(pointIsInside);
+		break;
+	}
+
 	case kSetDissolveFactorMethod: {
 		ARGCOUNTCHECK(1);
 		double dissolveFactor = args[0].asFloat();
 		setDissolveFactor(dissolveFactor);
+		break;
+	}
+
+	case kGetMouseXOffsetMethod: {
+		Common::Point mouseOffset;
+		currentMousePosition(mouseOffset);
+		mouseOffset -= _originalBoundingBox.origin();
+		returnValue.setToFloat(static_cast<double>(mouseOffset.x));
+		break;
+	}
+
+	case kGetMouseYOffsetMethod: {
+		Common::Point mouseOffset;
+		currentMousePosition(mouseOffset);
+		mouseOffset -= _originalBoundingBox.origin();
+		returnValue.setToFloat(static_cast<double>(mouseOffset.y));
 		break;
 	}
 
@@ -392,6 +418,12 @@ void SpatialEntity::loadIsComplete() {
 	}
 }
 
+void SpatialEntity::currentMousePosition(Common::Point &point) {
+	if (_parentStage != nullptr) {
+		_parentStage->currentMousePosition(point);
+	}
+}
+
 void SpatialEntity::invalidateMouse() {
 	// TODO: Invalidate the mouse properly when we have custom events.
 	// For now, we simulate the mouse update event with a mouse moved event.
@@ -487,7 +519,9 @@ void SpatialEntity::invalidateLocalBounds() {
 }
 
 void SpatialEntity::invalidateLocalZIndex() {
-	warning("[%s] %s: STUB", debugName(), __func__);
+	if (_parentStage != nullptr) {
+		_parentStage->invalidateZIndexOf(this);
+	}
 }
 
 void SpatialEntity::setAdjustedBounds(CylindricalWrapMode alignmentMode) {
