@@ -54,12 +54,6 @@ bool StreamMovieProxy::isVisible() const {
 	return false;
 }
 
-MovieFrameInfo::MovieFrameInfo(Chunk &chunk) : ImageInfo(chunk) {
-	_index = chunk.readTypedUint32();
-	debugC(5, kDebugLoading, "%s: frame 0x%x", __func__, _index);
-	_keyframeEndInMilliseconds = chunk.readTypedUint32();
-}
-
 MovieFrame::MovieFrame(Chunk &chunk) {
 	if (g_engine->isFirstGenerationEngine()) {
 		blitType = static_cast<MovieBlitType>(chunk.readTypedUint16());
@@ -91,7 +85,9 @@ MovieFrame::MovieFrame(Chunk &chunk) {
 	}
 }
 
-MovieFrameImage::MovieFrameImage(Chunk &chunk, const MovieFrameInfo &header) : PixMapImage(chunk, header), _frameInfo(header) {
+MovieFrameImage::MovieFrameImage(Chunk &chunk, uint index, uint keyframeEndInMilliseconds, const ImageInfo &imageInfo) :
+	PixMapImage(chunk, imageInfo), _index(index), _keyframeEndInMilliseconds(keyframeEndInMilliseconds) {
+	debugC(5, kDebugLoading, "%s: frame 0x%x", __func__, _index);
 }
 
 StreamMovieActor::~StreamMovieActor() {
@@ -612,8 +608,10 @@ void StreamMovieActor::decompressIntoAuxImage(MovieFrame *frame) {
 }
 
 void StreamMovieActorFrames::readImageData(Chunk &chunk) {
-	MovieFrameInfo header(chunk);
-	MovieFrameImage *frame = new MovieFrameImage(chunk, header);
+	ImageInfo imageInfo(chunk);
+	uint index = chunk.readTypedUint32();
+	uint keyframeEndInMilliseconds = chunk.readTypedUint32();
+	MovieFrameImage *frame = new MovieFrameImage(chunk, index, keyframeEndInMilliseconds, imageInfo);
 	_images.push_back(frame);
 }
 
@@ -629,7 +627,7 @@ void StreamMovieActorFrames::readFrameData(Chunk &chunk) {
 		// same index, and frames are not necessarily in index order. So we'll
 		// do a linear search, which is how the original does it.
 		for (MovieFrameImage *image : _images) {
-			if (image->index() == frame->index) {
+			if (image->_index == frame->index) {
 				frame->image = image;
 				break;
 			}
@@ -637,7 +635,7 @@ void StreamMovieActorFrames::readFrameData(Chunk &chunk) {
 
 		if (frame->keyframeIndex != 0) {
 			for (MovieFrameImage *image : _images) {
-				if (image->index() == frame->keyframeIndex) {
+				if (image->_index == frame->keyframeIndex) {
 					frame->keyframeImage = image;
 					break;
 				}

@@ -105,6 +105,7 @@ public:
 	Chunk(Common::SeekableReadStream *stream);
 
 	uint32 bytesRemaining();
+	uint32 startPos() const { return _dataStartOffset; }
 
 	uint32 _id = 0;
 	uint32 _length = 0;

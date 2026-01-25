@@ -25,12 +25,12 @@
 namespace MediaStation {
 
 ImageInfo::ImageInfo(Chunk &chunk) {
-	uint headerSizeInBytes = chunk.readTypedUint16();
+	_imageDataStartOffset = chunk.readTypedUint16();
 	_dimensions = chunk.readTypedGraphicSize();
 	_compressionType = static_cast<BitmapCompressionType>(chunk.readTypedUint16());
 	_stride = chunk.readTypedUint16();
-	debugC(5, kDebugLoading, "%s: headerSize: %d, _compressionType: 0x%x, _stride: %d",
-		__func__, headerSizeInBytes, static_cast<uint>(_compressionType), _stride);
+	debugC(5, kDebugLoading, "%s: imageDataStartOffset: 0x%x, _compressionType: 0x%x, _stride: %d",
+		__func__, _imageDataStartOffset, static_cast<uint>(_compressionType), _stride);
 }
 
 PixMapImage::PixMapImage(Chunk &chunk, const ImageInfo &imageInfo) : _imageInfo(imageInfo) {
@@ -38,7 +38,10 @@ PixMapImage::PixMapImage(Chunk &chunk, const ImageInfo &imageInfo) : _imageInfo(
 		warning("%s: Got stride less than width", __func__);
 	}
 
-	_unk1 = chunk.readUint16LE();
+	// Make sure we are at the start of the image data.
+	uint imageDataStartPos = chunk.startPos() + _imageInfo._imageDataStartOffset;
+	chunk.seek(imageDataStartPos);
+
 	if (chunk.bytesRemaining() > 0) {
 		if (isCompressed()) {
 			_compressedStream = chunk.readStream(chunk.bytesRemaining());

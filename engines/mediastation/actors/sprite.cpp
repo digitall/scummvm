@@ -25,36 +25,17 @@
 
 namespace MediaStation {
 
-SpriteFrameInfo::SpriteFrameInfo(Chunk &chunk) : ImageInfo(chunk) {
-	_index = chunk.readTypedUint16();
-	_offset = chunk.readTypedPoint();
+SpriteMovieClip::SpriteMovieClip(uint clipId, int first, int last) :
+	id(clipId), firstFrameIndex(first), lastFrameIndex(last) {
 }
 
 Common::String SpriteMovieClip::getDebugString() const {
 	return Common::String::format("%s: [%d, %d]", g_engine->formatParamTokenName(id).c_str(), firstFrameIndex, lastFrameIndex);
 }
 
-SpriteFrame::SpriteFrame(Chunk &chunk, const SpriteFrameInfo &header) : PixMapImage(chunk, header), _frameInfo(header) {
-}
-
-uint32 SpriteFrame::left() {
-	return _frameInfo._offset.x;
-}
-
-uint32 SpriteFrame::top() {
-	return _frameInfo._offset.y;
-}
-
-Common::Point SpriteFrame::topLeft() {
-	return Common::Point(left(), top());
-}
-
-Common::Rect SpriteFrame::boundingBox() {
-	return Common::Rect(topLeft(), width(), height());
-}
-
-uint32 SpriteFrame::index() {
-	return _frameInfo._index;
+SpriteFrame::SpriteFrame(Chunk &chunk, uint index, Common::Point offset, const ImageInfo &imageInfo) :
+	PixMapImage(chunk, imageInfo), _index(index), _origin(offset) {
+	debugC(5, kDebugLoading, "%s: frame 0x%x", __func__, _index);
 }
 
 SpriteAsset::~SpriteAsset() {
@@ -88,7 +69,7 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		break;
 
 	case kActorHeaderSpriteChunkCount:
-		_asset->_frameCount = chunk.readTypedUint16();
+		_asset->frameCount = chunk.readTypedUint16();
 		break;
 
 	case kActorHeaderSpriteClip: {
@@ -118,13 +99,13 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 
 void SpriteMovieActor::loadIsComplete() {
 	// This clip goes forward through all the sprite's frames.
-	SpriteMovieClip forwardClip(DEFAULT_FORWARD_CLIP_ID, 0, _asset->_frameCount - 1);
+	SpriteMovieClip forwardClip(DEFAULT_FORWARD_CLIP_ID, 0, _asset->frameCount - 1);
 	if (!_clips.contains(DEFAULT_FORWARD_CLIP_ID)) {
 		_clips.setVal(forwardClip.id, forwardClip);
 	}
 
 	// This clip goes backward through all the sprite's frames.
-	SpriteMovieClip backwardClip(DEFAULT_BACKWARD_CLIP_ID, _asset->_frameCount - 1, 0);
+	SpriteMovieClip backwardClip(DEFAULT_BACKWARD_CLIP_ID, _asset->frameCount - 1, 0);
 	if (!_clips.contains(DEFAULT_BACKWARD_CLIP_ID)) {
 		_clips.setVal(backwardClip.id, backwardClip);
 	}
@@ -309,7 +290,7 @@ void SpriteMovieActor::setCurrentClip(uint clipId) {
 		if (_clips.contains(clipId)) {
 			SpriteMovieClip newClip = _clips.getVal(clipId);
 			debugC(3, kDebugSpriteMovie, "[%s] %s: (frameCount: %d) activeClip: %s; newClip: %s",
-				debugName(), __func__, _asset->_frameCount, _activeClip.getDebugString().c_str(), newClip.getDebugString().c_str());
+				debugName(), __func__, _asset->frameCount, _activeClip.getDebugString().c_str(), newClip.getDebugString().c_str());
 			_activeClip = _clips.getVal(clipId);
 		} else {
 			_activeClip.id = clipId;
@@ -346,15 +327,17 @@ void SpriteMovieActor::process() {
 }
 
 void SpriteMovieActor::readChunk(Chunk &chunk) {
-	// Reads one frame from the sprite.
-	SpriteFrameInfo header(chunk);
-	SpriteFrame *frame = new SpriteFrame(chunk, header);
+	// Read one frame from the sprite.
+	ImageInfo imageInfo(chunk);
+	uint index = chunk.readTypedUint16();
+	Common::Point offset = chunk.readTypedPoint();
+	SpriteFrame *frame = new SpriteFrame(chunk, index, offset, imageInfo);
 	_asset->frames.push_back(frame);
 
 	// TODO: Are these in exactly reverse order? If we can just reverse the
 	// whole thing once.
 	Common::sort(_asset->frames.begin(), _asset->frames.end(), [](SpriteFrame *a, SpriteFrame *b) {
-		return a->index() < b->index();
+		return a->_index < b->_index;
 	});
 }
 
@@ -448,11 +431,10 @@ void SpriteMovieActor::draw(DisplayContext &displayContext) {
 
 	SpriteFrame *activeFrame = _asset->frames[_currentFrameIndex];
 	if (_isVisible) {
-		Common::Rect frameBbox = activeFrame->boundingBox();
-		frameBbox.translate(_boundingBox.left, _boundingBox.top);
-		debugC(8, kDebugSpriteMovie, "[%s] %s: frame %d",
-			debugName(), __func__, _currentFrameIndex);
-		g_engine->getDisplayManager()->imageBlit(frameBbox.origin(), activeFrame, _dissolveFactor, &displayContext);
+		Common::Point originToDraw = _boundingBox.origin() + activeFrame->_origin;
+		debugC(7, kDebugSpriteMovie, "[%s] %s: frame %d (%d, %d)",
+			debugName(), __func__, activeFrame->_index, originToDraw.x, originToDraw.y);
+		g_engine->getDisplayManager()->imageBlit(originToDraw, activeFrame, _dissolveFactor, &displayContext);
 	}
 }
 

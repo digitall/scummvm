@@ -46,6 +46,7 @@ public:
 	Common::Point _dimensions;
 	BitmapCompressionType _compressionType = kUncompressedBitmap;
 	int16 _stride = 0;
+	uint _imageDataStartOffset = 0;
 };
 
 class PixMapImage {
@@ -65,7 +66,6 @@ public:
 
 private:
 	ImageInfo _imageInfo;
-	uint _unk1 = 0;
 };
 
 } // End of namespace MediaStation

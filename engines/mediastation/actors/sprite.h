@@ -35,37 +35,21 @@
 namespace MediaStation {
 
 struct SpriteMovieClip {
+	SpriteMovieClip() = default;
+	SpriteMovieClip(uint clipId, int first, int last);
+	Common::String getDebugString() const;
+
 	uint id = 0;
 	int firstFrameIndex = 0;
 	int lastFrameIndex = 0;
-
-	SpriteMovieClip() = default;
-	SpriteMovieClip(uint clipId, int first, int last)
-		: id(clipId), firstFrameIndex(first), lastFrameIndex(last) {}
-	Common::String getDebugString() const;
-};
-
-class SpriteFrameInfo : public ImageInfo {
-public:
-	SpriteFrameInfo() = default;
-	SpriteFrameInfo(Chunk &chunk);
-
-	uint _index;
-	Common::Point _offset;
 };
 
 class SpriteFrame : public PixMapImage {
 public:
-	SpriteFrame(Chunk &chunk, const SpriteFrameInfo &frameInfo);
+	SpriteFrame(Chunk &chunk, uint index, Common::Point origin, const ImageInfo &imageInfo);
 
-	uint32 left();
-	uint32 top();
-	Common::Point topLeft();
-	Common::Rect boundingBox();
-	uint32 index();
-
-private:
-	SpriteFrameInfo _frameInfo;
+	int _index = 0;
+	Common::Point _origin;
 };
 
 // The original had a separate class that did reference counting,
@@ -73,7 +57,7 @@ private:
 struct SpriteAsset {
 	~SpriteAsset();
 
-	uint _frameCount = 0;
+	uint frameCount = 0;
 	Common::Array<SpriteFrame *> frames;
 };
 
@@ -103,7 +87,7 @@ private:
 	Common::HashMap<uint, SpriteMovieClip> _clips;
 	Common::SharedPtr<SpriteAsset> _asset;
 	bool _isPlaying = false;
-	uint _currentFrameIndex = 0;
+	int _currentFrameIndex = 0;
 	uint _nextFrameTime = 0;
 	uint _defaultClipId = DEFAULT_FORWARD_CLIP_ID;
 	SpriteMovieClip _activeClip;

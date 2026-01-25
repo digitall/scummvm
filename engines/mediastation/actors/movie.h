@@ -39,24 +39,12 @@ enum MovieBlitType {
 	kCompressedDeltaMovieBlit = 3,
 };
 
-class MovieFrameInfo : public ImageInfo {
+class MovieFrameImage : public PixMapImage {
 public:
-	MovieFrameInfo() = default;
-	MovieFrameInfo(Chunk &chunk);
+	MovieFrameImage(Chunk &chunk, uint index, uint keyframeEndInMilliseconds, const ImageInfo &imageInfo);
 
 	uint _index = 0;
 	uint _keyframeEndInMilliseconds = 0;
-};
-
-class MovieFrameImage : public PixMapImage {
-public:
-	MovieFrameImage(Chunk &chunk, const MovieFrameInfo &header);
-	~MovieFrameImage() = default;
-
-	uint32 index() { return _frameInfo._index; }
-
-private:
-	MovieFrameInfo _frameInfo;
 };
 
 enum MovieSectionType {
