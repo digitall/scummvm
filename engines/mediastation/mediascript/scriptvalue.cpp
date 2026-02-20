@@ -76,7 +76,7 @@ ScriptValue::ScriptValue(ParameterReadStream *stream) {
 
 	case kScriptValueTypeCollection: {
 		uint totalItems = stream->readTypedUint16();
-		Common::SharedPtr<Collection> collection(new Collection);
+		Collection *collection = new Collection;
 		for (uint i = 0; i < totalItems; i++) {
 			ScriptValue collectionValue = ScriptValue(stream);
 			collection->push_back(collectionValue);
@@ -96,6 +96,79 @@ ScriptValue::ScriptValue(ParameterReadStream *stream) {
 		setToMethodId(methodId);
 		break;
 	}
+
+	default:
+		error("%s: Got unknown script value type %s", __func__, scriptValueTypeToStr(_type));
+	}
+}
+
+void ScriptValue::clearCollection() {
+	if (_collection) {
+		delete _collection;
+		_collection = nullptr;
+	}
+}
+
+ScriptValue::~ScriptValue() {
+	clearCollection();
+}
+
+ScriptValue::ScriptValue(const ScriptValue &other) {
+	clearCollection();
+	copyFrom(other);
+}
+
+void ScriptValue::operator=(const ScriptValue &other) {
+	clearCollection();
+	copyFrom(other);
+}
+
+void ScriptValue::copyFrom(const ScriptValue &other) {
+	_type = other._type;
+
+	switch (_type) {
+	case kScriptValueTypeEmpty:
+		// Nothing to copy for empty type.
+		break;
+
+	case kScriptValueTypeFloat:
+		_u.d = other._u.d;
+		break;
+
+	case kScriptValueTypeBool:
+		_u.b = other._u.b;
+		break;
+
+	case kScriptValueTypeTime:
+		_u.d = other._u.d;
+		break;
+
+	case kScriptValueTypeParamToken:
+		_u.paramToken = other._u.paramToken;
+		break;
+
+	case kScriptValueTypeActorId:
+		_u.actorId = other._u.actorId;
+		break;
+
+	case kScriptValueTypeString:
+		_string = other._string;
+		break;
+
+	case kScriptValueTypeCollection:
+		if (other._collection) {
+			// We always need a deep copy.
+			_collection = new Collection(*other._collection);
+		}
+		break;
+
+	case kScriptValueTypeFunctionId:
+		_u.functionId = other._u.functionId;
+		break;
+
+	case kScriptValueTypeMethodId:
+		_u.methodId = other._u.methodId;
+		break;
 
 	default:
 		error("%s: Got unknown script value type %s", __func__, scriptValueTypeToStr(_type));
@@ -193,12 +266,13 @@ Common::String ScriptValue::asString() const {
 	}
 }
 
-void ScriptValue::setToCollection(Common::SharedPtr<Collection> collection) {
+void ScriptValue::setToCollection(Collection *collection) {
 	_type = kScriptValueTypeCollection;
+	clearCollection();
 	_collection = collection;
 }
 
-Common::SharedPtr<Collection> ScriptValue::asCollection() const {
+Collection *ScriptValue::asCollection() const {
 	if (_type == kScriptValueTypeCollection) {
 		return _collection;
 	} else {
@@ -409,7 +483,7 @@ bool ScriptValue::compare(Opcode op, double left, double right) {
 	}
 }
 
-bool ScriptValue::compare(Opcode op, Common::SharedPtr<Collection> left, Common::SharedPtr<Collection> right) {
+bool ScriptValue::compare(Opcode op, Collection *left, Collection *right) {
 	switch (op) {
 	case kOpcodeEquals:
 		return (left == right);

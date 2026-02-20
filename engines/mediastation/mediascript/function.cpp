@@ -426,7 +426,7 @@ void FunctionManager::script_SetGammaCorrection(Common::Array<ScriptValue> &args
 			return;
 		}
 
-		Common::SharedPtr<Collection> collection = args[0].asCollection();
+		Collection *collection = args[0].asCollection();
 		if (collection->size() != 3) {
 			warning("%s: Collection must contain exactly 3 elements, got %u", __func__, collection->size());
 			return;
@@ -456,7 +456,7 @@ void FunctionManager::script_GetDefaultGammaCorrection(Common::Array<ScriptValue
 	double red, green, blue;
 	g_engine->getDisplayManager()->getDefaultGammaValues(red, green, blue);
 
-	Common::SharedPtr<Collection> collection = Common::SharedPtr<Collection>(new Collection());
+	Collection *collection = new Collection();
 	ScriptValue redValue;
 	redValue.setToFloat(red);
 	collection->push_back(redValue);
@@ -480,7 +480,7 @@ void FunctionManager::script_GetCurrentGammaCorrection(Common::Array<ScriptValue
 
 	double red, green, blue;
 	g_engine->getDisplayManager()->getGammaValues(red, green, blue);
-	Common::SharedPtr<Collection> collection = Common::SharedPtr<Collection>(new Collection());
+	Collection *collection = new Collection();
 
 	ScriptValue redValue;
 	redValue.setToFloat(red);

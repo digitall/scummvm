@@ -22,7 +22,6 @@
 #ifndef MEDIASTATION_MEDIASCRIPT_SCRIPTVALUE_H
 #define MEDIASTATION_MEDIASCRIPT_SCRIPTVALUE_H
 
-#include "common/ptr.h"
 #include "common/str.h"
 
 #include "mediastation/datafile.h"
@@ -35,8 +34,10 @@ class Actor;
 
 class ScriptValue {
 public:
-	ScriptValue() : _type(kScriptValueTypeEmpty) {}
+	ScriptValue() : _type(kScriptValueTypeEmpty), _collection(nullptr) {}
 	ScriptValue(ParameterReadStream *stream);
+	ScriptValue(const ScriptValue &other);
+	~ScriptValue();
 
 	ScriptValueType getType() const { return _type; }
 
@@ -61,8 +62,8 @@ public:
 	void setToString(const Common::String &string);
 	Common::String asString() const;
 
-	void setToCollection(Common::SharedPtr<Collection> collection);
-	Common::SharedPtr<Collection> asCollection() const;
+	void setToCollection(Collection *collection);
+	Collection *asCollection() const;
 
 	void setToFunctionId(uint functionId);
 	uint asFunctionId() const;
@@ -72,6 +73,7 @@ public:
 
 	Common::String getDebugString() const;
 
+	void operator=(const ScriptValue &other);
 	bool operator==(const ScriptValue &other) const;
 	bool operator!=(const ScriptValue &other) const;
 	bool operator<(const ScriptValue &other) const;
@@ -101,7 +103,9 @@ private:
 		BuiltInMethod methodId;
 	} _u;
 	Common::String _string;
-	Common::SharedPtr<Collection> _collection;
+	Collection *_collection = nullptr;
+	void clearCollection();
+	void copyFrom(const ScriptValue &other);
 
 	static bool compare(Opcode op, const ScriptValue &left, const ScriptValue &right);
 	static bool compareEmptyValues(Opcode op);
@@ -109,7 +113,7 @@ private:
 	static bool compare(Opcode op, uint left, uint right);
 	static bool compare(Opcode op, bool left, bool right);
 	static bool compare(Opcode op, double left, double right);
-	static bool compare(Opcode op, Common::SharedPtr<Collection> left, Common::SharedPtr<Collection> right);
+	static bool compare(Opcode op, Collection *left, Collection *right);
 
 	static ScriptValue evalMathOperation(Opcode op, const ScriptValue &left, const ScriptValue &right);
 	static double binaryMathOperation(Opcode op, double left, double right);

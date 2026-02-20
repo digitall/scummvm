@@ -28,6 +28,14 @@
 namespace MediaStation {
 
 ScriptValue Collection::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	// Debug print the collection contents.
+	debugC(7, kDebugScript, "	COLLECTION: [");
+	for (uint i = 0; i < size(); i++) {
+		const ScriptValue &rhs = operator[](i);
+		debugC(7, kDebugScript, "		%d of %d: %s", i, size(), rhs.getDebugString().c_str());
+	}
+	debugC(7, kDebugScript, "	]");
+
 	ScriptValue returnValue;
 	switch (methodId) {
 	case kAppendMethod:
@@ -190,7 +198,9 @@ int Collection::seek(const ScriptValue &lhs) {
 		const ScriptValue &rhs = operator[](i);
 		debugC(7, kDebugScript, "%s: %d of %d: Checking (%s) == (%s)",
 			__func__, i, size(), lhs.getDebugString().c_str(), rhs.getDebugString().c_str());
-		if (lhs == rhs) {
+
+		// Only compare values if types match.
+		if (lhs.getType() == rhs.getType() && lhs == rhs) {
 			return i;
 		}
 	}
@@ -198,9 +208,11 @@ int Collection::seek(const ScriptValue &lhs) {
 }
 
 void Collection::jumble() {
-	for (uint i = size() - 1; i > 0; --i) {
-		uint j = g_engine->_randomSource.getRandomNumber(size() - 1);
-		SWAP(operator[](i), operator[](j));
+	if (!empty()) {
+		for (uint i = size() - 1; i > 0; --i) {
+			uint j = g_engine->_randomSource.getRandomNumber(size() - 1);
+			SWAP(operator[](i), operator[](j));
+		}
 	}
 }
 

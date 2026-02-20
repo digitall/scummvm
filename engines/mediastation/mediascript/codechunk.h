@@ -43,6 +43,7 @@ private:
 
 	ScriptValue evaluateExpression();
 	ScriptValue evaluateExpression(ExpressionType expressionType);
+	void evaluateLValue(ScriptValue *&targetPtr);
 	ScriptValue evaluateOperation();
 	ScriptValue evaluateValue();
 	ScriptValue evaluateVariable();

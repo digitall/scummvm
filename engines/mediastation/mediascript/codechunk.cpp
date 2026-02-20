@@ -91,6 +91,29 @@ ScriptValue CodeChunk::evaluateExpression() {
 	return returnValue;
 }
 
+void CodeChunk::evaluateLValue(ScriptValue *&targetPtr) {
+	// Evaluate an expression as an lvalue (something that can be modified in place).
+	ExpressionType expressionType = static_cast<ExpressionType>(_bytecode->readTypedUint16());
+
+	switch (expressionType) {
+	case kExpressionTypeVariable:
+		// Make target point directly to the variable. This permits modifications to the variable
+		// (like adding to a collection) to persist in the original variable.
+		targetPtr = readAndReturnVariable();
+		break;
+
+	case kExpressionTypeValue:
+	case kExpressionTypeOperation:
+		// For values/operations, just fill in the temporary value the caller passed to us.
+		// This means modifications to the evaluated expression will not be persisted like variables.
+		*targetPtr = evaluateExpression(expressionType);
+		break;
+
+	default:
+		error("%s: Unexpected expression type %s", __func__, expressionTypeToStr(expressionType));
+	}
+}
+
 ScriptValue CodeChunk::evaluateExpression(ExpressionType expressionType) {
 	debugCN(5, kDebugScript, "(%s) ", expressionTypeToStr(expressionType));
 
@@ -517,7 +540,10 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 	debugC(5, kDebugScript, "%s (%d params)", builtInMethodToStr(method), paramCount);
 	debugCN(5, kDebugScript, "  Self: ");
 
-	ScriptValue target = evaluateExpression();
+	// Evaluate target as an lvalue to get a pointer to the actual variable if there is one.
+	ScriptValue methodCallTarget;
+	ScriptValue *methodCallTargetPtr = &methodCallTarget;
+	evaluateLValue(methodCallTargetPtr);
 	Common::Array<ScriptValue> args;
 	for (uint i = 0; i < paramCount; i++) {
 		debugCN(5, kDebugScript, "  Param %d: ", i);
@@ -526,19 +552,19 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 	}
 
 	ScriptValue returnValue;
-	switch (target.getType()) {
+	switch (methodCallTargetPtr->getType()) {
 	case kScriptValueTypeActorId: {
-		if (target.asActorId() == 0) {
+		if (methodCallTargetPtr->asActorId() == 0) {
 			// It seems to be valid to call a method on a null actor ID, in
 			// which case nothing happens. Still issue warning for traceability.
 			warning("%s: Attempt to call method %s (%d) on null actor ID", __func__, builtInMethodToStr(method), static_cast<uint>(method));
 			break;
 		} else {
 			// This is a regular actor that we can process directly.
-			uint actorId = target.asActorId();
+			uint actorId = methodCallTargetPtr->asActorId();
 			Actor *targetActor = g_engine->getActorById(actorId);
 			if (targetActor == nullptr) {
-				error("[%s] %s: Actor not loaded", g_engine->formatActorName(target.asActorId()).c_str(), __func__);
+				error("[%s] %s: Actor not loaded", g_engine->formatActorName(actorId).c_str(), __func__);
 			}
 			returnValue = targetActor->callMethod(method, args);
 			break;
@@ -546,7 +572,7 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 	}
 
 	case kScriptValueTypeCollection: {
-		Common::SharedPtr<Collection> collection = target.asCollection();
+		Collection *collection = methodCallTargetPtr->asCollection();
 		returnValue = collection->callMethod(method, args);
 		break;
 	}
@@ -554,7 +580,7 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 	default:
 		error("%s: Attempt to call method %s (%d) on unimplemented value type %s (%d)", __func__,
 			builtInMethodToStr(method), static_cast<uint>(method),
-			scriptValueTypeToStr(target.getType()), static_cast<uint>(target.getType()));
+			scriptValueTypeToStr(methodCallTargetPtr->getType()), static_cast<uint>(methodCallTargetPtr->getType()));
 	}
 	return returnValue;
 }
