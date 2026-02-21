@@ -124,13 +124,23 @@ private:
 		byte envelopePhase; // 0=attack, 1=decay, 2=sustain, 3=release
 
 		// Effects
-		byte effectMode;   // 0=none, 1=porta/arp
+		byte effectMode;   // 0=none, 1=vibrato, 2=arpeggio
 		bool portaUp;
 		bool portaDown;
 		int16 portaStep;
 		int16 portaTarget;
 		byte arpeggioMask;
 		byte arpeggioPos;
+
+		// Vibrato
+		byte vibratoSpeed;  // Phase increment per tick
+		byte vibratoDepth;  // Amplitude in period units
+		int8 vibratoPos;    // Current phase position (oscillates)
+		int8 vibratoDir;    // +1 or -1
+
+		// Noise
+		bool noiseEnabled;  // Instrument flags bit 1: noise mode
+		bool freqSweep;     // Instrument flags bit 2: frequency sweep
 
 		// Period
 		int16 basePeriod;
@@ -222,6 +232,13 @@ void EclipseAtariMusicStream::loadTables() {
 	// Period table: 96 x uint16 BE at TEXT+$0B24
 	for (int i = 0; i < kTENumPeriods; i++) {
 		_periods[i] = readDataWord(kTEPeriodTableOffset + i * 2);
+	}
+
+	// Fix note 46: corrupted by data artifact ($3095 instead of $010D).
+	// Correct value interpolated from surrounding notes (45=$011D, 47=$00FE).
+	if (_periods[46] == 0x3095) {
+		_periods[46] = 0x010D;
+		debug(3, "TE-Atari: Fixed corrupted period for note 46 ($3095 -> $010D)");
 	}
 
 	// Arpeggio interval table: 8 bytes at TEXT+$0CC8
@@ -347,14 +364,14 @@ void EclipseAtariMusicStream::readOrderList(int ch) {
 			continue;
 		}
 
-		if (cmd < kTEMaxPatterns && _patternPtrs[cmd] > 0 && _patternPtrs[cmd] < _dataSize) {
+		if (cmd < _numPatterns && _patternPtrs[cmd] > 0 && _patternPtrs[cmd] < _dataSize) {
 			c.patternOffset = _patternPtrs[cmd];
 			c.patternPos = 0;
 			debugC(3, kFreescapeDebugParser, "TE-Atari: ch%d order -> pattern %d (offset $%04X)", ch, cmd, c.patternOffset);
 		} else {
-			warning("TE-Atari: ch%d pattern index %d invalid", ch, cmd);
-			c.patternOffset = _patternPtrs[0];
-			c.patternPos = 0;
+			// Invalid pattern index — skip it and try next order entry
+			debugC(3, kFreescapeDebugParser, "TE-Atari: ch%d skipping invalid pattern index %d", ch, cmd);
+			continue;
 		}
 		return;
 	}
@@ -407,15 +424,7 @@ void EclipseAtariMusicStream::readPatternCommands(int ch) {
 		}
 
 		if (cmd >= 0xC0) {
-			// Instrument select
-			// The TEMUSIC.ST encoding: (cmd & $1F) selects envelope/instrument
-			// The instrument index is encoded as (cmd & $1F) >> 3 for the
-			// instrument table. However, looking at the disassembly:
-			// AND $1F, ASL 3 → stored as 8*index in $3C(a0)
-			// Then at $0950: d0 = $3C(a0), lea $0D60, a2 += d0
-			// So the $3C field stores instrumentIdx * 8, and the table
-			// lookup uses it directly as byte offset.
-			// For our purposes: instrument index = (cmd & 0x1F)
+			// Instrument select: (cmd & $1F) = instrument index
 			byte instIdx = cmd & 0x1F;
 			if (instIdx < kTENumInstruments) {
 				c.instrumentIdx = instIdx;
@@ -425,11 +434,27 @@ void EclipseAtariMusicStream::readPatternCommands(int ch) {
 				c.attackRate = inst.attackRate;
 				c.releaseRate = inst.releaseRate;
 
-				if (inst.arpeggioData != 0) {
-					c.effectMode = 1;
+				// Instrument effect type: high nibble = vibrato speed,
+				// low nibble = vibrato depth (in period units)
+				if (inst.effectType != 0) {
+					c.effectMode = 1; // vibrato
+					c.vibratoSpeed = (inst.effectType >> 4) & 0x0F;
+					c.vibratoDepth = inst.effectType & 0x0F;
+					c.vibratoPos = 0;
+					c.vibratoDir = 1;
+					c.portaUp = false;
+					c.portaDown = false;
+				} else if (inst.arpeggioData != 0) {
+					c.effectMode = 2; // arpeggio
 					c.arpeggioMask = inst.arpeggioData;
 					buildArpeggioTable(inst.arpeggioData);
+				} else {
+					c.effectMode = 0;
 				}
+
+				// Noise flags from instrument byte 7
+				c.noiseEnabled = (inst.flags & 0x02) != 0;
+				c.freqSweep = (inst.flags & 0x04) != 0;
 			}
 			continue;
 		}
@@ -456,19 +481,23 @@ void EclipseAtariMusicStream::readPatternCommands(int ch) {
 		}
 
 		if (cmd == 0x7D) {
+			// Arpeggio / effect mode 1 — param is bitmask into interval table
 			byte param = readDataByte(c.patternOffset + c.patternPos);
 			c.patternPos++;
-			c.effectMode = 1;
+			c.effectMode = 2; // arpeggio
 			c.arpeggioMask = param;
+			c.arpeggioPos = 0;
 			buildArpeggioTable(param);
 			continue;
 		}
 
 		if (cmd == 0x7C) {
+			// Effect mode 2 — alternate arpeggio/vibrato
 			byte param = readDataByte(c.patternOffset + c.patternPos);
 			c.patternPos++;
-			c.effectMode = 1;
+			c.effectMode = 2; // arpeggio
 			c.arpeggioMask = param;
+			c.arpeggioPos = 0;
 			buildArpeggioTable(param);
 			continue;
 		}
@@ -550,17 +579,12 @@ void EclipseAtariMusicStream::triggerNote(int ch) {
 void EclipseAtariMusicStream::processEffects(int ch) {
 	ChannelState &c = _channels[ch];
 
-	if (c.effectMode == 0) {
-		c.outputPeriod = c.basePeriod;
-		return;
-	}
-
+	// Portamento takes priority (active during porta regardless of effectMode)
 	if (c.portaUp) {
 		c.basePeriod -= c.portaStep;
 		if (c.basePeriod <= c.portaTarget) {
 			c.basePeriod = c.portaTarget;
 			c.portaUp = false;
-			c.effectMode = 0;
 		}
 		c.outputPeriod = c.basePeriod;
 		return;
@@ -571,14 +595,30 @@ void EclipseAtariMusicStream::processEffects(int ch) {
 		if (c.basePeriod >= c.portaTarget) {
 			c.basePeriod = c.portaTarget;
 			c.portaDown = false;
-			c.effectMode = 0;
 		}
 		c.outputPeriod = c.basePeriod;
 		return;
 	}
 
-	// Arpeggio
-	if (_arpeggioTableLen > 0) {
+	if (c.effectMode == 1 && c.vibratoDepth > 0) {
+		// Vibrato: triangle wave pitch oscillation around basePeriod
+		c.vibratoPos += c.vibratoDir;
+		if (c.vibratoPos >= (int8)c.vibratoDepth) {
+			c.vibratoPos = c.vibratoDepth;
+			c.vibratoDir = -1;
+		} else if (c.vibratoPos <= -(int8)c.vibratoDepth) {
+			c.vibratoPos = -(int8)c.vibratoDepth;
+			c.vibratoDir = 1;
+		}
+		// Scale vibrato offset by speed (higher speed = faster oscillation)
+		int16 offset = c.vibratoPos * c.vibratoSpeed;
+		c.outputPeriod = c.basePeriod + offset;
+		if (c.outputPeriod < 1) c.outputPeriod = 1;
+		return;
+	}
+
+	if (c.effectMode == 2 && _arpeggioTableLen > 0) {
+		// Arpeggio: cycle through note offsets from interval table
 		int note = c.note + c.transpose;
 		int offset = _arpeggioTable[c.arpeggioPos % _arpeggioTableLen];
 		note += offset;
@@ -588,9 +628,10 @@ void EclipseAtariMusicStream::processEffects(int ch) {
 		c.arpeggioPos++;
 		if (c.arpeggioPos >= _arpeggioTableLen)
 			c.arpeggioPos = 0;
-	} else {
-		c.outputPeriod = c.basePeriod;
+		return;
 	}
+
+	c.outputPeriod = c.basePeriod;
 }
 
 // ---------------------------------------------------------------------------
@@ -664,7 +705,7 @@ void EclipseAtariMusicStream::buildArpeggioTable(byte mask) {
 // ---------------------------------------------------------------------------
 
 void EclipseAtariMusicStream::writeYMRegisters() {
-	byte mixer = 0x3F; // Start with all disabled
+	byte mixer = 0x3F; // Start with all disabled (bits 0-2=tone, bits 3-5=noise)
 
 	for (int ch = 0; ch < kTENumChannels; ch++) {
 		ChannelState &c = _channels[ch];
@@ -675,8 +716,17 @@ void EclipseAtariMusicStream::writeYMRegisters() {
 			continue;
 		}
 
-		// Enable tone for this channel
+		// Enable tone for this channel (bits 0-2)
 		mixer &= ~(1 << ch);
+
+		// Enable noise for this channel if instrument has noise flag (bits 3-5)
+		if (c.noiseEnabled) {
+			mixer &= ~(1 << (ch + 3));
+			// Set noise period from note (lower period = higher pitched noise)
+			byte noisePeriod = (c.outputPeriod >> 4) & 0x1F;
+			if (noisePeriod == 0) noisePeriod = 1;
+			setReg(6, noisePeriod);
+		}
 
 		// Set tone period (2 registers per channel)
 		uint16 period = (uint16)c.outputPeriod;
