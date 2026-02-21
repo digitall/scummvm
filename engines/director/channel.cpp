@@ -139,13 +139,13 @@ DirectorPlotData Channel::getPlotData() {
 	pd.srfMask = nullptr;
 	if (_sprite->_cast && _sprite->_cast->_type == kCastText) {
 		// kInkTypeCopy -- no mask, default rendering
-		// kInkTypeBlend -- no output?
 
 		if (_sprite->_ink == kInkTypeMatte || _sprite->_ink == kInkTypeNotCopy
 			|| _sprite->_ink == kInkTypeNotTrans || _sprite->_ink == kInkTypeNotReverse
 			|| _sprite->_ink == kInkTypeNotGhost || _sprite->_ink == kInkTypeAdd
 			|| _sprite->_ink == kInkTypeAddPin || _sprite->_ink == kInkTypeSub
-			|| _sprite->_ink == kInkTypeSubPin || _sprite->_ink == kInkTypeLight) { // TODO: Other types also require it
+			|| _sprite->_ink == kInkTypeSubPin || _sprite->_ink == kInkTypeLight
+			|| _sprite->_ink == kInkTypeBlend) {
 			Graphics::MacText *widget = ((TextCastMember *)_sprite->_cast)->getWidget();
 			if (widget)
 				pd.srfMask = widget->getCharBoxMask();
