@@ -370,13 +370,6 @@ void CastleEngine::loadAssetsCPCFullGame() {
 			it._value->addObjectFromArea(id, _areaMap[255]);
 		}
 	}
-	// Discard some global conditions
-	// It is unclear why they hide/unhide objects that formed the spirits
-	for (int i = 0; i < 3; i++) {
-		debugC(kFreescapeDebugParser, "Discarding condition %s", _conditionSources[0].c_str());
-		_conditions.remove_at(0);
-		_conditionSources.remove_at(0);
-	}
 }
 
 void CastleEngine::drawCPCUI(Graphics::Surface *surface) {
@@ -418,7 +411,7 @@ void CastleEngine::drawCPCUI(Graphics::Surface *surface) {
 	}
 
 	// Draw energy meter (strength)
-	drawEnergyMeter(surface, Common::Point(38, 158));
+	drawEnergyMeter(surface, Common::Point(45, 158));
 
 	// Draw spirit meter
 	uint32 blackColor = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 0, 0, 0);
@@ -439,7 +432,7 @@ void CastleEngine::drawCPCUI(Graphics::Surface *surface) {
 	if (!_flagFrames.empty()) {
 		int ticks = g_system->getMillis() / 20;
 		int flagFrameIndex = (ticks / 10) % 4;
-		surface->copyRectToSurface(*_flagFrames[flagFrameIndex], 285, 5, Common::Rect(0, 0, _flagFrames[flagFrameIndex]->w, _flagFrames[flagFrameIndex]->h));
+		surface->copyRectToSurface(*_flagFrames[flagFrameIndex], 300, 4, Common::Rect(0, 0, _flagFrames[flagFrameIndex]->w, _flagFrames[flagFrameIndex]->h));
 	}
 
 }

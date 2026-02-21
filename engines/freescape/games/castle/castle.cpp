@@ -733,7 +733,7 @@ void CastleEngine::drawInfoMenu() {
 				keyRects.push_back(Common::Rect(80, y, 80 + _keysBorderFrames[i]->w / 2, y + _keysBorderFrames[i]->h));
 			}
 		}
-	} else if (isSpectrum()) {
+	} else if (isSpectrum() || isCPC()) {
 		Common::Array<Common::String> lines;
 		lines.push_back(centerAndPadString("********************", 21));
 
@@ -972,7 +972,7 @@ void CastleEngine::drawFullscreenGameOverAndWait() {
 	Common::String scoreString;
 	if (isDOS())
 		scoreString = _messagesList[131];
-	else if (isSpectrum()) {
+	else if (isSpectrum() || isCPC()) {
 		if (_language == Common::EN_ANY)
 			scoreString = "SCORE XXXXXXX";
 		else if (_language == Common::ES_ESP)
@@ -987,7 +987,7 @@ void CastleEngine::drawFullscreenGameOverAndWait() {
 	Common::String spiritsDestroyedString;
 	if (isDOS())
 		spiritsDestroyedString = _messagesList[133];
-	else if (isSpectrum()) {
+	else if (isSpectrum() || isCPC()) {
 		if (_language == Common::EN_ANY)
 			spiritsDestroyedString = "X DESTROYED";
 		else if (_language == Common::ES_ESP)
@@ -1488,7 +1488,7 @@ bool CastleEngine::ghostInArea() {
 }
 
 void CastleEngine::drawSensorShoot(Sensor *sensor) {
-	if (isSpectrum()) {
+	if (isSpectrum() || isCPC()) {
 		_gfx->_inkColor = 1 + (_gfx->_inkColor + 1) % 7;
 	} else if (isDOS()) {
 		float shakeIntensity = 10;
