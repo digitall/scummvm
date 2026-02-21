@@ -340,7 +340,7 @@ Common::KeymapArray TitanicMetaEngine::initKeymaps(const char *target) const {
 	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
 	starMapKeymap->addAction(act);
 
-	act = new Action("BACKWARD", _("Move backward"));
+	act = new Action("BACKWARD", _("Move backwards"));
 	act->setCustomEngineActionEvent(kActionStarMapBackward);
 	act->allowKbdRepeats();
 	act->addDefaultInputMapping("PERIOD");
@@ -381,7 +381,7 @@ Common::KeymapArray TitanicMetaEngine::initKeymaps(const char *target) const {
 	act->addDefaultInputMapping("JOY_UP");
 	movementKeymap->addAction(act);
 
-	act = new Action("MBACKWARD", _("Move backward"));
+	act = new Action("MBACKWARD", _("Move backwards"));
 	act->setCustomEngineActionEvent(kActionMovementBackwards);
 	act->addDefaultInputMapping("DOWN");
 	 act->addDefaultInputMapping("JOY_DOWN");
