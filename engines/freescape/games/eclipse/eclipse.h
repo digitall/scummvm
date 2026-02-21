@@ -96,6 +96,8 @@ public:
 
 	soundFx *load1bPCM(Common::SeekableReadStream *file, int offset);
 
+	Common::Array<byte> _musicData; // TEMUSIC.ST TEXT segment (Atari ST)
+
 	bool checkIfGameEnded() override;
 	void endGame() override;
 	void loadSoundsFx(Common::SeekableReadStream *file, int offset, int number) override;

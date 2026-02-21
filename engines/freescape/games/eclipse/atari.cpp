@@ -174,6 +174,15 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	loadPalettes(stream, 0x2a0fa);
 	loadSoundsFx(stream, 0x3030c, 6);
 
+	// Load TEMUSIC.ST (GEMDOS executable at file offset $11F5A, skip $1C header, TEXT size $11E8)
+	static const uint32 kTEMusicOffset = 0x11F5A;
+	static const uint32 kGemdosHeaderSize = 0x1C;
+	static const uint32 kTEMusicTextSize = 0x11E8;
+	stream->seek(kTEMusicOffset + kGemdosHeaderSize);
+	_musicData.resize(kTEMusicTextSize);
+	stream->read(_musicData.data(), kTEMusicTextSize);
+	debug(3, "TE-Atari: Loaded TEMUSIC.ST TEXT segment (%d bytes)", kTEMusicTextSize);
+
 	/*
 	loadFonts(stream, 0xd06b, _fontBig);
 	loadFonts(stream, 0xd49a, _fontMedium);

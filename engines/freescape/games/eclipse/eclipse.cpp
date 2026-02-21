@@ -21,6 +21,9 @@
 
 #include "common/file.h"
 
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymap.h"
 #include "backends/keymapper/standard-actions.h"
@@ -31,6 +34,10 @@
 #include "freescape/language/8bitDetokeniser.h"
 
 namespace Freescape {
+
+// Forward declaration (defined in atari.music.cpp)
+Audio::AudioStream *makeEclipseAtariMusicStream(const byte *data, uint32 dataSize,
+                                                  int songNum = 1, int rate = 44100);
 
 EclipseEngine::EclipseEngine(OSystem *syst, const ADGameDescription *gd) : FreescapeEngine(syst, gd) {
 	// These sounds can be overriden by the class of each platform
@@ -330,6 +337,16 @@ void EclipseEngine::gotoArea(uint16 areaID, int entranceID) {
 	_currentArea->_usualBackgroundColor = isCPC() ? 1 : 0;
 	if (isAmiga() || isAtariST())
 		_currentArea->_skyColor = 15;
+
+	// Start background music (Atari ST)
+	if (isAtariST() && !_musicData.empty() && !_mixer->isSoundHandleActive(_musicHandle)) {
+		Audio::AudioStream *musicStream = makeEclipseAtariMusicStream(
+			_musicData.data(), _musicData.size(), 1);
+		if (musicStream) {
+			_mixer->playStream(Audio::Mixer::kMusicSoundType,
+				&_musicHandle, musicStream);
+		}
+	}
 
 	resetInput();
 }
