@@ -384,7 +384,7 @@ Common::KeymapArray TitanicMetaEngine::initKeymaps(const char *target) const {
 	act = new Action("MBACKWARD", _("Move backwards"));
 	act->setCustomEngineActionEvent(kActionMovementBackwards);
 	act->addDefaultInputMapping("DOWN");
-	 act->addDefaultInputMapping("JOY_DOWN");
+	act->addDefaultInputMapping("JOY_DOWN");
 	movementKeymap->addAction(act);
 
 	act = new Action("MLEFT", _("Move left"));
