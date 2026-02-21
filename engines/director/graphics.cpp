@@ -356,12 +356,17 @@ void InkPrimitives<T>::drawPoint(int x, int y, uint32 src, void *data) {
 
  	switch (p->ink) {
 	case kInkTypeBackgndTrans:
-		if (p->oneBitImage) {
-			// One-bit images have a slightly different rendering algorithm for BackgndTrans.
-			// Foreground colour is used, and background colour is ignored.
-			*dst = (src == p->colorBlack) ? p->foreColor : *dst;
+		if (p->srfMask) {
+			// If there's a mask, we already dealing with transparency, so just copy the pixel.
+			 *dst = src;
 		} else {
-			*dst = (src == p->backColor) ? *dst : src;
+			if (p->oneBitImage) {
+				// One-bit images have a slightly different rendering algorithm for BackgndTrans.
+				// Foreground colour is used, and background colour is ignored.
+				*dst = (src == p->colorBlack) ? p->foreColor : *dst;
+			} else {
+				*dst = (src == p->backColor) ? *dst : src;
+			}
 		}
 		break;
 	case kInkTypeMatte:
