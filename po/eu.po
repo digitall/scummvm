@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.5.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2024-02-05 18:42+0000\n"
 "Last-Translator: Josu Igoa <josuigoa@ni.eus>\n"
 "Language-Team: Basque <https://translations.scummvm.org/projects/scummvm/"
@@ -8393,7 +8393,7 @@ msgstr "Ezkerrera irristatu"
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Atzera mugitu"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17224,7 +17224,7 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Atzera mugitu"
 
 #, fuzzy

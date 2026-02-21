@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2023-02-26 15:01+0000\n"
 "Last-Translator: Kastuś K. <oakum2334@gmail.com>\n"
 "Language-Team: Belarusian (Taraškievica) <https://translations.scummvm.org/"
@@ -8418,7 +8418,7 @@ msgstr "Сьлізганьне налева"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Move backwards"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Рух назад"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17641,7 +17641,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Рух назад"
 
 #, fuzzy

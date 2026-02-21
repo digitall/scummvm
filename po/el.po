@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-20 15:48+0000\n"
 "Last-Translator: Antoniou Athanasios <a.antoniou79@gmail.com>\n"
 "Language-Team: Greek <https://translations.scummvm.org/projects/scummvm/"
@@ -8670,7 +8670,9 @@ msgstr "Πλάγια στα αριστερά"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
+#, fuzzy
+#| msgid "Move backwards"
+msgid "Move backwards"
 msgstr "Προχώρησε προς τα πίσω"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17802,9 +17804,7 @@ msgid ""
 "supported. Continue launching game?"
 msgstr ""
 
-#, fuzzy
-#~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Προχώρησε προς τα πίσω"
 
 #~ msgid "Yes/No keymapping"

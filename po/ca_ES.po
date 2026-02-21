@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-17 04:22+0000\n"
 "Last-Translator: Xaviu <xaviu@xaviu.com>\n"
 "Language-Team: Catalan <https://translations.scummvm.org/projects/scummvm/"
@@ -8056,7 +8056,7 @@ msgstr "Desplaça't a l'esquerra"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Mou cap enrere"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -15991,7 +15991,7 @@ msgid ""
 "supported. Continue launching game?"
 msgstr ""
 
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Mou cap enrere"
 
 #~ msgid "Yes/No keymapping"

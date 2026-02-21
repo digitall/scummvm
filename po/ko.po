@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-05 15:06+0000\n"
 "Last-Translator: Hoseok Seo <ddinghoya@gmail.com>\n"
 "Language-Team: Korean <https://translations.scummvm.org/projects/scummvm/"
@@ -8363,7 +8363,7 @@ msgstr "왼쪽 폭격"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "뒤로 이동"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -16423,7 +16423,7 @@ msgstr ""
 "MIDI 오디오가 필요한 여러 음악 퍼즐이 포함되어 있습니다.  이러한 퍼즐은 지원"
 "되는 경우 자막을 사용하여 해결할 수 있습니다. 게임을 계속 실행할까요?"
 
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "뒤로 이동"
 
 #~ msgid "Yes/No keymapping"

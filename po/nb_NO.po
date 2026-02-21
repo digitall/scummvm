@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Einar Johan Trøan Sømåen <einarjohants@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://translations.scummvm.org/projects/"
@@ -8886,7 +8886,7 @@ msgstr "Gå sidelengs mot venstre"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Move backwards"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Gå bakover"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -18057,7 +18057,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Gå bakover"
 
 #~ msgid "Yes/No keymapping"

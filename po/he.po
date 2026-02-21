@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.1.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2025-04-09 20:18+0000\n"
 "Last-Translator: Niv Baehr <bloop93@gmail.com>\n"
 "Language-Team: Hebrew <https://translations.scummvm.org/projects/scummvm/"
@@ -8323,7 +8323,7 @@ msgstr "החלק שמאלה"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Move backwards"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "תזוזה אחורה"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17491,7 +17491,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "תזוזה אחורה"
 
 #, fuzzy

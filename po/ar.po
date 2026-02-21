@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2023-03-26 11:16+0000\n"
 "Last-Translator: Malek Bellasfar <bellasfarmalek450@gmail.com>\n"
 "Language-Team: Arabic <https://translations.scummvm.org/projects/scummvm/"
@@ -8466,7 +8466,7 @@ msgstr "مهاجم اليسار"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Move backwards"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "ارجع للخلف"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17719,7 +17719,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "ارجع للخلف"
 
 #, fuzzy

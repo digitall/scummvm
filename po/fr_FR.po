@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-20 15:48+0000\n"
 "Last-Translator: Purple T <ZEONK@hotmail.com>\n"
 "Language-Team: French <https://translations.scummvm.org/projects/scummvm/"
@@ -8556,7 +8556,7 @@ msgstr "Esquive gauche"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Bouger en arrière"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -16848,7 +16848,7 @@ msgstr ""
 "résolues.  Ces puzzles peuvent également être résolus à l'aide de sous-"
 "titres, s'ils sont pris en charge. Continuer à lancer le jeu ?"
 
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Bouger en arrière"
 
 #~ msgid "Yes/No keymapping"

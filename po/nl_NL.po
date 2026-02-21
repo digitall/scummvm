@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-11 14:23+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Dutch <https://translations.scummvm.org/projects/scummvm/"
@@ -8442,7 +8442,7 @@ msgstr "Links straffen"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Achteruit bewegen"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -16648,7 +16648,7 @@ msgstr ""
 "behulp van ondertitels, indien ondersteund. Doorgaan met het starten van het "
 "spel?"
 
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Achteruit bewegen"
 
 #~ msgid "Yes/No keymapping"

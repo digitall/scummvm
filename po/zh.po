@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2024-05-14 12:42+0000\n"
 "Last-Translator: 复予 <clonewith@qq.com>\n"
 "Language-Team: Chinese <https://translations.scummvm.org/projects/scummvm/"
@@ -7899,7 +7899,7 @@ msgstr "向右"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Backend"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "后端"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -16364,7 +16364,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Backend"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "后端"
 
 #, fuzzy

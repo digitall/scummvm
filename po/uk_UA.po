@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-20 22:05+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Ukrainian <https://translations.scummvm.org/projects/scummvm/"
@@ -8435,8 +8435,8 @@ msgstr "Стрейф наліво"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
-msgstr "Рухатись до заду"
+msgid "Move backwards"
+msgstr "Рухатись задом"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
 #: engines/hpl1/metaengine.cpp:79 engines/mm/mm1/metaengine.cpp:100
@@ -16557,8 +16557,8 @@ msgstr ""
 "аудіо. Ці головоломки також можна розв'язати за допомогою субтитрів, якщо "
 "вони підтримуються. Продовжити запуск гри?"
 
-#~ msgid "Move backwards"
-#~ msgstr "Рухатись задом"
+#~ msgid "Move backward"
+#~ msgstr "Рухатись до заду"
 
 #~ msgid "Yes/No keymapping"
 #~ msgstr "Мапа клавіш Так/Ні"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-06 00:22+0000\n"
 "Last-Translator: VAN-Gluon <van.gluonp@gmail.com>\n"
 "Language-Team: Japanese <https://translations.scummvm.org/projects/scummvm/"
@@ -8517,7 +8517,7 @@ msgstr "左ステップ"
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 #| msgid "Move backwards"
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "後退"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17661,7 +17661,7 @@ msgstr ""
 
 #, fuzzy
 #~| msgid "Move backwards"
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "後退"
 
 #~ msgid "Yes/No keymapping"

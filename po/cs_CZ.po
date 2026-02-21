@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.7.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-09 20:22+0000\n"
 "Last-Translator: AsciiWolf <mail@asciiwolf.com>\n"
 "Language-Team: Czech <https://translations.scummvm.org/projects/scummvm/"
@@ -8319,7 +8319,7 @@ msgstr "Přesunout se Doleva"
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
-msgid "Move backward"
+msgid "Move backwards"
 msgstr "Vzad"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
@@ -17122,7 +17122,7 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-#~ msgid "Move backwards"
+#~ msgid "Move backward"
 #~ msgstr "Vzad"
 
 #, fuzzy

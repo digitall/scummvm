@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-21 20:43+0000\n"
+"POT-Creation-Date: 2026-02-21 20:47+0000\n"
 "PO-Revision-Date: 2026-02-11 14:22+0000\n"
 "Last-Translator: DwarfDev <dwarflin@gmx.de>\n"
 "Language-Team: German <https://translations.scummvm.org/projects/scummvm/"
@@ -8524,8 +8524,8 @@ msgstr "Nach links strafen"
 #: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backward"
-msgstr "Rückwärts verschieben"
+msgid "Move backwards"
+msgstr "Rückwärts gehen"
 
 #: engines/dm/metaengine.cpp:236 engines/freescape/movement.cpp:56
 #: engines/hpl1/metaengine.cpp:79 engines/mm/mm1/metaengine.cpp:100
@@ -16797,8 +16797,8 @@ msgstr ""
 "Untertiteln gelöst werden, sofern diese unterstützt werden. Möchten Sie das "
 "Spiel trotzdem starten?"
 
-#~ msgid "Move backwards"
-#~ msgstr "Rückwärts gehen"
+#~ msgid "Move backward"
+#~ msgstr "Rückwärts verschieben"
 
 #~ msgid "Yes/No keymapping"
 #~ msgstr "Tastenbelegung für Ja/Nein-Fragen"
