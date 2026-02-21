@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-20 21:12+0000\n"
+"POT-Creation-Date: 2026-02-21 20:43+0000\n"
 "PO-Revision-Date: 2026-02-11 14:22+0000\n"
 "Last-Translator: DwarfDev <dwarflin@gmx.de>\n"
 "Language-Team: German <https://translations.scummvm.org/projects/scummvm/"
@@ -8518,8 +8518,12 @@ msgstr "Champion 4 Inventar umschalten"
 msgid "Strafe left"
 msgstr "Nach links strafen"
 
-#: engines/dm/metaengine.cpp:226 engines/titanic/metaengine.cpp:343
-#: engines/titanic/metaengine.cpp:384
+#: engines/dm/metaengine.cpp:226 engines/kyra/engine/eobcommon.cpp:372
+#: engines/kyra/engine/lol.cpp:511 engines/mohawk/riven.cpp:895
+#: engines/titanic/metaengine.cpp:343 engines/titanic/metaengine.cpp:384
+#: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
+#: engines/wintermute/keymapper_tables.h:736
+#: engines/wintermute/keymapper_tables.h:2238
 msgid "Move backward"
 msgstr "Rückwärts verschieben"
 
@@ -10066,14 +10070,6 @@ msgstr ""
 #: engines/kyra/metaengine.cpp:295
 msgid "Eye of Beholder support is not compiled in"
 msgstr "Unterstützung für Eye of the Beholder ist nicht eingebaut"
-
-#: engines/kyra/engine/eobcommon.cpp:372 engines/kyra/engine/lol.cpp:511
-#: engines/mohawk/riven.cpp:895 engines/twine/metaengine.cpp:339
-#: engines/wintermute/keymapper_tables.h:155
-#: engines/wintermute/keymapper_tables.h:736
-#: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backwards"
-msgstr "Rückwärts gehen"
 
 #: engines/kyra/engine/eobcommon.cpp:377
 msgid "Open / Close inventory"
@@ -16800,6 +16796,9 @@ msgstr ""
 "erforderlich ist. Diese Rätsel können alternativ auch mithilfe von "
 "Untertiteln gelöst werden, sofern diese unterstützt werden. Möchten Sie das "
 "Spiel trotzdem starten?"
+
+#~ msgid "Move backwards"
+#~ msgstr "Rückwärts gehen"
 
 #~ msgid "Yes/No keymapping"
 #~ msgstr "Tastenbelegung für Ja/Nein-Fragen"

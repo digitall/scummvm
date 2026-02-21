@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-20 21:12+0000\n"
+"POT-Creation-Date: 2026-02-21 20:43+0000\n"
 "PO-Revision-Date: 2026-02-11 14:23+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Dutch <https://translations.scummvm.org/projects/scummvm/"
@@ -8436,8 +8436,12 @@ msgstr "Schakel kampioen 4 inventaris in/uit"
 msgid "Strafe left"
 msgstr "Links straffen"
 
-#: engines/dm/metaengine.cpp:226 engines/titanic/metaengine.cpp:343
-#: engines/titanic/metaengine.cpp:384
+#: engines/dm/metaengine.cpp:226 engines/kyra/engine/eobcommon.cpp:372
+#: engines/kyra/engine/lol.cpp:511 engines/mohawk/riven.cpp:895
+#: engines/titanic/metaengine.cpp:343 engines/titanic/metaengine.cpp:384
+#: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
+#: engines/wintermute/keymapper_tables.h:736
+#: engines/wintermute/keymapper_tables.h:2238
 msgid "Move backward"
 msgstr "Achteruit bewegen"
 
@@ -9982,14 +9986,6 @@ msgstr ""
 #: engines/kyra/metaengine.cpp:295
 msgid "Eye of Beholder support is not compiled in"
 msgstr "Ondersteuning voor Eye of the Beholder is niet meegecompileerd"
-
-#: engines/kyra/engine/eobcommon.cpp:372 engines/kyra/engine/lol.cpp:511
-#: engines/mohawk/riven.cpp:895 engines/twine/metaengine.cpp:339
-#: engines/wintermute/keymapper_tables.h:155
-#: engines/wintermute/keymapper_tables.h:736
-#: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backwards"
-msgstr "Achteruit bewegen"
 
 #: engines/kyra/engine/eobcommon.cpp:377
 msgid "Open / Close inventory"
@@ -16651,6 +16647,9 @@ msgstr ""
 "opgelost te kunnen worden. Deze puzzels kunnen ook worden opgelost met "
 "behulp van ondertitels, indien ondersteund. Doorgaan met het starten van het "
 "spel?"
+
+#~ msgid "Move backwards"
+#~ msgstr "Achteruit bewegen"
 
 #~ msgid "Yes/No keymapping"
 #~ msgstr "Ja/Nee toetskoppeling"

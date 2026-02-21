@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.4.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-20 21:12+0000\n"
+"POT-Creation-Date: 2026-02-21 20:43+0000\n"
 "PO-Revision-Date: 2026-02-21 10:21+0000\n"
 "Last-Translator: IlDucci <pajaroloco_2@hotmail.com>\n"
 "Language-Team: Spanish <https://translations.scummvm.org/projects/scummvm/"
@@ -8529,8 +8529,12 @@ msgstr "Mostrar/Ocultar inventario de paladín 4"
 msgid "Strafe left"
 msgstr "Desplazarse a la izquierda"
 
-#: engines/dm/metaengine.cpp:226 engines/titanic/metaengine.cpp:343
-#: engines/titanic/metaengine.cpp:384
+#: engines/dm/metaengine.cpp:226 engines/kyra/engine/eobcommon.cpp:372
+#: engines/kyra/engine/lol.cpp:511 engines/mohawk/riven.cpp:895
+#: engines/titanic/metaengine.cpp:343 engines/titanic/metaengine.cpp:384
+#: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
+#: engines/wintermute/keymapper_tables.h:736
+#: engines/wintermute/keymapper_tables.h:2238
 msgid "Move backward"
 msgstr "Retroceder"
 
@@ -10090,14 +10094,6 @@ msgstr ""
 #: engines/kyra/metaengine.cpp:295
 msgid "Eye of Beholder support is not compiled in"
 msgstr "No se ha incluido el soporte para Eye of Beholder."
-
-#: engines/kyra/engine/eobcommon.cpp:372 engines/kyra/engine/lol.cpp:511
-#: engines/mohawk/riven.cpp:895 engines/twine/metaengine.cpp:339
-#: engines/wintermute/keymapper_tables.h:155
-#: engines/wintermute/keymapper_tables.h:736
-#: engines/wintermute/keymapper_tables.h:2238
-msgid "Move backwards"
-msgstr "Retroceder"
 
 #: engines/kyra/engine/eobcommon.cpp:377
 msgid "Open / Close inventory"
@@ -16780,6 +16776,9 @@ msgstr ""
 "que es imprescindible tener audio en MIDI para poder resolverlos.  También "
 "se podrían resolver estos acertijos con subtítulos, si están disponibles. "
 "¿Quieres seguir ejecutando el juego?"
+
+#~ msgid "Move backwards"
+#~ msgstr "Retroceder"
 
 #~ msgid "Yes/No keymapping"
 #~ msgstr "Asignación a Sí/No"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-20 21:12+0000\n"
+"POT-Creation-Date: 2026-02-21 20:43+0000\n"
 "PO-Revision-Date: 2023-09-07 17:04+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Danish <https://translations.scummvm.org/projects/scummvm/"
@@ -8342,8 +8342,12 @@ msgstr "Skift inventar/IQ-point-visning"
 msgid "Strafe left"
 msgstr "Flyt til venstre"
 
-#: engines/dm/metaengine.cpp:226 engines/titanic/metaengine.cpp:343
-#: engines/titanic/metaengine.cpp:384
+#: engines/dm/metaengine.cpp:226 engines/kyra/engine/eobcommon.cpp:372
+#: engines/kyra/engine/lol.cpp:511 engines/mohawk/riven.cpp:895
+#: engines/titanic/metaengine.cpp:343 engines/titanic/metaengine.cpp:384
+#: engines/twine/metaengine.cpp:339 engines/wintermute/keymapper_tables.h:155
+#: engines/wintermute/keymapper_tables.h:736
+#: engines/wintermute/keymapper_tables.h:2238
 #, fuzzy
 msgid "Move backward"
 msgstr "Flyt bagud"
@@ -10039,15 +10043,6 @@ msgstr ""
 #, fuzzy
 msgid "Eye of Beholder support is not compiled in"
 msgstr "Funktionaliteter som er kompileret ind:"
-
-#: engines/kyra/engine/eobcommon.cpp:372 engines/kyra/engine/lol.cpp:511
-#: engines/mohawk/riven.cpp:895 engines/twine/metaengine.cpp:339
-#: engines/wintermute/keymapper_tables.h:155
-#: engines/wintermute/keymapper_tables.h:736
-#: engines/wintermute/keymapper_tables.h:2238
-#, fuzzy
-msgid "Move backwards"
-msgstr "Flyt bagud"
 
 #: engines/kyra/engine/eobcommon.cpp:377
 #, fuzzy
@@ -17248,6 +17243,10 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Move backwards"
+#~ msgstr "Flyt bagud"
 
 #, fuzzy
 #~ msgid "Yes/No keymapping"
