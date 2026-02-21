@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-20 21:12+0000\n"
-"PO-Revision-Date: 2026-02-20 22:05+0000\n"
+"PO-Revision-Date: 2026-02-21 20:43+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -9019,33 +9019,25 @@ msgstr "Лицом вперёд"
 #: engines/freescape/games/dark/dark.cpp:224
 #: engines/freescape/games/driller/driller.cpp:183
 #: engines/ultima/ultima8/metaengine.cpp:97
-#, fuzzy
-#| msgid "Move left"
 msgid "Roll left"
-msgstr "Идти влево"
+msgstr "Перекат влево"
 
 #: engines/freescape/games/dark/dark.cpp:229
 #: engines/freescape/games/driller/driller.cpp:188
 #: engines/ultima/ultima8/metaengine.cpp:98
-#, fuzzy
-#| msgid "Move right"
 msgid "Roll right"
-msgstr "Идти вправо"
+msgstr "Перекат вправо"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-#, fuzzy
-#| msgid "Increasing Volume"
 msgid "Increase Turn Angle"
-msgstr "Увеличение громкости"
+msgstr "Увеличить угол поворота"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-#, fuzzy
-#| msgid "Decreasing Volume"
 msgid "Decrease Turn Angle"
-msgstr "Уменьшение громкости"
+msgstr "Уменьшить угол поворота"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
@@ -9231,8 +9223,6 @@ msgid "Magic"
 msgstr "Магия"
 
 #: engines/got/metaengine.cpp:79
-#, fuzzy
-#| msgid "Thor Dies"
 msgid "Thor dies"
 msgstr "Тор умирает"
 
@@ -9245,8 +9235,6 @@ msgid "Menu / Skip"
 msgstr "Меню / Пропустить"
 
 #: engines/griffon/metaengine.cpp:159
-#, fuzzy
-#| msgid "Speed Up Cutscene"
 msgid "Speed up cutscene"
 msgstr "Ускорить заставку"
 
@@ -9262,16 +9250,12 @@ msgstr ""
 "Вы всё ещё хотите запустить %s?"
 
 #: engines/grim/grim.cpp:511 engines/grim/grim.cpp:611
-#, fuzzy
-#| msgid "Use/Talk"
 msgid "Use / Talk"
-msgstr "Использовать/Говорить"
+msgstr "Использовать / Говорить"
 
 #: engines/grim/grim.cpp:516 engines/grim/grim.cpp:616
-#, fuzzy
-#| msgid "Pick up/Put away"
 msgid "Pick up / Put away"
-msgstr "Поднять/Отложить"
+msgstr "Поднять / Отложить"
 
 #: engines/grim/grim.cpp:526 engines/grim/grim.cpp:626
 msgid "Skip dialog lines"
@@ -9279,29 +9263,21 @@ msgstr "Пропустить строчку диалога"
 
 #. I18N: Cycle means rotate through
 #: engines/grim/grim.cpp:584
-#, fuzzy
-#| msgid "Cycle Objects Up"
 msgid "Cycle objects up"
 msgstr "Прокрутить объекты вверх"
 
 #. I18N: Cycle means rotate through
 #: engines/grim/grim.cpp:590
-#, fuzzy
-#| msgid "Cycle Objects Down"
 msgid "Cycle objects down"
 msgstr "Прокрутить объекты вниз"
 
 #: engines/grim/grim.cpp:601
-#, fuzzy
-#| msgid "Quick Room Exit"
 msgid "Quick room exit"
 msgstr "Быстрый выход из комнаты"
 
 #: engines/grim/grim.cpp:606
-#, fuzzy
-#| msgid "Examine/Look"
 msgid "Examine / Look"
-msgstr "Проверить/Посмотреть"
+msgstr "Проверить / Посмотреть"
 
 #: engines/grim/grim.cpp:1386
 msgid "Error: the game could not be saved."
@@ -9362,12 +9338,12 @@ msgstr ""
 "не оказывает поддержку при использовании таких патчей."
 
 #: engines/grim/metaengine.cpp:87
-#, fuzzy
-#| msgid "Escape from Monkey Island support is not compiled in"
 msgid ""
 "Escape from Monkey Island PS2 support required MPEG2 support, which is not "
 "compiled in"
-msgstr "Поддержка для Escape from Monkey Island не скомпилирована"
+msgstr ""
+"Поддержка для Escape from Monkey Island PS2 требует MPEG2, которая не "
+"скомпилирована"
 
 #: engines/grim/metaengine.cpp:92
 msgid "Escape from Monkey Island support is not compiled in"
@@ -9435,7 +9411,7 @@ msgstr "Упрощённый ИИ"
 
 #: engines/groovie/metaengine.cpp:66 engines/groovie/metaengine.cpp:78
 msgid "Decrease the difficulty of AI puzzles"
-msgstr "Уменьшает сложность ИИ-головоломок"
+msgstr "Уменьшить сложность ИИ-головоломок"
 
 #: engines/groovie/metaengine.cpp:89
 msgid "Updated Credits Music"
@@ -9525,8 +9501,6 @@ msgstr "Включить режим с изображением крови, ес
 
 #: engines/hopkins/metaengine.cpp:248 engines/tinsel/metaengine.cpp:307
 #: engines/twine/metaengine.cpp:307
-#, fuzzy
-#| msgid "Options Menu"
 msgid "Options menu"
 msgstr "Меню опций"
 
@@ -9539,14 +9513,10 @@ msgid "Backward"
 msgstr "Назад"
 
 #: engines/hpl1/metaengine.cpp:80
-#, fuzzy
-#| msgid "Lean Left"
 msgid "Lean left"
 msgstr "Наклон влево"
 
 #: engines/hpl1/metaengine.cpp:81
-#, fuzzy
-#| msgid "Lean Right"
 msgid "Lean right"
 msgstr "Наклон вправо"
 
@@ -9557,14 +9527,10 @@ msgid "Crouch"
 msgstr "Ползание"
 
 #: engines/hpl1/metaengine.cpp:87
-#, fuzzy
-#| msgid "Interact Mode"
 msgid "Interact mode"
 msgstr "Режим взаимодействия"
 
 #: engines/hpl1/metaengine.cpp:88
-#, fuzzy
-#| msgid "Look Mode"
 msgid "Look mode"
 msgstr "Режим осмотра"
 
@@ -9577,8 +9543,6 @@ msgid "Notebook"
 msgstr "Записная книжка"
 
 #: engines/hpl1/metaengine.cpp:96
-#, fuzzy
-#| msgid "Personal Notes"
 msgid "Personal notes"
 msgstr "Личные заметки"
 
@@ -9591,10 +9555,8 @@ msgid "Glowstick"
 msgstr "Светящаяся палочка"
 
 #: engines/hugo/metaengine.cpp:45
-#, fuzzy
-#| msgid "Easy mouse interface"
 msgid "Use Windows interface"
-msgstr "Простой интерфейс мыши"
+msgstr "Использовать интерфейс Windows"
 
 #: engines/hugo/metaengine.cpp:46
 msgid "Use mouse and toolbar from Windows version"
@@ -9730,10 +9692,8 @@ msgid "Primary shoot"
 msgstr ""
 
 #: engines/hypno/metaengine.cpp:140
-#, fuzzy
-#| msgid "Seconds"
 msgid "Secondary shoot"
-msgstr "Секунд"
+msgstr "Вторичный выстрел"
 
 #: engines/hypno/metaengine.cpp:146 engines/lab/metaengine.cpp:209
 #: engines/ngi/metaengine.cpp:168 engines/sherlock/metaengine.cpp:872
@@ -9756,10 +9716,8 @@ msgstr "Раскладка клавиш меню новой попытки"
 
 #: engines/hypno/metaengine.cpp:172 engines/hypno/metaengine.cpp:270
 #: engines/hypno/metaengine.cpp:322
-#, fuzzy
-#| msgid "Skip speech"
 msgid "Skip level (cheat)"
-msgstr "Пропустить речь"
+msgstr "Пропустить уровень (чит)"
 
 #. I18N: (Game name: Soldier Boyz) player refers to the users own character.
 #. I18N: (Game name: Marvel Comics Spider-Man: The Sinister Six) player refers to the users own character.
@@ -9786,17 +9744,13 @@ msgstr ""
 
 #. I18N: (Game name: Soldier Boyz) This makes the player restart from the last checkpoint.
 #: engines/hypno/metaengine.cpp:232
-#, fuzzy
-#| msgid "Retreat"
 msgid "Retry sector"
-msgstr "Отступить"
+msgstr "Сектор сначала"
 
 #. I18N: (Game name: Soldier Boyz) This makes the player restart the current mission / level.
 #: engines/hypno/metaengine.cpp:239
-#, fuzzy
-#| msgid "Restart animation"
 msgid "Restart territory"
-msgstr "Перезапустить анимацию"
+msgstr "Перезапустить территорию"
 
 #: engines/hypno/metaengine.cpp:245
 msgid "Begin new mission"
@@ -9827,8 +9781,6 @@ msgstr "Ремора"
 
 #. I18N: Action in In Cold Blood
 #: engines/icb/icb.cpp:125 engines/icb/icb.cpp:191
-#, fuzzy
-#| msgid "Side Step"
 msgid "Side step"
 msgstr "Шаг в сторону"
 
@@ -10015,66 +9967,46 @@ msgstr "Поддержка для Eye of Beholder не скомпилирова�
 #: engines/wintermute/keymapper_tables.h:155
 #: engines/wintermute/keymapper_tables.h:736
 #: engines/wintermute/keymapper_tables.h:2238
-#, fuzzy
-#| msgid "Move backwards"
 msgid "Move backwards"
 msgstr "Идти назад"
 
 #: engines/kyra/engine/eobcommon.cpp:377
-#, fuzzy
-#| msgid "Open/Close Inventory"
 msgid "Open / Close inventory"
-msgstr "Открыть/закрыть инвентарь"
+msgstr "Открыть / Закрыть инвентарь"
 
 #: engines/kyra/engine/eobcommon.cpp:378
-#, fuzzy
-#| msgid "Switch Inventory/Character screen"
 msgid "Switch inventory / Character screen"
-msgstr "Переключить инвентарь/экран персонажа"
+msgstr "Переключить инвентарь / экран персонажа"
 
 #: engines/kyra/engine/eobcommon.cpp:379
 msgid "Camp"
 msgstr "Лагерь"
 
 #: engines/kyra/engine/eobcommon.cpp:380 engines/mm/mm1/metaengine.cpp:102
-#, fuzzy
-#| msgid "Cast Spell"
 msgid "Cast spell"
 msgstr "Применить заклинание"
 
 #: engines/kyra/engine/eobcommon.cpp:383
-#, fuzzy
-#| msgid "Spell Level 1"
 msgid "Spell level 1"
 msgstr "Заклинание 1-го уровня"
 
 #: engines/kyra/engine/eobcommon.cpp:384
-#, fuzzy
-#| msgid "Spell Level 2"
 msgid "Spell level 2"
 msgstr "Заклинание 2-го уровня"
 
 #: engines/kyra/engine/eobcommon.cpp:385
-#, fuzzy
-#| msgid "Spell Level 3"
 msgid "Spell level 3"
 msgstr "Заклинание 3-го уровня"
 
 #: engines/kyra/engine/eobcommon.cpp:386
-#, fuzzy
-#| msgid "Spell Level 4"
 msgid "Spell level 4"
 msgstr "Заклинание 4-го уровня"
 
 #: engines/kyra/engine/eobcommon.cpp:387
-#, fuzzy
-#| msgid "Spell Level 5"
 msgid "Spell level 5"
 msgstr "Заклинание 5-го уровня"
 
 #: engines/kyra/engine/eobcommon.cpp:389
-#, fuzzy
-#| msgid "Spell Level 6"
 msgid "Spell level 6"
 msgstr "Заклинание 6-го уровня"
 
@@ -10102,14 +10034,10 @@ msgid "Show map"
 msgstr "Показать карту"
 
 #: engines/kyra/engine/lol.cpp:512
-#, fuzzy
-#| msgid "Slide Left"
 msgid "Slide left"
 msgstr "Скользить влево"
 
 #: engines/kyra/engine/lol.cpp:513
-#, fuzzy
-#| msgid "Slide Right"
 msgid "Slide right"
 msgstr "Скользить вправо"
 
@@ -10118,8 +10046,6 @@ msgid "Options"
 msgstr "Опции"
 
 #: engines/kyra/engine/lol.cpp:518
-#, fuzzy
-#| msgid "Choose Spell"
 msgid "Choose spell"
 msgstr "Выбрать заклинание"
 
@@ -12685,7 +12611,7 @@ msgstr "Переключение между графическими фильт�
 
 #: engines/scumm/help.cpp:102
 msgid "Increase / Decrease scale factor"
-msgstr "Увеличить / уменьшить масштаб"
+msgstr "Увеличить / Уменьшить масштаб"
 
 #: engines/scumm/help.cpp:108
 msgid "* Note that using ctrl-f and"
@@ -15904,10 +15830,8 @@ msgid "Show keys"
 msgstr "Показать цитаты"
 
 #: engines/ultima/nuvie/metaengine.cpp:110
-#, fuzzy
-#| msgid "Decrease speed"
 msgid "Decrease debug"
-msgstr "Уменьшить скорость"
+msgstr "Уменьшить уровень отладки"
 
 #: engines/ultima/nuvie/metaengine.cpp:111
 #, fuzzy
