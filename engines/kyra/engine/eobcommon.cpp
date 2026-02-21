@@ -369,7 +369,7 @@ Common::KeymapArray EoBCoreEngine::initKeymaps(const Common::String &gameId) {
 	addKeymapAction(keyMap, Common::kStandardActionLeftClick, _("Left click"), &Common::Action::setLeftClickEvent, "MOUSE_LEFT", "JOY_A");
 	addKeymapAction(keyMap, Common::kStandardActionRightClick, _("Right click"), &Common::Action::setRightClickEvent, "MOUSE_RIGHT", "JOY_B");
 	addKeymapAction(keyMap, "MVF", _("Move forward"), Common::KeyState(Common::KEYCODE_UP), "UP", "JOY_UP");
-	addKeymapAction(keyMap, "MVB", _("Move backwards"), Common::KeyState(Common::KEYCODE_DOWN), "DOWN", "JOY_DOWN");
+	addKeymapAction(keyMap, "MVB", _("Move backward"), Common::KeyState(Common::KEYCODE_DOWN), "DOWN", "JOY_DOWN");
 	addKeymapAction(keyMap, "MVL", _("Move left"), Common::KeyState(Common::KEYCODE_LEFT), "LEFT", "JOY_LEFT_TRIGGER");
 	addKeymapAction(keyMap, "MVR", _("Move right"), Common::KeyState(Common::KEYCODE_RIGHT), "RIGHT", "JOY_RIGHT_TRIGGER");
 	addKeymapAction(keyMap, "TL", _("Turn left"), Common::KeyState(Common::KEYCODE_HOME), "HOME", "JOY_LEFT");
@@ -754,7 +754,7 @@ void EoBCoreEngine::runLoop() {
 	_runFlag = true;
 
 	while (!shouldQuit() && _runFlag) {
-		uint32 frameEnd = _system->getMillis() + 8;	
+		uint32 frameEnd = _system->getMillis() + 8;
 		checkPartyStatus(true);
 		checkInput(_activeButtons, true, 0);
 		removeInputTop();

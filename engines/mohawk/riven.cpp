@@ -892,7 +892,7 @@ Common::KeymapArray MohawkEngine_Riven::initKeymaps(const char *target) {
 	act->setCustomEngineActionEvent(kRivenActionMoveForwardRight);
 	engineKeyMap->addAction(act);
 
-	act = new Action(kStandardActionMoveDown, _("Move backwards"));
+	act = new Action(kStandardActionMoveDown, _("Move backward"));
 	act->setCustomEngineActionEvent(kRivenActionMoveBack);
 	act->addDefaultInputMapping("DOWN");
 	act->addDefaultInputMapping("JOY_DOWN");
