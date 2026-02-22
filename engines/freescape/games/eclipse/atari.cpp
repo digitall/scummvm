@@ -291,16 +291,16 @@ void EclipseEngine::drawAmigaAtariSTUI(Graphics::Surface *surface) {
 		_font.drawChar(surface, chr, 233, 119, pal[1]);
 	}
 
-	// Eclipse animation: sprite blit at x=$A0(160), y=$86(134) — from $1E9E/$1EA6
+	// Heart indicator: sprite blit at x=$A0(160), y=$86(134) — from $1E9E/$1EA6
+	// 2 frames: 0 = heart visible, 1 = heart hidden/dimmed. Blink cycle.
 	if (_eclipseSprites.size() >= 2) {
-		// Toggle between 2 frames based on countdown
-		int frame = (_countdown / 30) % 2;
+		int frame = (_ticks / 30) % 2;
 		surface->copyRectToSurface(*_eclipseSprites[frame], 160, 134,
 			Common::Rect(_eclipseSprites[frame]->w, _eclipseSprites[frame]->h));
 	}
 
-	// Shield energy bar: sprite blit at x=$80(128), y=$84(132) — from $11CD8/$11CE0
-	// 16 frames selected by shield level (0-15)
+	// Shield energy jar: sprite blit at x=$80(128), y=$84(132) — from $11CD8/$11CE0
+	// 16 frames showing jar fill level (0-15)
 	if (_shieldSprites.size() >= 16) {
 		int shieldLevel = _gameStateVars[k8bitVariableShield] * 15 / _maxShield;
 		shieldLevel = CLIP(shieldLevel, 0, 15);
@@ -308,8 +308,23 @@ void EclipseEngine::drawAmigaAtariSTUI(Graphics::Surface *surface) {
 			Common::Rect(_shieldSprites[shieldLevel]->w, _shieldSprites[shieldLevel]->h));
 	}
 
-	// Ankh indicators at y=$B6(182), x = (ankh_idx-1)*16 + 3 — from $11D88
-	drawIndicator(surface, 3, 182, 16);
+	// Ankh indicators at y=$B6(182), x = i*16 + 3 — from $11D88
+	// Draw collected ankhs with transparency (skip black/color-0 pixels)
+	if (_ankhSprites.size() >= 5) {
+		uint32 transparentColor = pal[0]; // black
+		Graphics::ManagedSurface *ankh = _ankhSprites[3]; // frame 3 = fully visible
+		for (int i = 0; i < _gameStateVars[kVariableEclipseAnkhs] && i < 5; i++) {
+			int destX = 3 + 16 * i;
+			int destY = 182;
+			for (int y = 0; y < ankh->h; y++) {
+				for (int x = 0; x < ankh->w; x++) {
+					uint32 pixel = ankh->getPixel(x, y);
+					if (pixel != transparentColor)
+						surface->setPixel(destX + x, destY + y, pixel);
+				}
+			}
+		}
+	}
 
 	// Compass at x=$B0(176), y=$97(151) — from sprite header at prog $2097C/$2097E
 	if (_compassSprites.size() >= 37) {
@@ -404,12 +419,12 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	// convert program addresses to stream offsets.
 	static const int kHdr = 0x1C;
 
-	// Eclipse animation sprites: 2 frames, 16x13 pixels
+	// Heart indicator sprites: 2 frames, 16x13 pixels
 	// Descriptor at prog $1D2B8 (1 col × 13 rows), mask at +6, pixels at +8
-	// Frame 1 pixels at prog $1D7AB
+	// Frame 0 = heart visible, Frame 1 = heart hidden/dimmed
 	_eclipseSprites.resize(2);
 	_eclipseSprites[0] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D2C0 + kHdr, 1, 13);
-	_eclipseSprites[1] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D7AB + kHdr, 1, 13);
+	_eclipseSprites[1] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D2C0 + 104 + kHdr, 1, 13);
 
 	// Shield energy bar sprites: 16 frames, 16x16 pixels
 	// Descriptor at prog $1DA90 (1 col × 16 rows), mask at +6, pixels at +8
@@ -418,13 +433,14 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	for (int i = 0; i < 16; i++)
 		_shieldSprites[i] = loadAtariSTSprite(stream, 0x1DA96 + kHdr, 0x1DA98 + kHdr + i * 128, 1, 16);
 
-	// Ankh indicator: descriptor at prog $1B72C (1 col × 15 rows = 16x15), mask at +6, pixels at +8
-	Graphics::ManagedSurface *ankhManaged = loadAtariSTSprite(stream, 0x1B732 + kHdr, 0x1B734 + kHdr, 1, 15);
-	ankhManaged->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
-	Graphics::Surface *ankhSurface = new Graphics::Surface();
-	ankhSurface->copyFrom(*ankhManaged);
-	delete ankhManaged;
-	_indicators.push_back(ankhSurface);
+	// Ankh indicator: 5 fade-in frames at prog $1B734, 16x15 (1 col, stride 120 bytes)
+	// Mask at prog $1B732. Frame 3 = fully visible ankh.
+	_ankhSprites.resize(5);
+	for (int i = 0; i < 5; i++) {
+		_ankhSprites[i] = loadAtariSTSprite(stream, 0x1B732 + kHdr, 0x1B734 + kHdr + i * 120, 1, 15);
+		_ankhSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+	}
 
 	// Compass background at prog $20986 (32x27, raw 4-plane) and needle at prog $20B36
 	// (37 frames, 32x27 each, stride 432 bytes). Pre-composite background + needle.
@@ -485,6 +501,24 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	for (auto &sprite : _lanternSwitchSprites)
 		sprite->convertToInPlace(_gfx->_texturePixelFormat,
 			const_cast<byte *>(kBorderPalette), 16);
+
+	// Heartbeat/EKG animation: 5 frames, 16x11, at prog $20794, stride 96 bytes
+	// Drawn at (32, 138)
+	_heartbeatSprites.resize(5);
+	for (int i = 0; i < 5; i++) {
+		_heartbeatSprites[i] = loadAtariSTRawSprite(stream, 0x20794 + kHdr + i * 96, 1, 11);
+		_heartbeatSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+	}
+
+	// Water ripple animation: 9 frames, 32x9, at prog $27714, stride 144 bytes
+	// Mask at prog $27710. Drawn at (0, 28) in left border strip.
+	_waterSprites.resize(9);
+	for (int i = 0; i < 9; i++) {
+		_waterSprites[i] = loadAtariSTSprite(stream, 0x27710 + kHdr, 0x27714 + kHdr + i * 144, 2, 9);
+		_waterSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+	}
 
 	// Shooting crosshair sprites: 2 frames with mask, at prog $1CC26 and $1CDC0
 	// Frame 0: 32x25 (2 cols), frame 1: 48x25 (3 cols)

@@ -108,6 +108,9 @@ public:
 	Common::Array<Graphics::ManagedSurface *> _lanternLightSprites;  // 6 lantern light animation frames (32x6)
 	Common::Array<Graphics::ManagedSurface *> _lanternSwitchSprites; // 2 lantern on/off frames (32x23)
 	Common::Array<Graphics::ManagedSurface *> _shootSprites;         // 2 shooting crosshair frames (32x25, 48x25)
+	Common::Array<Graphics::ManagedSurface *> _ankhSprites;          // 5 ankh fade-in frames (16x15)
+	Common::Array<Graphics::ManagedSurface *> _waterSprites;         // 9 water ripple frames (32x9)
+	Common::Array<Graphics::ManagedSurface *> _heartbeatSprites;     // 5 heartbeat/EKG frames (16x11)
 	byte _compassLookup[72];  // direction-to-needle-frame lookup table
 
 	bool checkIfGameEnded() override;
