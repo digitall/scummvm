@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-21 20:47+0000\n"
-"PO-Revision-Date: 2026-02-22 12:22+0000\n"
+"PO-Revision-Date: 2026-02-22 15:18+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -10185,10 +10185,8 @@ msgid "Exit"
 msgstr "Выход"
 
 #: engines/lab/metaengine.cpp:179
-#, fuzzy
-#| msgid "Enable the sound for the game"
 msgid "Raise the sound volume"
-msgstr "Включить звук в игре"
+msgstr "Увеличить громкость звука"
 
 #: engines/lab/metaengine.cpp:185
 msgid "Lower the sound volume"
@@ -10199,22 +10197,16 @@ msgid "Interact with object with chosen action"
 msgstr ""
 
 #: engines/lab/metaengine.cpp:221
-#, fuzzy
-#| msgid "Next object"
 msgid "Take object"
-msgstr "Следующий объект"
+msgstr "Взять объект"
 
 #: engines/lab/metaengine.cpp:227
-#, fuzzy
-#| msgid "Go to next object"
 msgid "Move or manipulate object"
-msgstr "Перейти в на следующий объект"
+msgstr "Переместить или взаимодействовать с объектом"
 
 #: engines/lab/metaengine.cpp:233
-#, fuzzy
-#| msgid "Open Holomap"
 msgid "Open door or object"
-msgstr "Открыть голокарту"
+msgstr "Открыть дверь или объект"
 
 #: engines/lab/metaengine.cpp:239
 msgid "Close door or object"
@@ -10225,16 +10217,12 @@ msgid "Look at object close-up"
 msgstr ""
 
 #: engines/lab/metaengine.cpp:251
-#, fuzzy
-#| msgid "Scroll up in inventory"
 msgid "Switch to inventory display"
-msgstr "Прокрутить инвентарь вверх"
+msgstr "Переключиться на инвентарь"
 
 #: engines/lab/metaengine.cpp:284
-#, fuzzy
-#| msgid "Go to next object"
 msgid "Move focus to interactive object"
-msgstr "Перейти в на следующий объект"
+msgstr "Переместить фокус на следующий объект"
 
 #: engines/lab/metaengine.cpp:292 engines/lab/metaengine.cpp:352
 msgid "Start dropping virtual bread crumbs"
@@ -15009,7 +14997,7 @@ msgstr "Перейти на предыдущий объект"
 
 #: engines/twp/metaengine.cpp:157
 msgid "Go to next object"
-msgstr "Перейти в на следующий объект"
+msgstr "Перейти на следующий объект"
 
 #: engines/twp/metaengine.cpp:158
 #, fuzzy
