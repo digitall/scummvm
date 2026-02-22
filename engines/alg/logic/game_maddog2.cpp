@@ -23,6 +23,7 @@
 #include "common/rect.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/timer.h"
 
 #include "graphics/cursorman.h"
 
@@ -68,6 +69,11 @@ GameMaddog2::~GameMaddog2() {
 		_bulletholeIcon->free();
 		delete _bulletholeIcon;
 	}
+	delete _saveSound;
+	delete _loadSound;
+	delete _skullSound;
+	delete _shotSound;
+	delete _emptySound;
 }
 
 void GameMaddog2::init() {
@@ -90,19 +96,19 @@ void GameMaddog2::init() {
 	registerScriptFunctions();
 	verifyScriptFunctions();
 
-	_menuzone = new Zone("MainMenu", "GLOBALHIT");
-	_menuzone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
-	_menuzone->addRect(0x08, 0xA9, 0x013C, 0xC7, nullptr, 0, "DEFAULT", "0"); // _mm_bott
+	_menuZone = new Zone("MainMenu", "GLOBALHIT");
+	_menuZone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
+	_menuZone->addRect(0x08, 0xA9, 0x013C, 0xC7, nullptr, 0, "DEFAULT", "0"); // _mm_bott
 
-	_submenzone = new Zone("SubMenu", "GLOBALHIT");
-	_submenzone->addRect(0x2F, 0x16, 0x64, 0x2B, nullptr, 0, "STARTMENU", "0");
-	_submenzone->addRect(0x2F, 0xA0, 0x8D, 0xC7, nullptr, 0, "CONTMENU", "0");
-	_submenzone->addRect(0x2F, 0x40, 0x64, 0x54, nullptr, 0, "RECTSAVE", "0");
-	_submenzone->addRect(0x2F, 0x6E, 0x7B, 0x86, nullptr, 0, "RECTLOAD", "0");
-	_submenzone->addRect(0xEC, 0x15, 0x0122, 0x2C, nullptr, 0, "EXITMENU", "0");
-	_submenzone->addRect(0xAD, 0x58, 0xF2, 0x70, nullptr, 0, "RECTEASY", "0");
-	_submenzone->addRect(0xBC, 0x78, 0xF2, 0x93, nullptr, 0, "RECTAVG", "0");
-	_submenzone->addRect(0xB8, 0x9D, 0xF2, 0xC7, nullptr, 0, "RECTHARD", "0");
+	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
+	_subMenuZone->addRect(0x2F, 0x16, 0x64, 0x2B, nullptr, 0, "STARTMENU", "0");
+	_subMenuZone->addRect(0x2F, 0xA0, 0x8D, 0xC7, nullptr, 0, "CONTMENU", "0");
+	_subMenuZone->addRect(0x2F, 0x40, 0x64, 0x54, nullptr, 0, "RECTSAVE", "0");
+	_subMenuZone->addRect(0x2F, 0x6E, 0x7B, 0x86, nullptr, 0, "RECTLOAD", "0");
+	_subMenuZone->addRect(0xEC, 0x15, 0x0122, 0x2C, nullptr, 0, "EXITMENU", "0");
+	_subMenuZone->addRect(0xAD, 0x58, 0xF2, 0x70, nullptr, 0, "RECTEASY", "0");
+	_subMenuZone->addRect(0xBC, 0x78, 0xF2, 0x93, nullptr, 0, "RECTAVG", "0");
+	_subMenuZone->addRect(0xB8, 0x9D, 0xF2, 0xC7, nullptr, 0, "RECTHARD", "0");
 
 	_shotSound = loadSoundFile("blow.8b");
 	_emptySound = loadSoundFile("empty.8b");
@@ -363,7 +369,7 @@ Common::Error GameMaddog2::run() {
 			Common::Point firedCoords;
 			if (fired(&firedCoords)) {
 				if (!_holster) {
-					Rect *hitGlobalRect = checkZone(_menuzone, &firedCoords);
+					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else if (_shots > 0) {
@@ -483,7 +489,7 @@ void GameMaddog2::doMenu() {
 	while (_inMenu && !_vm->shouldQuit()) {
 		Common::Point firedCoords;
 		if (fired(&firedCoords)) {
-			Rect *hitMenuRect = checkZone(_submenzone, &firedCoords);
+			Rect *hitMenuRect = checkZone(_subMenuZone, &firedCoords);
 			if (hitMenuRect != nullptr) {
 				callScriptFunctionRectHit(hitMenuRect->_rectHit, hitMenuRect);
 			}
@@ -755,7 +761,7 @@ void GameMaddog2::defaultBullethole(Common::Point *point) {
 		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
 		updateCursor();
 		_shotFired = true;
-		doShot();
+		playSound(_shotSound);
 	}
 }
 
@@ -975,6 +981,46 @@ void GameMaddog2::playerWon() {
 	}
 }
 
+// Timer
+static void cursorTimerCallback(void *refCon) {
+	GameMaddog2 *game = static_cast<GameMaddog2 *>(refCon);
+	game->runCursorTimer();
+}
+
+void GameMaddog2::setupCursorTimer() {
+	g_system->getTimerManager()->installTimerProc(&cursorTimerCallback, 1000000 / 50, (void *)this, "cursortimer");
+}
+
+void GameMaddog2::removeCursorTimer() {
+	g_system->getTimerManager()->removeTimerProc(&cursorTimerCallback);
+}
+
+void GameMaddog2::runCursorTimer() {
+	_thisGameTimer += 2;
+	if (_whichGun == 9) {
+		if (_emptyCount > 0) {
+			_emptyCount--;
+		} else {
+			_whichGun = 0;
+		}
+	} else {
+		if (_shotFired) {
+			_whichGun++;
+			if (_whichGun > 5) {
+				_whichGun = 0;
+				_shotFired = false;
+			}
+		} else {
+			if (_inHolster > 0) {
+				_inHolster--;
+				if (_inHolster == 0 && _whichGun == 7) {
+					_whichGun = 6;
+				}
+			}
+		}
+	}
+}
+
 // Script functions: Zone
 void GameMaddog2::zoneBullethole(Common::Point *point) {
 	defaultBullethole(point);
@@ -989,14 +1035,21 @@ void GameMaddog2::zoneSkullhole(Common::Point *point) {
 		_shotFired = true;
 
 		if (_hadSkull) {
-			doShot();
+			playSound(_shotSound);
 		} else {
-			doSkullSound();
+			playSound(_skullSound);
 		}
 	}
 }
 
 // Script functions: RectHit
+void GameMaddog2::rectNewScene(Rect *rect) {
+	_score += rect->_score;
+	if (!rect->_scene.empty()) {
+		_curScene = rect->_scene;
+	}
+}
+
 void GameMaddog2::rectSkull(Rect *rect) {
 	if (_hadSkull) {
 		return;
@@ -1154,13 +1207,13 @@ void GameMaddog2::rectShotmenu(Rect *rect) {
 
 void GameMaddog2::rectSave(Rect *rect) {
 	if (saveState()) {
-		doSaveSound();
+		playSound(_saveSound);
 	}
 }
 
 void GameMaddog2::rectLoad(Rect *rect) {
 	if (loadState()) {
-		doLoadSound();
+		playSound(_loadSound);
 	}
 }
 
@@ -1191,6 +1244,22 @@ void GameMaddog2::rectStart(Rect *rect) {
 	resetParams();
 	newGame();
 	updateStat();
+}
+
+void GameMaddog2::rectEasy(Rect *rect) {
+	_difficulty = 1;
+}
+
+void GameMaddog2::rectAverage(Rect *rect) {
+	_difficulty = 2;
+}
+
+void GameMaddog2::rectHard(Rect *rect) {
+	_difficulty = 3;
+}
+
+void GameMaddog2::rectExit(Rect *rect) {
+	shutdown();
 }
 
 // Script functions: Scene PreOps
@@ -1378,7 +1447,7 @@ void GameMaddog2::sceneNxtscnShootSkull(Scene *scene) {
 		return;
 	}
 	_hadSkull = true;
-	doSkullSound();
+	playSound(_skullSound);
 	_shots = 12;
 	_score += 1000;
 	updateStat();
@@ -1675,6 +1744,13 @@ void GameMaddog2::sceneDefaultWepdwn(Scene *scene) {
 			_shots = 6;
 		}
 		updateStat();
+	}
+}
+
+// Script functions: ScnScr
+void GameMaddog2::sceneDefaultScore(Scene *scene) {
+	if (scene->_scnscrParam > 0) {
+		_score += scene->_scnscrParam;
 	}
 }
 

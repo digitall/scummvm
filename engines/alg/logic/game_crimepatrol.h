@@ -81,6 +81,13 @@ private:
 	Graphics::Surface *_difficultyIcon;
 	Graphics::Surface *_bulletholeIcon;
 
+	// sounds
+	Audio::SeekableAudioStream *_saveSound = nullptr;
+	Audio::SeekableAudioStream *_loadSound = nullptr;
+	Audio::SeekableAudioStream *_skullSound = nullptr;
+	Audio::SeekableAudioStream *_shotSound = nullptr;
+	Audio::SeekableAudioStream *_emptySound = nullptr;
+	
 	// constants
 	const int16 _scenesLevel0[2] = {0x0191, 0};
 	const int16 _scenesLevel1[3] = {0x27, 0x01B7, 0};
@@ -133,6 +140,18 @@ private:
 	const int16 _practiceTargetBottom[5] = {0x3D, 0x79, 0x7B, 0xA1, 0xA1};
 
 	// gamestate
+	uint8 _difficulty = 1;
+	uint8 _oldDifficulty = 1;
+	bool _holster = false;
+	int8 _lives = 0;
+	int8 _oldLives = 0;
+	int32 _score = 0;
+	int32 _oldScore = -1;
+	uint16 _shots = 0;
+	uint8 _oldShots = 0;
+	uint8 _whichGun = 0;
+	uint8 _oldWhichGun = 0xFF;
+
 	uint16 _gotTo[15] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	int8 _stage = 0;
 	int8 _oldStage = -1;
@@ -166,6 +185,7 @@ private:
 	void displayShotFiredImage(Common::Point *point);
 	void enableVideoFadeIn();
 	uint16 sceneToNumber(Scene *scene);
+	uint16 randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude);
 	uint16 pickRandomScene(uint8 index, uint8 max);
 	uint16 pickDeathScene();
 	void sceneNxtscnGeneric(uint8 index);
@@ -173,11 +193,16 @@ private:
 	void sceneIsoGotToGeneric(uint8 index, uint16 sceneId);
 
 	// Script functions: RectHit
+	void rectNewScene(Rect *rect);
 	void rectShotMenu(Rect *rect);
 	void rectSave(Rect *rect);
 	void rectLoad(Rect *rect);
 	void rectContinue(Rect *rect);
 	void rectStart(Rect *rect);
+	void rectEasy(Rect *rect);
+	void rectAverage(Rect *rect);
+	void rectHard(Rect *rect);
+	void rectExit(Rect *rect);
 	void rectTargetPractice(Rect *rect);
 	void rectSelectTargetPractice(Rect *rect);
 	void rectSelectGangFight(Rect *rect);
@@ -261,7 +286,11 @@ private:
 
 	// Script functions: Scene WepDwn
 	void sceneDefaultWepdwn(Scene *scene);
+
 	void debugDrawPracticeRects();
+
+	// Script functions: ScnScr
+	void sceneDefaultScore(Scene *scene);
 };
 
 class DebuggerCrimePatrol : public GUI::Debugger {

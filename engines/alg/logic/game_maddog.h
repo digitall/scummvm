@@ -56,6 +56,7 @@ public:
 	~GameMaddog() override;
 	Common::Error run() override;
 	void debugWarpTo(int val);
+	void runCursorTimer();
 
 private:
 	void init() override;
@@ -88,6 +89,16 @@ private:
 	Graphics::Surface *_knifeIcon;
 	Graphics::Surface *_bulletholeIcon;
 
+	// sounds
+	Audio::SeekableAudioStream *_saveSound = nullptr;
+	Audio::SeekableAudioStream *_loadSound = nullptr;
+	Audio::SeekableAudioStream *_easySound = nullptr;
+	Audio::SeekableAudioStream *_avgSound = nullptr;
+	Audio::SeekableAudioStream *_hardSound = nullptr;
+	Audio::SeekableAudioStream *_skullSound = nullptr;
+	Audio::SeekableAudioStream *_shotSound = nullptr;
+	Audio::SeekableAudioStream *_emptySound = nullptr;
+
 	// constants
 	const uint16 _fight[3] = {208, 228, 243};
 	const uint16 _ambush[3] = {192, 193, 192};
@@ -99,6 +110,23 @@ private:
 	const uint16 _shotPos[12][2] = {{0x3, 0x5}, {0x0D, 0x5}, {0x17, 0x5}, {0x21, 0x5}, {0x3, 0x21}, {0x0D, 0x21}, {0x17, 0x21}, {0x21, 0x21}, {0x3, 0x3D}, {0x0D, 0x3D}, {0x17, 0x3D}, {0x21, 0x3D}};
 
 	// gamestate
+	uint8 _difficulty = 1;
+	uint8 _emptyCount = 0;
+	bool _holster = false;
+	uint8 _oldDifficulty = 1;
+	uint8 _inHolster = 0;
+	int8 _lives = 0;
+	int8 _oldLives = 0;
+	int32 _score = 0;
+	int32 _oldScore = -1;
+	bool _shotFired = false;
+	uint16 _shots = 0;
+	uint8 _oldShots = 0;
+	uint8 _whichGun = 0;
+	uint8 _oldWhichGun = 0xFF;
+	long int _minF;
+	long int _maxF;
+
 	uint8 _badMen = 0;
 	uint8 _badMenBits = 0;
 	bool _bartenderAlive = false;
@@ -121,6 +149,11 @@ private:
 	uint8 _proClue = 0;
 	uint8 _sheriffCnt = 0; // unused
 	uint8 _shootOutCnt = 0;
+
+	Common::String _retScene;
+	Common::String _subScene;
+
+	uint32 _thisGameTimer = 0;
 
 	// base functions
 	void newGame();
@@ -148,17 +181,26 @@ private:
 	Common::String mapRight();
 	Common::String mapLeft();
 
+	// Timer
+	void setupCursorTimer();
+	void removeCursorTimer();
+	
 	// Script functions: Zone
 	void zoneBullethole(Common::Point *point);
 	void zoneSkullhole(Common::Point *point);
 
 	// Script functions: RectHit
+	void rectNewScene(Rect *rect);
 	void rectShotMenu(Rect *rect);
 	void rectContinue(Rect *rect);
 	void rectSave(Rect *rect);
 	void rectLoad(Rect *rect);
 	void rectStart(Rect *rect);
 	void rectStartBottles(Rect *rect);
+	void rectEasy(Rect *rect);
+	void rectAverage(Rect *rect);
+	void rectHard(Rect *rect);
+	void rectExit(Rect *rect);
 	void rectHideFront(Rect *rect);
 	void rectHideRear(Rect *rect);
 	void rectMenuSelect(Rect *rect);
@@ -220,6 +262,9 @@ private:
 
 	// Script functions: Scene WepDwn
 	void sceneDefaultWepdwn(Scene *scene);
+
+	// Script functions: ScnScr
+	void sceneDefaultScore(Scene *scene);
 };
 
 class DebuggerMaddog : public GUI::Debugger {

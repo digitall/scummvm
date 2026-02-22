@@ -91,7 +91,12 @@ private:
 	Common::Array<Graphics::Surface *> *_shotgun;
 
 	// sounds
+	Audio::SeekableAudioStream *_saveSound = nullptr;
+	Audio::SeekableAudioStream *_loadSound = nullptr;
+	Audio::SeekableAudioStream *_skullSound = nullptr;
+	Audio::SeekableAudioStream *_shotSound = nullptr;
 	Audio::SeekableAudioStream *_shotgunSound = nullptr;
+	Audio::SeekableAudioStream *_emptySound = nullptr;
 
 	// constants
 	uint16 _randomHarry1[7] = {0x01B9, 0x01B7, 0x01B5, 0x01B3, 0x01AF, 0x01AD, 0};
@@ -128,6 +133,18 @@ private:
 	const uint16 _allPlayersDead = 0x108;
 
 	// gamestate
+	uint8 _difficulty = 1;
+	uint8 _oldDifficulty = 1;
+	bool _holster = false;
+	int8 _lives = 0;
+	int8 _oldLives = 0;
+	int32 _score = 0;
+	int32 _oldScore = -1;
+	uint16 _shots = 0;
+	uint8 _oldShots = 0;
+	uint8 _whichGun = 0;
+	uint8 _oldWhichGun = 0xFF;
+
 	uint16 _restartScene = 0;
 	uint8 _numPlayers = 1;
 	uint8 _player = 0;
@@ -142,6 +159,7 @@ private:
 	uint8 _levelDoneMask = 0;
 	uint8 _numSubLevelsDone = 0;
 
+	// TODO remove?
 	// uint16 _usedScenes = 0;
 	// int16 _lastPick = -1;
 	// int16 _initted = 0;
@@ -175,6 +193,8 @@ private:
 
 	uint8 _unk_2ADA6 = 0;
 
+	Common::String _subScene;
+
 	// base functions
 	void newGame();
 	void doMenu();
@@ -195,6 +215,7 @@ private:
 	void iconShotgun();
 	void iconReset();
 	uint16 beginLevel(uint8 levelNumber);
+	uint16 randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude);
 	uint16 pickRandomScene(uint16 *sceneList, uint8 max);
 	uint16 pickGunfightScene();
 	uint16 pickInnocentScene();
@@ -204,11 +225,16 @@ private:
 	void doShotgunSound();
 
 	// Script functions: RectHit
+	void rectNewScene(Rect *rect);
 	void rectShotMenu(Rect *rect);
 	void rectSave(Rect *rect);
 	void rectLoad(Rect *rect);
 	void rectContinue(Rect *rect);
 	void rectStart(Rect *rect);
+	void rectEasy(Rect *rect);
+	void rectAverage(Rect *rect);
+	void rectHard(Rect *rect);
+	void rectExit(Rect *rect);
 	void rectTogglePlayers(Rect *rect);
 	void rectHitIconJug(Rect *rect);
 	void rectHitIconLantern(Rect *rect);
@@ -270,6 +296,9 @@ private:
 
 	// Script functions: Scene WepDwn
 	void sceneDefaultWepdwn(Scene *scene);
+
+	// Script functions: ScnScr
+	void sceneDefaultScore(Scene *scene);
 };
 
 class DebuggerBountyHunter : public GUI::Debugger {

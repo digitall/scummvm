@@ -41,7 +41,6 @@ public:
 	virtual void init();
 	virtual Common::Error run();
 	bool debug_dumpLibFile();
-	void runCursorTimer();
 	bool _debug_drawRects = false;
 	bool _debug_godMode = false;
 	bool _debug_unlimitedAmmo = false;
@@ -63,19 +62,10 @@ protected:
 	Common::Array<Graphics::Surface *> *_gun;
 	Common::Array<Graphics::Surface *> *_numbers;
 
-	Audio::SeekableAudioStream *_saveSound = nullptr;
-	Audio::SeekableAudioStream *_loadSound = nullptr;
-	Audio::SeekableAudioStream *_easySound = nullptr;
-	Audio::SeekableAudioStream *_avgSound = nullptr;
-	Audio::SeekableAudioStream *_hardSound = nullptr;
-	Audio::SeekableAudioStream *_skullSound = nullptr;
-	Audio::SeekableAudioStream *_shotSound = nullptr;
-	Audio::SeekableAudioStream *_emptySound = nullptr;
-
 	Audio::SoundHandle _sfxAudioHandle;
 
-	Zone *_menuzone;
-	Zone *_submenzone;
+	Zone *_menuZone;
+	Zone *_subMenuZone;
 
 	bool _leftDown = false;
 	bool _rightDown = false;
@@ -95,33 +85,17 @@ protected:
 	bool fired(Common::Point *point);
 	Rect *checkZone(Zone *zone, Common::Point *point);
 	Zone *checkZonesV1(Scene *scene, Rect *&hitRect, Common::Point *point);
-	Zone *checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point);
+	Zone *checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point, uint8 difficulty);
 	uint32 getFrame(Scene *scene);
 	void adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty);
 	int8 skipToNewScene(Scene *scene);
-	uint16 randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude);
 	void debug_drawZoneRects();
-
-	// Sounds
-	void doDiffSound(uint8 difficulty);
-	void doSaveSound();
-	void doLoadSound();
-	void doSkullSound();
-	void doShot();
-
-	// Timer
-	void setupCursorTimer();
-	void removeCursorTimer();
 
 	// Script functions: Zone
 	void zoneGlobalHit(Common::Point *point);
 	// Script functions: RectHit
 	void rectHitDoNothing(Rect *rect);
 	void rectNewScene(Rect *rect);
-	void rectExit(Rect *rect);
-	void rectEasy(Rect *rect);
-	void rectAverage(Rect *rect);
-	void rectHard(Rect *rect);
 	// Script functions: Scene PreOps
 	void scenePsoDrawRct(Scene *scene);
 	void scenePsoPause(Scene *scene);
@@ -139,45 +113,23 @@ protected:
 	void sceneDefaultNxtscn(Scene *scene);
 	// Script functions: ShowMsg
 	void sceneSmDonothing(Scene *scene);
-	// Script functions: ScnScr
-	void sceneDefaultScore(Scene *scene);
 	// Script functions: ScnNxtFrm
 	void sceneNxtfrm(Scene *scene);
 
 	bool _buttonDown = false;
-	uint8 _difficulty = 1;
-	uint8 _emptyCount = 0;
-	bool _fired = false;
+	bool _fired = 0;
 	uint32 _currentFrame;
 	bool _gameInProgress = false;
-	uint32 _thisGameTimer = 0;
 	bool _hadPause = false;
-	bool _holster = false;
 	bool _inMenu = false;
-	uint8 _inHolster = 0;
-	int8 _lives = 0;
-	long int _minF;
-	long int _maxF;
-	uint8 _oldWhichGun = 0xFF;
-	uint8 _oldDifficulty = 1;
-	int8 _oldLives = 0;
-	int32 _oldScore = -1;
-	uint8 _oldShots = 0;
 	uint32 _pauseTime = 0;
 	bool _sceneSkipped = false;
-	int32 _score = 0;
-	bool _shotFired = false;
-	uint16 _shots = 0;
 	uint32 _videoFrameSkip = 3;
 	uint32 _nextFrameTime = 0;
 	uint16 _videoPosX;
 	uint16 _videoPosY;
-	uint8 _whichGun = 0;
 
 	Common::String _curScene;
-	Common::String _subScene;
-	Common::String _retScene;
-	Common::String _lastScene;
 	Common::String _startScene;
 };
 

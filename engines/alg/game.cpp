@@ -23,7 +23,6 @@
 #include "audio/decoders/raw.h"
 #include "common/events.h"
 #include "common/substream.h"
-#include "common/timer.h"
 #include "graphics/cursorman.h"
 #include "graphics/paletteman.h"
 
@@ -65,14 +64,6 @@ Game::~Game() {
 			delete item;
 		}
 	}
-	delete _saveSound;
-	delete _loadSound;
-	delete _easySound;
-	delete _avgSound;
-	delete _hardSound;
-	delete _skullSound;
-	delete _shotSound;
-	delete _emptySound;
 }
 
 void Game::init() {
@@ -224,10 +215,10 @@ Zone *Game::checkZonesV1(Scene *scene, Rect *&hitRect, Common::Point *point) {
 }
 
 // This is used by later games
-Zone *Game::checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point) {
+Zone *Game::checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point, uint8 difficulty) {
 	for (auto &zone : scene->_zones) {
-		uint32 startFrame = zone->_startFrame - (_videoFrameSkip + 1) + ((_difficulty - 1) * _videoFrameSkip);
-		uint32 endFrame = zone->_endFrame + (_videoFrameSkip - 1) - ((_difficulty - 1) * _videoFrameSkip);
+		uint32 startFrame = zone->_startFrame - (_videoFrameSkip + 1) + ((difficulty - 1) * _videoFrameSkip);
+		uint32 endFrame = zone->_endFrame + (_videoFrameSkip - 1) - ((difficulty - 1) * _videoFrameSkip);
 		if (_currentFrame >= startFrame && _currentFrame <= endFrame) {
 			hitRect = checkZone(zone, point);
 			if (hitRect != nullptr) {
@@ -289,30 +280,6 @@ int8 Game::skipToNewScene(Scene *scene) {
 	return 0;
 }
 
-uint16 Game::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude) {
-	if (max == 1) {
-		return 0;
-	}
-	// reset mask if full
-	uint16 fullMask = 0xFFFF >> (16 - max);
-	if (*mask == fullMask) {
-		*mask = 0;
-	}
-	uint16 randomNum = 0;
-	// find an unused random number
-	while (true) {
-		randomNum = _rnd->getRandomNumber(max - 1);
-		// check if bit is already used
-		uint16 bit = 1 << randomNum;
-		if (!((*mask & bit) || randomNum == exclude)) {
-			// set the bit in mask
-			*mask |= bit;
-			break;
-		}
-	}
-	return randomNum;
-}
-
 // Sound
 Audio::SeekableAudioStream *Game::loadSoundFile(const Common::Path &path) {
 	Common::File *file = new Common::File();
@@ -332,73 +299,6 @@ void Game::playSound(Audio::SeekableAudioStream *stream) {
 	}
 }
 
-void Game::doDiffSound(uint8 difficulty) {
-	switch (difficulty) {
-	case 1:
-		return playSound(_easySound);
-	case 2:
-		return playSound(_avgSound);
-	case 3:
-		return playSound(_hardSound);
-	}
-}
-
-void Game::doSaveSound() {
-	playSound(_saveSound);
-}
-
-void Game::doLoadSound() {
-	playSound(_loadSound);
-}
-
-void Game::doSkullSound() {
-	playSound(_skullSound);
-}
-
-void Game::doShot() {
-	playSound(_shotSound);
-}
-
-// Timer
-static void cursorTimerCallback(void *refCon) {
-	Game *game = static_cast<Game *>(refCon);
-	game->runCursorTimer();
-}
-
-void Game::setupCursorTimer() {
-	g_system->getTimerManager()->installTimerProc(&cursorTimerCallback, 1000000 / 50, (void *)this, "cursortimer");
-}
-
-void Game::removeCursorTimer() {
-	g_system->getTimerManager()->removeTimerProc(&cursorTimerCallback);
-}
-
-void Game::runCursorTimer() {
-	_thisGameTimer += 2;
-	if (_whichGun == 9) {
-		if (_emptyCount > 0) {
-			_emptyCount--;
-		} else {
-			_whichGun = 0;
-		}
-	} else {
-		if (_shotFired) {
-			_whichGun++;
-			if (_whichGun > 5) {
-				_whichGun = 0;
-				_shotFired = false;
-			}
-		} else {
-			if (_inHolster > 0) {
-				_inHolster--;
-				if (_inHolster == 0 && _whichGun == 7) {
-					_whichGun = 6;
-				}
-			}
-		}
-	}
-}
-
 // Script functions: Zone
 void Game::zoneGlobalHit(Common::Point *point) {
 	// do nothing
@@ -407,32 +307,6 @@ void Game::zoneGlobalHit(Common::Point *point) {
 // Script functions: RectHit
 void Game::rectHitDoNothing(Rect *rect) {
 	// do nothing
-}
-
-void Game::rectNewScene(Rect *rect) {
-	_score += rect->_score;
-	if (!rect->_scene.empty()) {
-		_curScene = rect->_scene;
-	}
-}
-
-void Game::rectEasy(Rect *rect) {
-	doDiffSound(1);
-	_difficulty = 1;
-}
-
-void Game::rectAverage(Rect *rect) {
-	doDiffSound(2);
-	_difficulty = 2;
-}
-
-void Game::rectHard(Rect *rect) {
-	doDiffSound(3);
-	_difficulty = 3;
-}
-
-void Game::rectExit(Rect *rect) {
-	shutdown();
 }
 
 // Script functions: Scene PreOps
@@ -519,13 +393,6 @@ void Game::sceneSmDonothing(Scene *scene) {
 	// do nothing
 }
 
-// Script functions: ScnScr
-void Game::sceneDefaultScore(Scene *scene) {
-	if (scene->_scnscrParam > 0) {
-		_score += scene->_scnscrParam;
-	}
-}
-
 // Script functions: ScnNxtFrm
 void Game::sceneNxtfrm(Scene *scene) {
 }
@@ -534,7 +401,7 @@ void Game::sceneNxtfrm(Scene *scene) {
 void Game::debug_drawZoneRects() {
 	if (_debug_drawRects || debugChannelSet(1, Alg::kAlgDebugGraphics)) {
 		if (_inMenu) {
-			for (auto rect : _submenzone->_rects) {
+			for (auto rect : _subMenuZone->_rects) {
 				_screen->drawLine(rect->left, rect->top, rect->right, rect->top, 1);
 				_screen->drawLine(rect->left, rect->top, rect->left, rect->bottom, 1);
 				_screen->drawLine(rect->right, rect->bottom, rect->right, rect->top, 1);

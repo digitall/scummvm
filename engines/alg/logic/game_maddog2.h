@@ -56,6 +56,7 @@ public:
 	~GameMaddog2() override;
 	Common::Error run() override;
 	void debugWarpTo(int val);
+	void runCursorTimer();
 
 private:
 	void init() override;
@@ -88,6 +89,13 @@ private:
 	Graphics::Surface *_knifeIcon;
 	Graphics::Surface *_bulletholeIcon;
 
+	// sounds
+	Audio::SeekableAudioStream *_saveSound = nullptr;
+	Audio::SeekableAudioStream *_loadSound = nullptr;
+	Audio::SeekableAudioStream *_skullSound = nullptr;
+	Audio::SeekableAudioStream *_shotSound = nullptr;
+	Audio::SeekableAudioStream *_emptySound = nullptr;
+
 	// constants
 	const int16 _sbClue[3] = {0x67, 0x68, 0x69};
 	const int16 _bbClue[3] = {0x47, 0x49, 0x48};
@@ -109,6 +117,23 @@ private:
 	const uint16 _shotPos[12][2] = {{0x96, 0xBD}, {0x9A, 0xBD}, {0x9E, 0xBD}, {0x0A2, 0xBD}, {0x0A6, 0xBD}, {0x0AA, 0xBD}, {0x0AE, 0xBD}, {0x0B2, 0xBD}, {0x0B6, 0xBD}, {0x0BA, 0xBD}, {0x0BE, 0xBD}, {0x0C2, 0xBD}};
 
 	// gamestate
+	uint8 _difficulty = 1;
+	uint8 _emptyCount = 0;
+	bool _holster = false;
+	uint8 _oldDifficulty = 1;
+	uint8 _inHolster = 0;
+	int8 _lives = 0;
+	int8 _oldLives = 0;
+	int32 _score = 0;
+	int32 _oldScore = -1;
+	bool _shotFired = false;
+	uint16 _shots = 0;
+	uint8 _oldShots = 0;
+	uint8 _whichGun = 0;
+	uint8 _oldWhichGun = 0xFF;
+	long int _minF;
+	long int _maxF;
+
 	uint16 _dieBits = 0;
 	uint16 _gotTo = 0;
 	uint16 _sbGotTo = 0;
@@ -131,6 +156,12 @@ private:
 	uint16 _randomCount = 0;
 	uint16 _shootOutCnt = 0;
 	uint16 _totalDies = 0;
+
+	Common::String _lastScene;
+	Common::String _retScene;
+	Common::String _subScene;
+
+	uint32 _thisGameTimer = 0;
 
 	// base functions
 	void newGame();
@@ -161,16 +192,25 @@ private:
 	void genericNext();
 	void playerWon();
 
+	// Timer
+	void setupCursorTimer();
+	void removeCursorTimer();
+	
 	// Script functions: Zone
 	void zoneBullethole(Common::Point *point);
 	void zoneSkullhole(Common::Point *point);
 
 	// Script functions: RectHit
+	void rectNewScene(Rect *rect);
 	void rectShotmenu(Rect *rect);
 	void rectSave(Rect *rect);
 	void rectLoad(Rect *rect);
 	void rectContinue(Rect *rect);
 	void rectStart(Rect *rect);
+	void rectEasy(Rect *rect);
+	void rectAverage(Rect *rect);
+	void rectHard(Rect *rect);
+	void rectExit(Rect *rect);
 	void rectSkull(Rect *rect);
 	void rectKillInnocentMan(Rect *rect);
 	void rectKillInnocentWoman(Rect *rect);
@@ -248,6 +288,9 @@ private:
 
 	// Script functions: Scene WepDwn
 	void sceneDefaultWepdwn(Scene *scene);
+
+	// Script functions: ScnScr
+	void sceneDefaultScore(Scene *scene);
 };
 
 class DebuggerMaddog2 : public GUI::Debugger {

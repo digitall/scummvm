@@ -23,6 +23,7 @@
 #include "common/rect.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/timer.h"
 
 #include "graphics/cursorman.h"
 
@@ -68,6 +69,14 @@ GameMaddog::~GameMaddog() {
 		_bulletholeIcon->free();
 		delete _bulletholeIcon;
 	}
+	delete _saveSound;
+	delete _loadSound;
+	delete _easySound;
+	delete _avgSound;
+	delete _hardSound;
+	delete _skullSound;
+	delete _shotSound;
+	delete _emptySound;
 }
 
 void GameMaddog::init() {
@@ -85,21 +94,21 @@ void GameMaddog::init() {
 	registerScriptFunctions();
 	verifyScriptFunctions();
 
-	_menuzone = new Zone("MainMenu", "GLOBALHIT");
-	_menuzone->addRect(0x0C, 0xAC, 0x3D, 0xBF, nullptr, 0, "SHOTMENU", "0");
-	_menuzone->addRect(0x00, 0xA6, 0x013F, 0xC7, nullptr, 0, "DEFAULT", "0"); // _mm_bott
-	_menuzone->addRect(0x00, 0x00, 0x3B, 0xC7, nullptr, 0, "DEFAULT", "0");   // _mm_left
+	_menuZone = new Zone("MainMenu", "GLOBALHIT");
+	_menuZone->addRect(0x0C, 0xAC, 0x3D, 0xBF, nullptr, 0, "SHOTMENU", "0");
+	_menuZone->addRect(0x00, 0xA6, 0x013F, 0xC7, nullptr, 0, "DEFAULT", "0"); // _mm_bott
+	_menuZone->addRect(0x00, 0x00, 0x3B, 0xC7, nullptr, 0, "DEFAULT", "0");   // _mm_left
 
-	_submenzone = new Zone("SubMenu", "GLOBALHIT");
-	_submenzone->addRect(0x8A, 0x3B, 0xC2, 0x48, nullptr, 0, "STARTBOT", "0");
-	_submenzone->addRect(0x8A, 0x4E, 0xC2, 0x59, nullptr, 0, "STARTMENU", "0");
-	_submenzone->addRect(0x8A, 0x60, 0xC2, 0x6B, nullptr, 0, "CONTMENU", "0");
-	_submenzone->addRect(0xE3, 0x3B, 0x011B, 0x48, nullptr, 0, "RECTSAVE", "0");
-	_submenzone->addRect(0xE3, 0x4E, 0x011B, 0x59, nullptr, 0, "RECTLOAD", "0");
-	_submenzone->addRect(0xE3, 0x60, 0x011B, 0x6B, nullptr, 0, "EXITMENU", "0");
-	_submenzone->addRect(0x42, 0x34, 0x5C, 0x4E, nullptr, 0, "RECTEASY", "0");
-	_submenzone->addRect(0x42, 0x53, 0x5C, 0x70, nullptr, 0, "RECTAVG", "0");
-	_submenzone->addRect(0x42, 0x72, 0x62, 0x8A, nullptr, 0, "RECTHARD", "0");
+	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
+	_subMenuZone->addRect(0x8A, 0x3B, 0xC2, 0x48, nullptr, 0, "STARTBOT", "0");
+	_subMenuZone->addRect(0x8A, 0x4E, 0xC2, 0x59, nullptr, 0, "STARTMENU", "0");
+	_subMenuZone->addRect(0x8A, 0x60, 0xC2, 0x6B, nullptr, 0, "CONTMENU", "0");
+	_subMenuZone->addRect(0xE3, 0x3B, 0x011B, 0x48, nullptr, 0, "RECTSAVE", "0");
+	_subMenuZone->addRect(0xE3, 0x4E, 0x011B, 0x59, nullptr, 0, "RECTLOAD", "0");
+	_subMenuZone->addRect(0xE3, 0x60, 0x011B, 0x6B, nullptr, 0, "EXITMENU", "0");
+	_subMenuZone->addRect(0x42, 0x34, 0x5C, 0x4E, nullptr, 0, "RECTEASY", "0");
+	_subMenuZone->addRect(0x42, 0x53, 0x5C, 0x70, nullptr, 0, "RECTAVG", "0");
+	_subMenuZone->addRect(0x42, 0x72, 0x62, 0x8A, nullptr, 0, "RECTHARD", "0");
 
 	_shotSound = loadSoundFile("blow.8b");
 	_emptySound = loadSoundFile("empty.8b");
@@ -352,7 +361,7 @@ Common::Error GameMaddog::run() {
 			Common::Point firedCoords;
 			if (fired(&firedCoords)) {
 				if (!_holster) {
-					Rect *hitGlobalRect = checkZone(_menuzone, &firedCoords);
+					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else if (_shots > 0) {
@@ -471,7 +480,7 @@ void GameMaddog::doMenu() {
 	while (_inMenu && !_vm->shouldQuit()) {
 		Common::Point firedCoords;
 		if (fired(&firedCoords)) {
-			Rect *hitMenuRect = checkZone(_submenzone, &firedCoords);
+			Rect *hitMenuRect = checkZone(_subMenuZone, &firedCoords);
 			if (hitMenuRect != nullptr) {
 				callScriptFunctionRectHit(hitMenuRect->_rectHit, hitMenuRect);
 			}
@@ -686,7 +695,7 @@ void GameMaddog::defaultBullethole(Common::Point *point) {
 		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
 		updateCursor();
 		_shotFired = true;
-		doShot();
+		playSound(_shotSound);
 	}
 }
 
@@ -845,6 +854,46 @@ Common::String GameMaddog::mapLeft() {
 	}
 }
 
+// Timer
+static void cursorTimerCallback(void *refCon) {
+	GameMaddog *game = static_cast<GameMaddog *>(refCon);
+	game->runCursorTimer();
+}
+
+void GameMaddog::setupCursorTimer() {
+	g_system->getTimerManager()->installTimerProc(&cursorTimerCallback, 1000000 / 50, (void *)this, "cursortimer");
+}
+
+void GameMaddog::removeCursorTimer() {
+	g_system->getTimerManager()->removeTimerProc(&cursorTimerCallback);
+}
+
+void GameMaddog::runCursorTimer() {
+	_thisGameTimer += 2;
+	if (_whichGun == 9) {
+		if (_emptyCount > 0) {
+			_emptyCount--;
+		} else {
+			_whichGun = 0;
+		}
+	} else {
+		if (_shotFired) {
+			_whichGun++;
+			if (_whichGun > 5) {
+				_whichGun = 0;
+				_shotFired = false;
+			}
+		} else {
+			if (_inHolster > 0) {
+				_inHolster--;
+				if (_inHolster == 0 && _whichGun == 7) {
+					_whichGun = 6;
+				}
+			}
+		}
+	}
+}
+
 // Script functions: Zone
 void GameMaddog::zoneBullethole(Common::Point *point) {
 	defaultBullethole(point);
@@ -859,14 +908,21 @@ void GameMaddog::zoneSkullhole(Common::Point *point) {
 		_shotFired = true;
 
 		if (_hadSkull) {
-			doShot();
+			playSound(_shotSound);
 		} else {
-			doSkullSound();
+			playSound(_skullSound);
 		}
 	}
 }
 
 // Script functions: RectHit
+void GameMaddog::rectNewScene(Rect *rect) {
+	_score += rect->_score;
+	if (!rect->_scene.empty()) {
+		_curScene = rect->_scene;
+	}
+}
+
 void GameMaddog::rectHideFront(Rect *rect) {
 	if (_hideOutFront) {
 		_curScene = "scene214";
@@ -1047,13 +1103,13 @@ void GameMaddog::rectContinue(Rect *rect) {
 
 void GameMaddog::rectSave(Rect *rect) {
 	if (saveState()) {
-		doSaveSound();
+		playSound(_saveSound);
 	}
 }
 
 void GameMaddog::rectLoad(Rect *rect) {
 	if (loadState()) {
-		doLoadSound();
+		playSound(_loadSound);
 	}
 }
 
@@ -1077,6 +1133,25 @@ void GameMaddog::rectStartBottles(Rect *rect) {
 	resetParams();
 	newGame();
 	updateStat();
+}
+
+void GameMaddog::rectEasy(Rect *rect) {
+	playSound(_easySound);
+	_difficulty = 1;
+}
+
+void GameMaddog::rectAverage(Rect *rect) {
+	playSound(_avgSound);
+	_difficulty = 2;
+}
+
+void GameMaddog::rectHard(Rect *rect) {
+	playSound(_hardSound);
+	_difficulty = 3;
+}
+
+void GameMaddog::rectExit(Rect *rect) {
+	shutdown();
 }
 
 // Script functions: Scene PreOps
@@ -1479,6 +1554,13 @@ void GameMaddog::sceneDefaultWepdwn(Scene *scene) {
 			}
 		}
 		updateStat();
+	}
+}
+
+// Script functions: ScnScr
+void GameMaddog::sceneDefaultScore(Scene *scene) {
+	if (scene->_scnscrParam > 0) {
+		_score += scene->_scnscrParam;
 	}
 }
 

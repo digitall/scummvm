@@ -23,6 +23,7 @@
 #include "common/rect.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/timer.h"
 
 #include "graphics/cursorman.h"
 
@@ -48,6 +49,11 @@ GameJohnnyRock::~GameJohnnyRock() {
 		_bulletholeIcon->free();
 		delete _bulletholeIcon;
 	}
+	delete _saveSound;
+	delete _loadSound;
+	delete _moneySound;
+	delete _shotSound;
+	delete _emptySound;
 }
 
 void GameJohnnyRock::init() {
@@ -70,24 +76,24 @@ void GameJohnnyRock::init() {
 	registerScriptFunctions();
 	verifyScriptFunctions();
 
-	_menuzone = new Zone("MainMenu", "GLOBALHIT");
-	_menuzone->addRect(0x0C, 0xBB, 0x3C, 0xC7, nullptr, 0, "SHOTMENU", "0");
+	_menuZone = new Zone("MainMenu", "GLOBALHIT");
+	_menuZone->addRect(0x0C, 0xBB, 0x3C, 0xC7, nullptr, 0, "SHOTMENU", "0");
 
-	_submenzone = new Zone("SubMenu", "GLOBALHIT");
-	_submenzone->addRect(0x10, 0x0F, 0x78, 0x34, nullptr, 0, "STARTMENU", "0");
-	_submenzone->addRect(0x10, 0x8E, 0x8A, 0xAF, nullptr, 0, "CONTMENU", "0");
-	_submenzone->addRect(0x10, 0x3A, 0x6A, 0x5C, nullptr, 0, "RECTSAVE", "0");
-	_submenzone->addRect(0x10, 0x64, 0x84, 0x99, nullptr, 0, "RECTLOAD", "0");
-	_submenzone->addRect(0xD2, 0x8D, 0x12F, 0xB0, nullptr, 0, "EXITMENU", "0");
-	_submenzone->addRect(0xD0, 0x35, 0x123, 0x51, nullptr, 0, "RECTEASY", "0");
-	_submenzone->addRect(0xD2, 0x50, 0x125, 0x6B, nullptr, 0, "RECTAVG", "0");
-	_submenzone->addRect(0xD2, 0x6D, 0x122, 0x86, nullptr, 0, "RECTHARD", "0");
+	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
+	_subMenuZone->addRect(0x10, 0x0F, 0x78, 0x34, nullptr, 0, "STARTMENU", "0");
+	_subMenuZone->addRect(0x10, 0x8E, 0x8A, 0xAF, nullptr, 0, "CONTMENU", "0");
+	_subMenuZone->addRect(0x10, 0x3A, 0x6A, 0x5C, nullptr, 0, "RECTSAVE", "0");
+	_subMenuZone->addRect(0x10, 0x64, 0x84, 0x99, nullptr, 0, "RECTLOAD", "0");
+	_subMenuZone->addRect(0xD2, 0x8D, 0x12F, 0xB0, nullptr, 0, "EXITMENU", "0");
+	_subMenuZone->addRect(0xD0, 0x35, 0x123, 0x51, nullptr, 0, "RECTEASY", "0");
+	_subMenuZone->addRect(0xD2, 0x50, 0x125, 0x6B, nullptr, 0, "RECTAVG", "0");
+	_subMenuZone->addRect(0xD2, 0x6D, 0x122, 0x86, nullptr, 0, "RECTHARD", "0");
 
 	_shotSound = loadSoundFile("blow.8b");
 	_emptySound = loadSoundFile("empty.8b");
 	_saveSound = loadSoundFile("saved.8b");
 	_loadSound = loadSoundFile("loaded.8b");
-	_skullSound = loadSoundFile("money.8b");
+	_moneySound = loadSoundFile("money.8b");
 
 	_gun = AlgGraphics::loadScreenCoordAniImage("gun.ani", _palette);
 	_numbers = AlgGraphics::loadAniImage("numbers.ani", _palette);
@@ -334,7 +340,7 @@ Common::Error GameJohnnyRock::run() {
 			Common::Point firedCoords;
 			if (fired(&firedCoords)) {
 				if (!_holster) {
-					Rect *hitGlobalRect = checkZone(_menuzone, &firedCoords);
+					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else if (_shots > 0) {
@@ -513,7 +519,7 @@ void GameJohnnyRock::doMenu() {
 	while (_inMenu && !_vm->shouldQuit()) {
 		Common::Point firedCoords;
 		if (fired(&firedCoords)) {
-			Rect *hitMenuRect = checkZone(_submenzone, &firedCoords);
+			Rect *hitMenuRect = checkZone(_subMenuZone, &firedCoords);
 			if (hitMenuRect != nullptr) {
 				callScriptFunctionRectHit(hitMenuRect->_rectHit, hitMenuRect);
 			}
@@ -791,7 +797,7 @@ bool GameJohnnyRock::loadState() {
 }
 
 void GameJohnnyRock::doMoneySound() {
-	playSound(_skullSound);
+	playSound(_moneySound);
 }
 
 // Misc game functions
@@ -843,7 +849,7 @@ void GameJohnnyRock::defaultBullethole(Common::Point *point) {
 		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
 		updateCursor();
 		_shotFired = true;
-		doShot();
+		playSound(_shotSound);
 	}
 }
 
@@ -896,9 +902,57 @@ void GameJohnnyRock::showCombination() {
 	_curScene = numToScene(offset + 0xDB);
 }
 
+// Timer
+static void cursorTimerCallback(void *refCon) {
+	GameJohnnyRock *game = static_cast<GameJohnnyRock *>(refCon);
+	game->runCursorTimer();
+}
+
+void GameJohnnyRock::setupCursorTimer() {
+	g_system->getTimerManager()->installTimerProc(&cursorTimerCallback, 1000000 / 50, (void *)this, "cursortimer");
+}
+
+void GameJohnnyRock::removeCursorTimer() {
+	g_system->getTimerManager()->removeTimerProc(&cursorTimerCallback);
+}
+
+void GameJohnnyRock::runCursorTimer() {
+	_thisGameTimer += 2;
+	if (_whichGun == 9) {
+		if (_emptyCount > 0) {
+			_emptyCount--;
+		} else {
+			_whichGun = 0;
+		}
+	} else {
+		if (_shotFired) {
+			_whichGun++;
+			if (_whichGun > 5) {
+				_whichGun = 0;
+				_shotFired = false;
+			}
+		} else {
+			if (_inHolster > 0) {
+				_inHolster--;
+				if (_inHolster == 0 && _whichGun == 7) {
+					_whichGun = 6;
+				}
+			}
+		}
+	}
+}
+
 // Script functions: Zone
 void GameJohnnyRock::zoneBullethole(Common::Point *point) {
 	defaultBullethole(point);
+}
+
+// Script functions: RectHit
+void GameJohnnyRock::rectNewScene(Rect *rect) {
+	_score += rect->_score;
+	if (!rect->_scene.empty()) {
+		_curScene = rect->_scene;
+	}
 }
 
 void GameJohnnyRock::rectShotMenu(Rect *rect) {
@@ -907,13 +961,13 @@ void GameJohnnyRock::rectShotMenu(Rect *rect) {
 
 void GameJohnnyRock::rectSave(Rect *rect) {
 	if (saveState()) {
-		doSaveSound();
+		playSound(_saveSound);
 	}
 }
 
 void GameJohnnyRock::rectLoad(Rect *rect) {
 	if (loadState()) {
-		doLoadSound();
+		playSound(_loadSound);
 	}
 }
 
@@ -949,6 +1003,22 @@ void GameJohnnyRock::rectStart(Rect *rect) {
 	resetParams();
 	newGame();
 	updateStat();
+}
+
+void GameJohnnyRock::rectEasy(Rect *rect) {
+	_difficulty = 1;
+}
+
+void GameJohnnyRock::rectAverage(Rect *rect) {
+	_difficulty = 2;
+}
+
+void GameJohnnyRock::rectHard(Rect *rect) {
+	_difficulty = 3;
+}
+
+void GameJohnnyRock::rectExit(Rect *rect) {
+	shutdown();
 }
 
 void GameJohnnyRock::rectKillInnocent(Rect *rect) {
@@ -1723,6 +1793,13 @@ void GameJohnnyRock::sceneDefaultWepdwn(Scene *scene) {
 	_inHolster = 9;
 	_whichGun = 7;
 	updateMouse();
+}
+
+// Script functions: ScnScr
+void GameJohnnyRock::sceneDefaultScore(Scene *scene) {
+	if (scene->_scnscrParam > 0) {
+		_score += scene->_scnscrParam;
+	}
 }
 
 // Debug methods

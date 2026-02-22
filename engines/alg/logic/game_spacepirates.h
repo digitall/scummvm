@@ -85,9 +85,29 @@ private:
 	Graphics::Surface *_difficultyIcon;
 	Graphics::Surface *_bulletholeIcon;
 
+	// sounds
+	Audio::SeekableAudioStream *_saveSound = nullptr;
+	Audio::SeekableAudioStream *_loadSound = nullptr;
+	Audio::SeekableAudioStream *_difficultySound = nullptr;
+	Audio::SeekableAudioStream *_skullSound = nullptr;
+	Audio::SeekableAudioStream *_shotSound = nullptr;
+	Audio::SeekableAudioStream *_emptySound = nullptr;
+
 	// constants
 
 	// gamestate
+	uint8 _difficulty = 1;
+	uint8 _oldDifficulty = 1;
+	bool _holster = false;
+	int8 _lives = 0;
+	int8 _oldLives = 0;
+	int32 _score = 0;
+	int32 _oldScore = -1;
+	uint16 _shots = 0;
+	uint8 _oldShots = 0;
+	uint8 _whichGun = 0;
+	uint8 _oldWhichGun = 0xFF;
+
 	bool _gameLoaded = false;
 	int8 _livesLoaded = 0;
 	uint16 _shotsLoaded = 0;
@@ -150,6 +170,7 @@ private:
 	uint16 pickCrystalScene(uint16 scene1, uint16 scene2, uint16 scene3);
 
 	// Script functions: RectHit
+	void rectNewScene(Rect *rect);
 	void rectShotMenu(Rect *rect);
 	void rectSave(Rect *rect);
 	void rectLoad(Rect *rect);
@@ -158,6 +179,7 @@ private:
 	void rectEasy(Rect *rect);
 	void rectAverage(Rect *rect);
 	void rectHard(Rect *rect);
+	void rectExit(Rect *rect);
 	void rectDefault(Rect *rect);
 	void rectKillInnocentPerson(Rect *rect);
 	void rectContinueJunkRings(Rect *rect);
@@ -249,8 +271,8 @@ private:
 	// Script functions: Scene WepDwn
 	void sceneDefaultWepdwn(Scene *scene);
 
-	// Script functions: Scene ScnScr
-	void sceneDefaultScnscr(Scene *scene);
+	// Script functions: ScnScr
+	void sceneDefaultScore(Scene *scene);
 };
 
 class DebuggerSpacePirates : public GUI::Debugger {

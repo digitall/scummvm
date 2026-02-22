@@ -88,7 +88,12 @@ GameBountyHunter::~GameBountyHunter() {
 		item->free();
 		delete item;
 	}
+	delete _saveSound;
+	delete _loadSound;
+	delete _skullSound;
+	delete _shotSound;
 	delete _shotgunSound;
+	delete _emptySound;
 }
 
 void GameBountyHunter::init() {
@@ -109,23 +114,23 @@ void GameBountyHunter::init() {
 	registerScriptFunctions();
 	verifyScriptFunctions();
 
-	_menuzone = new Zone("MainMenu", "GLOBALHIT");
-	_menuzone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
+	_menuZone = new Zone("MainMenu", "GLOBALHIT");
+	_menuZone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
 
-	_submenzone = new Zone("SubMenu", "GLOBALHIT");
-	_submenzone->addRect(0, 0, 0x78, 0x3C, nullptr, 0, "STARTMENU", "0");
-	_submenzone->addRect(0xC8, 0, 0x0140, 0x3C, nullptr, 0, "RECTLOAD", "0");
-	_submenzone->addRect(0xC8, 0x3C, 0x0140, 0x78, nullptr, 0, "RECTSAVE", "0");
-	_submenzone->addRect(0, 0x3C, 0x78, 0x78, nullptr, 0, "CONTMENU", "0");
-	_submenzone->addRect(0, 0x78, 0x78, 0xB4, nullptr, 0, "EXITMENU", "0");
-	_submenzone->addRect(0xC8, 0x78, 0x0140, 0xB4, nullptr, 0, "TOGGLEPLAYERS", "0");
+	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
+	_subMenuZone->addRect(0, 0, 0x78, 0x3C, nullptr, 0, "STARTMENU", "0");
+	_subMenuZone->addRect(0xC8, 0, 0x0140, 0x3C, nullptr, 0, "RECTLOAD", "0");
+	_subMenuZone->addRect(0xC8, 0x3C, 0x0140, 0x78, nullptr, 0, "RECTSAVE", "0");
+	_subMenuZone->addRect(0, 0x3C, 0x78, 0x78, nullptr, 0, "CONTMENU", "0");
+	_subMenuZone->addRect(0, 0x78, 0x78, 0xB4, nullptr, 0, "EXITMENU", "0");
+	_subMenuZone->addRect(0xC8, 0x78, 0x0140, 0xB4, nullptr, 0, "TOGGLEPLAYERS", "0");
 
 	_shotSound = loadSoundFile("blow.8b");
+	_shotgunSound = loadSoundFile("shotgun.8b");
 	_emptySound = loadSoundFile("empty.8b");
 	_saveSound = loadSoundFile("saved.8b");
 	_loadSound = loadSoundFile("loaded.8b");
 	_skullSound = loadSoundFile("skull.8b");
-	_shotgunSound = loadSoundFile("shotgun.8b");
 
 	_gun = AlgGraphics::loadScreenCoordAniImage("bh_gun.ani", _palette);
 	_shotgun = AlgGraphics::loadScreenCoordAniImage("bh_buck.ani", _palette);
@@ -390,7 +395,7 @@ Common::Error GameBountyHunter::run() {
 			Common::Point firedCoords;
 			if (fired(&firedCoords)) {
 				if (!_holster) {
-					Rect *hitGlobalRect = checkZone(_menuzone, &firedCoords);
+					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else {
@@ -399,9 +404,9 @@ Common::Error GameBountyHunter::run() {
 								_playerShots[_player]--;
 							}
 							displayShotFiredImage(&firedCoords);
-							doShot();
+							playSound(_shotSound);
 							Rect *hitRect = nullptr;
-							Zone *hitSceneZone = checkZonesV2(scene, hitRect, &firedCoords);
+							Zone *hitSceneZone = checkZonesV2(scene, hitRect, &firedCoords, _difficulty);
 							if (hitSceneZone != nullptr) {
 								callScriptFunctionRectHit(hitRect->_rectHit, hitRect);
 							} else {
@@ -487,7 +492,7 @@ void GameBountyHunter::doMenu() {
 	while (_inMenu && !_vm->shouldQuit()) {
 		Common::Point firedCoords;
 		if (fired(&firedCoords)) {
-			Rect *hitMenuRect = checkZone(_submenzone, &firedCoords);
+			Rect *hitMenuRect = checkZone(_subMenuZone, &firedCoords);
 			if (hitMenuRect != nullptr) {
 				callScriptFunctionRectHit(hitMenuRect->_rectHit, hitMenuRect);
 			}
@@ -703,6 +708,30 @@ uint16 GameBountyHunter::beginLevel(uint8 levelNumber) {
 	return sceneNum;
 }
 
+uint16 GameBountyHunter::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude) {
+	if (max == 1) {
+		return 0;
+	}
+	// reset mask if full
+	uint16 fullMask = 0xFFFF >> (16 - max);
+	if (*mask == fullMask) {
+		*mask = 0;
+	}
+	uint16 randomNum = 0;
+	// find an unused random number
+	while (1) {
+		randomNum = _rnd->getRandomNumber(max - 1);
+		// check if bit is already used
+		uint16 bit = 1 << randomNum;
+		if (!((*mask & bit) || randomNum == exclude)) {
+			// set the bit in mask
+			*mask |= bit;
+			break;
+		}
+	}
+	return randomNum;
+}
+
 uint16 GameBountyHunter::pickRandomScene(uint16 *sceneList, uint8 max) {
 	if (max == 0) {
 		return 0;
@@ -802,19 +831,26 @@ void GameBountyHunter::doShotgunSound() {
 }
 
 // Script functions: RectHit
+void GameBountyHunter::rectNewScene(Rect *rect) {
+	_score += rect->_score;
+	if (!rect->_scene.empty()) {
+		_curScene = rect->_scene;
+	}
+}
+
 void GameBountyHunter::rectShotMenu(Rect *rect) {
 	doMenu();
 }
 
 void GameBountyHunter::rectSave(Rect *rect) {
 	if (saveState()) {
-		doSaveSound();
+		playSound(_saveSound);
 	}
 }
 
 void GameBountyHunter::rectLoad(Rect *rect) {
 	if (loadState()) {
-		doLoadSound();
+		playSound(_loadSound);
 	}
 	setNextScene(_restartScene);
 	_restartScene = 0;
@@ -852,6 +888,22 @@ void GameBountyHunter::rectStart(Rect *rect) {
 	newGame();
 }
 
+void GameBountyHunter::rectEasy(Rect *rect) {
+	_difficulty = 1;
+}
+
+void GameBountyHunter::rectAverage(Rect *rect) {
+	_difficulty = 2;
+}
+
+void GameBountyHunter::rectHard(Rect *rect) {
+	_difficulty = 3;
+}
+
+void GameBountyHunter::rectExit(Rect *rect) {
+	shutdown();
+}
+
 void GameBountyHunter::rectTogglePlayers(Rect *rect) {
 	if (_numPlayers == 1) {
 		_numPlayers = 2;
@@ -867,7 +919,7 @@ void GameBountyHunter::rectTogglePlayers(Rect *rect) {
 		AlgGraphics::drawImage(_screen, _textMenuIcon, 0x0C, 0xBF);
 		AlgGraphics::drawImage(_screen, _textBlackBarIcon, 0x50, 0xBE);
 	}
-	doSkullSound();
+	playSound(_skullSound);
 	_screen->copyRectToSurface(_background->getBasePtr(_videoPosX, _videoPosY), _background->pitch, _videoPosX, _videoPosY, _videoDecoder->getWidth(), _videoDecoder->getHeight());
 }
 
@@ -1310,6 +1362,13 @@ void GameBountyHunter::sceneDefaultWepdwn(Scene *scene) {
 	}
 	if (_playerGun[_player] == 1 && _playerShots[_player] < 6) {
 		_playerShots[_player] = 6;
+	}
+}
+
+// Script functions: ScnScr
+void GameBountyHunter::sceneDefaultScore(Scene *scene) {
+	if (scene->_scnscrParam > 0) {
+		_score += scene->_scnscrParam;
 	}
 }
 

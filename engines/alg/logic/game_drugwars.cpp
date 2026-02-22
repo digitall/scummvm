@@ -60,6 +60,11 @@ GameDrugWars::~GameDrugWars() {
 		_bulletholeIcon->free();
 		delete _bulletholeIcon;
 	}
+	delete _saveSound;
+	delete _loadSound;
+	delete _skullSound;
+	delete _shotSound;
+	delete _emptySound;
 }
 
 void GameDrugWars::init() {
@@ -82,18 +87,18 @@ void GameDrugWars::init() {
 	registerScriptFunctions();
 	verifyScriptFunctions();
 
-	_menuzone = new Zone("MainMenu", "GLOBALHIT");
-	_menuzone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
+	_menuZone = new Zone("MainMenu", "GLOBALHIT");
+	_menuZone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
 
-	_submenzone = new Zone("SubMenu", "GLOBALHIT");
-	_submenzone->addRect(0x1C, 0x13, 0x5D, 0x22, nullptr, 0, "STARTMENU", "0");
-	_submenzone->addRect(0x1C, 0x33, 0x5D, 0x42, nullptr, 0, "RECTLOAD", "0");
-	_submenzone->addRect(0x1C, 0x53, 0x5D, 0x62, nullptr, 0, "RECTSAVE", "0");
-	_submenzone->addRect(0x1C, 0x73, 0x5D, 0x82, nullptr, 0, "CONTMENU", "0");
-	_submenzone->addRect(0x1C, 0x93, 0x5D, 0xA2, nullptr, 0, "EXITMENU", "0");
-	_submenzone->addRect(0xDD, 0x34, 0x10A, 0x43, nullptr, 0, "RECTEASY", "0");
-	_submenzone->addRect(0xDD, 0x55, 0x10A, 0x64, nullptr, 0, "RECTAVG", "0");
-	_submenzone->addRect(0xDD, 0x75, 0x10A, 0x84, nullptr, 0, "RECTHARD", "0");
+	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
+	_subMenuZone->addRect(0x1C, 0x13, 0x5D, 0x22, nullptr, 0, "STARTMENU", "0");
+	_subMenuZone->addRect(0x1C, 0x33, 0x5D, 0x42, nullptr, 0, "RECTLOAD", "0");
+	_subMenuZone->addRect(0x1C, 0x53, 0x5D, 0x62, nullptr, 0, "RECTSAVE", "0");
+	_subMenuZone->addRect(0x1C, 0x73, 0x5D, 0x82, nullptr, 0, "CONTMENU", "0");
+	_subMenuZone->addRect(0x1C, 0x93, 0x5D, 0xA2, nullptr, 0, "EXITMENU", "0");
+	_subMenuZone->addRect(0xDD, 0x34, 0x10A, 0x43, nullptr, 0, "RECTEASY", "0");
+	_subMenuZone->addRect(0xDD, 0x55, 0x10A, 0x64, nullptr, 0, "RECTAVG", "0");
+	_subMenuZone->addRect(0xDD, 0x75, 0x10A, 0x84, nullptr, 0, "RECTHARD", "0");
 
 	_shotSound = loadSoundFile("blow.8b");
 	_emptySound = loadSoundFile("empty.8b");
@@ -283,7 +288,7 @@ Common::Error GameDrugWars::run() {
 			Common::Point firedCoords;
 			if (fired(&firedCoords)) {
 				if (!_holster) {
-					Rect *hitGlobalRect = checkZone(_menuzone, &firedCoords);
+					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else if (_shots > 0) {
@@ -291,9 +296,9 @@ Common::Error GameDrugWars::run() {
 							_shots--;
 						}
 						displayShotFiredImage(&firedCoords);
-						doShot();
+						playSound(_shotSound);
 						Rect *hitRect = nullptr;
-						Zone *hitSceneZone = checkZonesV2(scene, hitRect, &firedCoords);
+						Zone *hitSceneZone = checkZonesV2(scene, hitRect, &firedCoords, _difficulty);
 						if (hitSceneZone != nullptr) {
 							callScriptFunctionRectHit(hitRect->_rectHit, hitRect);
 						} else {
@@ -384,7 +389,7 @@ void GameDrugWars::doMenu() {
 	while (_inMenu && !_vm->shouldQuit()) {
 		Common::Point firedCoords;
 		if (fired(&firedCoords)) {
-			Rect *hitMenuRect = checkZone(_submenzone, &firedCoords);
+			Rect *hitMenuRect = checkZone(_subMenuZone, &firedCoords);
 			if (hitMenuRect != nullptr) {
 				callScriptFunctionRectHit(hitMenuRect->_rectHit, hitMenuRect);
 			}
@@ -600,6 +605,30 @@ uint16 GameDrugWars::sceneToNumber(Scene *scene) {
 	return atoi(scene->_name.substr(5).c_str());
 }
 
+uint16 GameDrugWars::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude) {
+	if (max == 1) {
+		return 0;
+	}
+	// reset mask if full
+	uint16 fullMask = 0xFFFF >> (16 - max);
+	if (*mask == fullMask) {
+		*mask = 0;
+	}
+	uint16 randomNum = 0;
+	// find an unused random number
+	while (1) {
+		randomNum = _rnd->getRandomNumber(max - 1);
+		// check if bit is already used
+		uint16 bit = 1 << randomNum;
+		if (!((*mask & bit) || randomNum == exclude)) {
+			// set the bit in mask
+			*mask |= bit;
+			break;
+		}
+	}
+	return randomNum;
+}
+
 uint16 GameDrugWars::pickRandomScene(uint8 index, uint8 max) {
 	if (_randomScenes[index] == nullptr) {
 		error("GameDrugWars::pickRandomScene(): called with illegal index: %d", index);
@@ -678,19 +707,26 @@ void GameDrugWars::rectSelectGeneric(uint8 index) {
 }
 
 // Script functions: RectHit
+void GameDrugWars::rectNewScene(Rect *rect) {
+	_score += rect->_score;
+	if (!rect->_scene.empty()) {
+		_curScene = rect->_scene;
+	}
+}
+
 void GameDrugWars::rectShotMenu(Rect *rect) {
 	doMenu();
 }
 
 void GameDrugWars::rectSave(Rect *rect) {
 	if (saveState()) {
-		doSaveSound();
+		playSound(_saveSound);
 	}
 }
 
 void GameDrugWars::rectLoad(Rect *rect) {
 	if (loadState()) {
-		doLoadSound();
+		playSound(_loadSound);
 	}
 }
 
@@ -718,6 +754,22 @@ void GameDrugWars::rectStart(Rect *rect) {
 	}
 	resetParams();
 	newGame();
+}
+
+void GameDrugWars::rectEasy(Rect *rect) {
+	_difficulty = 1;
+}
+
+void GameDrugWars::rectAverage(Rect *rect) {
+	_difficulty = 2;
+}
+
+void GameDrugWars::rectHard(Rect *rect) {
+	_difficulty = 3;
+}
+
+void GameDrugWars::rectExit(Rect *rect) {
+	shutdown();
 }
 
 void GameDrugWars::rectSelectTargetPractice(Rect *rect) {
@@ -976,6 +1028,13 @@ void GameDrugWars::sceneNxtscnFinishScenario(Scene *scene) {
 // Script functions: WepDwn
 void GameDrugWars::sceneDefaultWepdwn(Scene *scene) {
 	_shots = 10;
+}
+
+// Script functions: ScnScr
+void GameDrugWars::sceneDefaultScore(Scene *scene) {
+	if (scene->_scnscrParam > 0) {
+		_score += scene->_scnscrParam;
+	}
 }
 
 // Debug methods
