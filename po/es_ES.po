@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.4.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-21 20:47+0000\n"
-"PO-Revision-Date: 2026-02-21 10:21+0000\n"
+"PO-Revision-Date: 2026-02-22 15:18+0000\n"
 "Last-Translator: IlDucci <pajaroloco_2@hotmail.com>\n"
 "Language-Team: Spanish <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/es/>\n"
@@ -10680,12 +10680,12 @@ msgstr "Proteger"
 #. I18N: Party arrangement command in Might & Magic 1
 #: engines/mm/mm1/metaengine.cpp:94
 msgid "Forwards"
-msgstr "Avanzar"
+msgstr "Llevar al frente"
 
 #. I18N: Party arrangement command in Might & Magic 1
 #: engines/mm/mm1/metaengine.cpp:96
 msgid "Backwards"
-msgstr "Retroceder"
+msgstr "Llevar a retaguardia"
 
 #: engines/mm/mm1/metaengine.cpp:104
 msgid "Toggle minimap"
