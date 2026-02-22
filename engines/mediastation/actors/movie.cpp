@@ -193,7 +193,7 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 					debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
 			}
 		}
-		return returnValue;
+		break;
 	}
 
 	case kSpatialHideMethod: {
@@ -214,19 +214,19 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 					debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
 			}
 		}
-		return returnValue;
+		break;
 	}
 
 	case kTimePlayMethod: {
 		ARGCOUNTCHECK(0);
 		timePlay();
-		return returnValue;
+		break;
 	}
 
 	case kTimeStopMethod: {
 		ARGCOUNTCHECK(0);
 		timeStop();
-		return returnValue;
+		break;
 	}
 
 	case kStreamMovieSetProxyZIndex: {
@@ -240,7 +240,7 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
 		}
-		return returnValue;
+		break;
 	}
 
 	case kStreamMovieGetProxyZIndex: {
@@ -253,27 +253,27 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
 		}
-		return returnValue;
+		break;
 	}
 
 	case kIsPlayingMethod: {
 		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isPlaying);
-		return returnValue;
+		break;
 	}
 
 	case kGetLeftXMethod: {
 		ARGCOUNTCHECK(0);
 		double left = static_cast<double>(_boundingBox.left);
 		returnValue.setToFloat(left);
-		return returnValue;
+		break;
 	}
 
 	case kGetTopYMethod: {
 		ARGCOUNTCHECK(0);
 		double top = static_cast<double>(_boundingBox.top);
 		returnValue.setToFloat(top);
-		return returnValue;
+		break;
 	}
 
 	case kStreamMovieMoveProxyToStageMethod: {
@@ -284,18 +284,18 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 		if (proxy == nullptr) {
 			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
-			return returnValue;
+			break;
 		}
 		StageActor *parentStage = static_cast<StageActor *>(g_engine->getActorByIdAndType(targetStageId, kActorTypeStage));
 		if (parentStage == nullptr) {
 			warning("[%s] %s: Stream movie proxy with script ID %s has null parent stage",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
-			return returnValue;
+			break;
 		}
 
 		proxy->getParentStage()->removeChildSpatialEntity(proxy);
 		parentStage->addChildSpatialEntity(proxy);
-		return returnValue;
+		break;
 	}
 
 	case kStreamMovieMoveProxyToRootStageMethod: {
@@ -306,7 +306,7 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 		if (proxy == nullptr) {
 			warning("[%s] %s: Stream movie proxy with script ID %s doesn't exist",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
-			return returnValue;
+			break;
 		}
 
 		RootStage *rootStage = g_engine->getRootStage();
@@ -314,17 +314,18 @@ ScriptValue StreamMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 		if (sourceStage == nullptr) {
 			warning("[%s] %s: Stream movie proxy with script ID %s has null parent stage",
 				debugName(), __func__, g_engine->formatParamTokenName(scriptId).c_str());
-			return returnValue;
+			break;
 		}
 
 		sourceStage->removeChildSpatialEntity(proxy);
 		rootStage->addChildSpatialEntity(proxy);
-		return returnValue;
+		break;
 	}
 
 	default:
-		return SpatialEntity::callMethod(methodId, args);
+		returnValue = SpatialEntity::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 void StreamMovieActor::timePlay() {

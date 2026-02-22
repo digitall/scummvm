@@ -33,24 +33,25 @@ ScriptValue TimerActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 	case kTimePlayMethod: {
 		ARGCOUNTCHECK(0);
 		timePlay();
-		return returnValue;
+		break;
 	}
 
 	case kTimeStopMethod: {
 		ARGCOUNTCHECK(0);
 		timeStop();
-		return returnValue;
+		break;
 	}
 
 	case kIsPlayingMethod: {
 		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isPlaying);
-		return returnValue;
+		break;
 	}
 
 	default:
-		return Actor::callMethod(methodId, args);
+		returnValue = Actor::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 void TimerActor::timePlay() {

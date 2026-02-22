@@ -121,31 +121,31 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 	case kSpatialShowMethod: {
 		ARGCOUNTCHECK(0);
 		setVisibility(true);
-		return returnValue;
+		break;
 	}
 
 	case kSpatialHideMethod: {
 		ARGCOUNTCHECK(0);
 		setVisibility(false);
-		return returnValue;
+		break;
 	}
 
 	case kTimePlayMethod: {
 		ARGCOUNTCHECK(0);
 		play();
-		return returnValue;
+		break;
 	}
 
 	case kTimeStopMethod: {
 		ARGCOUNTCHECK(0);
 		stop();
-		return returnValue;
+		break;
 	}
 
 	case kMovieResetMethod: {
 		ARGCOUNTCHECK(0);
 		setCurrentFrameToInitial();
-		return returnValue;
+		break;
 	}
 
 	case kSetCurrentClipMethod: {
@@ -155,7 +155,7 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 			clipId = args[0].asParamToken();
 		}
 		setCurrentClip(clipId);
-		return returnValue;
+		break;
 	}
 
 	case kIncrementFrameMethod: {
@@ -171,7 +171,7 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 				setCurrentFrameToInitial();
 			}
 		}
-		return returnValue;
+		break;
 	}
 
 	case kDecrementFrameMethod: {
@@ -186,22 +186,23 @@ ScriptValue SpriteMovieActor::callMethod(BuiltInMethod methodId, Common::Array<S
 				setCurrentFrameToFinal();
 			}
 		}
-		return returnValue;
+		break;
 	}
 
 	case kGetCurrentClipIdMethod: {
 		returnValue.setToParamToken(_activeClip.id);
-		return returnValue;
+		break;
 	}
 
 	case kIsPlayingMethod: {
 		returnValue.setToBool(_isPlaying);
-		return returnValue;
+		break;
 	}
 
 	default:
-		return SpatialEntity::callMethod(methodId, args);
+		returnValue = SpatialEntity::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 bool SpriteMovieActor::activateNextFrame() {

@@ -322,7 +322,7 @@ ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		addActorToStage(actorId);
-		return returnValue;
+		break;
 	}
 
 	case kRemoveActorFromStageMethod:
@@ -330,7 +330,7 @@ ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		ARGCOUNTCHECK(1);
 		uint actorId = args[0].asActorId();
 		removeActorFromStage(actorId);
-		return returnValue;
+		break;
 	}
 
 	case kSetBoundsMethod: {
@@ -341,28 +341,29 @@ ScriptValue StageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		int16 height = static_cast<int16>(args[3].asFloat());
 		Common::Rect newBounds(Common::Point(x, y), width, height);
 		setBounds(newBounds);
-		return returnValue;
+		break;
 	}
 
 	case kStageSetSizeMethod:
 		ARGCOUNTCHECK(2);
 		_boundingBox.setWidth(static_cast<int16>(args[0].asFloat()));
 		_boundingBox.setHeight(static_cast<int16>(args[1].asFloat()));
-		return returnValue;
+		break;
 
 	case kStageGetWidthMethod:
 		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.width());
-		return returnValue;
+		break;
 
 	case kStageGetHeightMethod:
 		ARGCOUNTCHECK(0);
 		returnValue.setToFloat(_boundingBox.height());
-		return returnValue;
+		break;
 
 	default:
-		return SpatialEntity::callMethod(methodId, args);
+		returnValue = SpatialEntity::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 void StageActor::addChildSpatialEntity(SpatialEntity *entity) {

@@ -95,22 +95,22 @@ ScriptValue SoundActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 		// Since the engine is currently flagging errors on unimplemented
 		// methods for easier debugging, a no-op is used here to avoid the error.
 		ARGCOUNTCHECK(0);
-		return returnValue;
+		break;
 
 	case kTimePlayMethod:
 		ARGCOUNTCHECK(0);
 		start();
-		return returnValue;
+		break;
 
 	case kTimeStopMethod:
 		ARGCOUNTCHECK(0);
 		stop();
-		return returnValue;
+		break;
 
 	case kPauseMethod:
 		ARGCOUNTCHECK(0);
 		pause();
-		return returnValue;
+		break;
 
 	case kResumeMethod: {
 		ARGCOUNTRANGE(0, 1);
@@ -119,20 +119,21 @@ ScriptValue SoundActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 			shouldRestart = args[0].asBool();
 		}
 		resume(shouldRestart);
-		return returnValue;
+		break;
 	}
 
 	case kIsPlayingMethod:
 		returnValue.setToBool(_playState == kSoundPlaying || _playState == kSoundPaused);
-		return returnValue;
+		break;
 
 	case kIsPausedMethod:
 		returnValue.setToBool(_playState == kSoundPaused);
-		return returnValue;
+		break;
 
 	default:
-		return Actor::callMethod(methodId, args);
+		returnValue = Actor::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 void SoundActor::start() {

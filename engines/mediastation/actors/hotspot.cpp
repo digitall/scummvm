@@ -98,13 +98,13 @@ ScriptValue HotspotActor::callMethod(BuiltInMethod methodId, Common::Array<Scrip
 	case kMouseActivateMethod: {
 		ARGCOUNTCHECK(0);
 		activate();
-		return returnValue;
+		break;
 	}
 
 	case kMouseDeactivateMethod: {
 		ARGCOUNTCHECK(0);
 		deactivate();
-		return returnValue;
+		break;
 	}
 
 
@@ -115,32 +115,33 @@ ScriptValue HotspotActor::callMethod(BuiltInMethod methodId, Common::Array<Scrip
 		Common::Point pointToCheck(xToCheck, yToCheck);
 		bool pointIsInside = isInside(pointToCheck);
 		returnValue.setToBool(pointIsInside);
-		return returnValue;
+		break;
 	}
 
 	case kTriggerAbsXPositionMethod: {
 		ARGCOUNTCHECK(0);
 		double mouseX = static_cast<double>(g_system->getEventManager()->getMousePos().x);
 		returnValue.setToFloat(mouseX);
-		return returnValue;
+		break;
 	}
 
 	case kTriggerAbsYPositionMethod: {
 		ARGCOUNTCHECK(0);
 		double mouseY = static_cast<double>(g_system->getEventManager()->getMousePos().y);
 		returnValue.setToFloat(mouseY);
-		return returnValue;
+		break;
 	}
 
 	case kIsActiveMethod: {
 		ARGCOUNTCHECK(0);
 		returnValue.setToBool(_isActive);
-		return returnValue;
+		break;
 	}
 
 	default:
-		return SpatialEntity::callMethod(methodId, args);
+		returnValue = SpatialEntity::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 uint16 HotspotActor::findActorToAcceptMouseEvents(

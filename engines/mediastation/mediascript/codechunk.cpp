@@ -208,14 +208,14 @@ ScriptValue CodeChunk::evaluateValue() {
 		}
 		debugC(5, kDebugScript, "%d ", b);
 		returnValue.setToBool(b == 1 ? true : false);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeFloat: {
 		double f = _bytecode->readTypedDouble();
 		debugC(5, kDebugScript, "%f ", f);
 		returnValue.setToFloat(f);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeInt: {
@@ -223,7 +223,7 @@ ScriptValue CodeChunk::evaluateValue() {
 		debugC(5, kDebugScript, "%d ", i);
 		// Ints are stored internally as doubles.
 		returnValue.setToFloat(static_cast<double>(i));
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeString: {
@@ -232,7 +232,7 @@ ScriptValue CodeChunk::evaluateValue() {
 		Common::String string = _bytecode->readString('\0', size);
 		debugC(5, kDebugScript, "%s ", string.c_str());
 		returnValue.setToString(string);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeParamToken: {
@@ -240,7 +240,7 @@ ScriptValue CodeChunk::evaluateValue() {
 		Common::String tokenName = g_engine->formatParamTokenName(literal);
 		debugC(5, kDebugScript, "%s ", tokenName.c_str());
 		returnValue.setToParamToken(literal);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeActorId: {
@@ -248,19 +248,19 @@ ScriptValue CodeChunk::evaluateValue() {
 		Common::String actorName = g_engine->formatActorName(actorId, true);
 		debugC(5, kDebugScript, "%s ", actorName.c_str());
 		returnValue.setToActorId(actorId);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeTime: {
 		double d = _bytecode->readTypedTime();
 		debugC(5, kDebugScript, "%f ", d);
 		returnValue.setToTime(d);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeVariable: {
 		returnValue = ScriptValue(_bytecode);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeFunctionId: {
@@ -269,19 +269,20 @@ ScriptValue CodeChunk::evaluateValue() {
 		Common::String functionName = g_engine->formatFunctionName(functionId);
 		debugC(5, kDebugScript, "%s ", functionName.c_str());
 		returnValue.setToFunctionId(functionId);
-		return returnValue;
+		break;
 	}
 
 	case kOperandTypeMethodId: {
 		BuiltInMethod methodId = static_cast<BuiltInMethod>(_bytecode->readTypedUint16());
 		debugC(5, kDebugScript, "%s ", builtInMethodToStr(methodId));
 		returnValue.setToMethodId(methodId);
-		return returnValue;
+		break;
 	}
 
 	default:
 		error("%s: Got unknown ScriptValue type %s (%d)", __func__, operandTypeToStr(operandType), static_cast<uint>(operandType));
 	}
+	return returnValue;
 }
 
 ScriptValue CodeChunk::evaluateVariable() {
@@ -531,7 +532,7 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 			// It seems to be valid to call a method on a null actor ID, in
 			// which case nothing happens. Still issue warning for traceability.
 			warning("%s: Attempt to call method %s (%d) on null actor ID", __func__, builtInMethodToStr(method), static_cast<uint>(method));
-			return returnValue;
+			break;
 		} else {
 			// This is a regular actor that we can process directly.
 			uint actorId = target.asActorId();
@@ -540,14 +541,14 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 				error("[%s] %s: Actor not loaded", g_engine->formatActorName(target.asActorId()).c_str(), __func__);
 			}
 			returnValue = targetActor->callMethod(method, args);
-			return returnValue;
+			break;
 		}
 	}
 
 	case kScriptValueTypeCollection: {
 		Common::SharedPtr<Collection> collection = target.asCollection();
 		returnValue = collection->callMethod(method, args);
-		return returnValue;
+		break;
 	}
 
 	default:
@@ -555,6 +556,7 @@ ScriptValue CodeChunk::evaluateMethodCall(BuiltInMethod method, uint paramCount)
 			builtInMethodToStr(method), static_cast<uint>(method),
 			scriptValueTypeToStr(target.getType()), static_cast<uint>(target.getType()));
 	}
+	return returnValue;
 }
 
 void CodeChunk::evaluateDeclareLocals() {

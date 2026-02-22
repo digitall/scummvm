@@ -76,18 +76,19 @@ ScriptValue ImageActor::callMethod(BuiltInMethod methodId, Common::Array<ScriptV
 	case kSpatialShowMethod: {
 		ARGCOUNTCHECK(0);
 		spatialShow();
-		return returnValue;
+		break;
 	}
 
 	case kSpatialHideMethod: {
 		ARGCOUNTCHECK(0);
 		spatialHide();
-		return returnValue;
+		break;
 	}
 
 	default:
 		return SpatialEntity::callMethod(methodId, args);
 	}
+	return returnValue;
 }
 
 void ImageActor::draw(DisplayContext &displayContext) {
