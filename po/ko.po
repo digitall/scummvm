@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-21 20:47+0000\n"
-"PO-Revision-Date: 2026-02-05 15:06+0000\n"
+"PO-Revision-Date: 2026-02-22 12:22+0000\n"
 "Last-Translator: Hoseok Seo <ddinghoya@gmail.com>\n"
 "Language-Team: Korean <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ko/>\n"
@@ -1467,10 +1467,8 @@ msgid "About ScummVM"
 msgstr "ScummVM 정보"
 
 #: gui/launcher.cpp:277 gui/launcher.cpp:955
-#, fuzzy
-#| msgid "General Keys"
 msgid "General help"
-msgstr "일반 키"
+msgstr "일반 도움말"
 
 #. I18N: Button caption. O is the shortcut, Ctrl+O, put it in parens for non-latin (~O~)
 #: gui/launcher.cpp:280
@@ -2770,25 +2768,19 @@ msgstr "*  Abc"
 
 #: gui/printing-dialog.cpp:61
 msgid "Print"
-msgstr ""
+msgstr "프린트"
 
 #: gui/printing-dialog.cpp:62
-#, fuzzy
-#| msgid "Save Image"
 msgid "Save as image"
-msgstr "이미지 저장"
+msgstr "이미지로 저장"
 
 #: gui/printing-dialog.cpp:64
-#, fuzzy
-#| msgid "Pointer Speed:"
 msgid "Printer:"
-msgstr "포인터 속도:"
+msgstr "프린터:"
 
 #: gui/printing-dialog.cpp:87
-#, fuzzy
-#| msgid "Next action"
 msgid "Orientation:"
-msgstr "다음 행동"
+msgstr "방향:"
 
 #: gui/recorderdialog.cpp:67
 msgid "Recorder or Playback Gameplay"
@@ -3530,10 +3522,8 @@ msgid "~O~ptions"
 msgstr "옵션(~O~)"
 
 #: engines/dialogs.cpp:79
-#, fuzzy
-#| msgid "~H~elp"
 msgid "Game ~H~elp"
-msgstr "도움말(~H~)"
+msgstr "게임 도움말(~H~)"
 
 #: engines/dialogs.cpp:83
 msgid "~H~elp"
@@ -3852,8 +3842,6 @@ msgid "Game not implemented"
 msgstr "게임이 구현되지 않았음"
 
 #: engines/metaengine.cpp:75 engines/saga/metaengine.cpp:267
-#, fuzzy
-#| msgid "Default game keymap"
 msgid "Default game keymappings"
 msgstr "기본 게임 키설정"
 
@@ -4875,16 +4863,12 @@ msgid "R"
 msgstr "R 버튼"
 
 #: backends/platform/3ds/osystem-events.cpp:63
-#, fuzzy
-#| msgid "Circle"
 msgid "Circle Pad X"
-msgstr "원 버튼"
+msgstr "원 패드 X"
 
 #: backends/platform/3ds/osystem-events.cpp:64
-#, fuzzy
-#| msgid "Circle"
 msgid "Circle Pad Y"
-msgstr "원 버튼"
+msgstr "원 패드 Y"
 
 #: backends/platform/3ds/osystem-events.cpp:69
 #: backends/platform/ds/osystem_ds.cpp:197
@@ -6776,14 +6760,12 @@ msgid "Don't fade every screen to black when leaving a room."
 msgstr "룸을 나갈 때 모든 화면이 어두워지지 않도록 하세요."
 
 #: engines/agos/dialogs.cpp:93
-#, fuzzy
-#| msgid "Use original save/load screens"
 msgid "Use original Acorn system cursor"
-msgstr "원본 저장/불러오기 화면 사용"
+msgstr "Acorn 시스템의 원래 커서 사용"
 
 #: engines/agos/dialogs.cpp:94
 msgid "Toggle between the system cursor and the default cursor."
-msgstr ""
+msgstr "시스템 커서와 기본 커서 사이를 전환합니다."
 
 #: engines/agos/dialogs.cpp:107 engines/sci/detection_options.h:263
 msgid "MIDI mode:"
@@ -7873,56 +7855,38 @@ msgstr "프롬프트 종료"
 #. I18N: Here ALTered Item refers to the dice that has been altered/changed.
 #. In order to escape the dice game loop press Right/Left Alt
 #: engines/cge/metaengine.cpp:250
-#, fuzzy
-#| msgid "ALTered Item"
 msgid "ALTered item"
 msgstr "ALTered 아이템"
 
 #: engines/cge/metaengine.cpp:257
-#, fuzzy
-#| msgid "Inventory Item 1 (Select / Deselect)"
 msgid "Inventory item 1 (Select / Deselect)"
 msgstr "인벤토리 아이템 1 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:262
-#, fuzzy
-#| msgid "Inventory Item 2 (Select / Deselect)"
 msgid "Inventory item 2 (Select / Deselect)"
 msgstr "인벤토리 아이템 2 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:267
-#, fuzzy
-#| msgid "Inventory Item 3 (Select / Deselect)"
 msgid "Inventory item 3 (Select / Deselect)"
 msgstr "인벤토리 아이템 3 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:272
-#, fuzzy
-#| msgid "Inventory Item 4 (Select / Deselect)"
 msgid "Inventory item 4 (Select / Deselect)"
 msgstr "인벤토리 아이템 4 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:277
-#, fuzzy
-#| msgid "Inventory Item 5 (Select / Deselect)"
 msgid "Inventory item 5 (Select / Deselect)"
 msgstr "인벤토리 아이템 5 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:282
-#, fuzzy
-#| msgid "Inventory Item 6 (Select / Deselect)"
 msgid "Inventory item 6 (Select / Deselect)"
 msgstr "인벤토리 아이템 6 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:287
-#, fuzzy
-#| msgid "Inventory Item 7 (Select / Deselect)"
 msgid "Inventory item 7 (Select / Deselect)"
 msgstr "인벤토리 아이템 7 (선택 / 해제)"
 
 #: engines/cge/metaengine.cpp:292
-#, fuzzy
-#| msgid "Inventory Item 8 (Select / Deselect)"
 msgid "Inventory item 8 (Select / Deselect)"
 msgstr "인벤토리 아이템 8 (선택 / 해제)"
 
@@ -11470,32 +11434,22 @@ msgid "I Have No Mouth support not compiled in"
 msgstr "I Have No Mouth 지원이 컴파일되지 않았음"
 
 #: engines/saga/metaengine.cpp:269
-#, fuzzy
-#| msgid "Option panel keymapping"
 msgid "Option panel keymappings"
 msgstr "옵션 패널 키맵핑"
 
 #: engines/saga/metaengine.cpp:270
-#, fuzzy
-#| msgid "Save panel keymapping"
 msgid "Save panel keymappings"
 msgstr "패널 키맵핑 저장"
 
 #: engines/saga/metaengine.cpp:271
-#, fuzzy
-#| msgid "Load panel keymapping"
 msgid "Load panel keymappings"
 msgstr "패널 키맵핑 불러오기"
 
 #: engines/saga/metaengine.cpp:272
-#, fuzzy
-#| msgid "Quit panel keymapping"
 msgid "Quit panel keymappings"
 msgstr "패널 키맵핑 종료"
 
 #: engines/saga/metaengine.cpp:273
-#, fuzzy
-#| msgid "Converse panel keymapping"
 msgid "Converse panel keymappings"
 msgstr "패널 키맵핑 정반대"
 
@@ -12832,16 +12786,16 @@ msgid "Enable demo/kiosk mode in the full retail version of Maniac Mansion."
 msgstr "매니악 맨션의 정식 버전에서 데모/키오스크 모드를 활성화하세요."
 
 #: engines/scumm/metaengine.cpp:839
-#, fuzzy
-#| msgid "Playback"
 msgid "Disable Playback"
-msgstr "재생"
+msgstr "재생 비활성화"
 
 #: engines/scumm/metaengine.cpp:840
 msgid ""
 "Disable the scripted part of the demo (dangerous!). This makes it "
 "interactive, but as this was never intended, expect frequent crashes!"
 msgstr ""
+"데모의 스크립트 부분을 비활성화하세요. (위험합니다!) 이렇게 하면 상호 작용이 "
+"가능해지지만, 이는 원래 의도된 바가 아니므로 잦은 충돌이 발생할 수 있습니다!"
 
 #: engines/scumm/metaengine.cpp:848
 msgid "Use remastered audio"
@@ -13342,8 +13296,6 @@ msgid "Menu scrolling keymappings"
 msgstr "메뉴 스크롤 키맵핑"
 
 #: engines/sherlock/metaengine.cpp:784
-#, fuzzy
-#| msgid "save / load menu keymappings"
 msgid "Save / load menu keymappings"
 msgstr "메뉴 키맵핑 저장 / 로드"
 
