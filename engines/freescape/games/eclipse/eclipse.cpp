@@ -543,6 +543,79 @@ void EclipseEngine::pressedKey(const int keycode) {
 	}
 }
 
+bool EclipseEngine::onScreenControls(Common::Point mouse) {
+	if (!isAmiga() && !isAtariST())
+		return false;
+
+	// Right-side arrow buttons
+	if (_lookUpArea.contains(mouse)) {
+		rotate(0, -5, 0);
+		return true;
+	} else if (_lookDownArea.contains(mouse)) {
+		rotate(0, 5, 0);
+		return true;
+	} else if (_turnLeftArea.contains(mouse)) {
+		rotate(-5, 0, 0);
+		return true;
+	} else if (_turnRightArea.contains(mouse)) {
+		rotate(5, 0, 0);
+		return true;
+	} else if (_uTurnArea.contains(mouse)) {
+		_yaw += 180;
+		updateCamera();
+		return true;
+	} else if (_faceForwardArea.contains(mouse)) {
+		pressedKey(kActionFaceForward);
+		return true;
+	}
+
+	// Left-side buttons (movement buttons just consume click, like Driller)
+	if (_moveBackwardArea.contains(mouse)) {
+		return true;
+	} else if (_stepBackwardArea.contains(mouse)) {
+		return true;
+	} else if (_interactArea.contains(mouse)) {
+		activate();
+		return true;
+	} else if (_infoDisplayArea.contains(mouse)) {
+		drawInfoMenu();
+		return true;
+	}
+
+	// Center/functional areas
+	if (_lanternArea.contains(mouse)) {
+		pressedKey(kActionToggleFlashlight);
+		return true;
+	} else if (_restArea.contains(mouse)) {
+		pressedKey(kActionRest);
+		return true;
+	}
+
+	// Status bar indicators
+	if (_stepSizeArea.contains(mouse)) {
+		pressedKey(kActionChangeStepSize);
+		return true;
+	} else if (_heightArea.contains(mouse)) {
+		pressedKey(kActionToggleRiseLower);
+		return true;
+	}
+
+	// Save/load
+	if (_saveGameArea.contains(mouse)) {
+		_gfx->setViewport(_fullscreenViewArea);
+		saveGameDialog();
+		_gfx->setViewport(_viewArea);
+		return true;
+	} else if (_loadGameArea.contains(mouse)) {
+		_gfx->setViewport(_fullscreenViewArea);
+		loadGameDialog();
+		_gfx->setViewport(_viewArea);
+		return true;
+	}
+
+	return false;
+}
+
 void EclipseEngine::releasedKey(const int keycode) {
 	if (keycode == kActionRiseOrFlyUp)
 		_resting = false;

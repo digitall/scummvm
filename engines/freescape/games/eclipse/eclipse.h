@@ -110,8 +110,28 @@ public:
 	Common::Array<Graphics::ManagedSurface *> _shootSprites;         // 2 shooting crosshair frames (32x25, 48x25)
 	Common::Array<Graphics::ManagedSurface *> _ankhSprites;          // 5 ankh fade-in frames (16x15)
 	Common::Array<Graphics::ManagedSurface *> _waterSprites;         // 9 water ripple frames (32x9)
-	Common::Array<Graphics::ManagedSurface *> _heartbeatSprites;     // 5 heartbeat/EKG frames (16x11)
+	Common::Array<Graphics::ManagedSurface *> _soundToggleSprites;   // 5 sound on/off toggle frames (16x11)
 	byte _compassLookup[72];  // direction-to-needle-frame lookup table
+
+	// Atari ST on-screen control hotspots (from binary hotspot table at prog $869A)
+	bool onScreenControls(Common::Point mouse) override;
+
+	Common::Rect _lookUpArea;
+	Common::Rect _lookDownArea;
+	Common::Rect _turnLeftArea;
+	Common::Rect _turnRightArea;
+	Common::Rect _uTurnArea;
+	Common::Rect _faceForwardArea;
+	Common::Rect _moveBackwardArea;
+	Common::Rect _stepBackwardArea;
+	Common::Rect _interactArea;
+	Common::Rect _infoDisplayArea;
+	Common::Rect _lanternArea;
+	Common::Rect _restArea;
+	Common::Rect _stepSizeArea;
+	Common::Rect _heightArea;
+	Common::Rect _saveGameArea;
+	Common::Rect _loadGameArea;
 
 	bool checkIfGameEnded() override;
 	void endGame() override;

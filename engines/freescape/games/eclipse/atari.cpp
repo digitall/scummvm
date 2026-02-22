@@ -31,6 +31,33 @@ namespace Freescape {
 
 void EclipseEngine::initAmigaAtari() {
 	_viewArea = Common::Rect(32, 16, 288, 118);
+
+	// On-screen control hotspots (from binary hotspot table at prog $869A)
+	// Right-side arrow buttons
+	_lookUpArea = Common::Rect(268, 133, 288, 153);
+	_lookDownArea = Common::Rect(290, 133, 310, 153);
+	_turnLeftArea = Common::Rect(268, 155, 288, 175);
+	_turnRightArea = Common::Rect(290, 155, 310, 175);
+	_uTurnArea = Common::Rect(268, 177, 288, 197);
+	_faceForwardArea = Common::Rect(290, 177, 310, 197);
+
+	// Left-side buttons
+	_moveBackwardArea = Common::Rect(9, 133, 29, 153);
+	_stepBackwardArea = Common::Rect(9, 155, 29, 175);
+	_interactArea = Common::Rect(31, 155, 51, 175);
+	_infoDisplayArea = Common::Rect(31, 133, 51, 153);
+
+	// Center/functional areas
+	_lanternArea = Common::Rect(57, 138, 75, 168);
+	_restArea = Common::Rect(85, 140, 127, 177);
+
+	// Status bar indicators
+	_stepSizeArea = Common::Rect(74, 117, 86, 129);
+	_heightArea = Common::Rect(222, 117, 234, 129);
+
+	// Save/load (menu screen)
+	_saveGameArea = Common::Rect(180, 36, 190, 47);
+	_loadGameArea = Common::Rect(180, 50, 190, 60);
 }
 
 /*void EclipseEngine::loadAssetsCPCFullGame() {
@@ -502,12 +529,12 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 		sprite->convertToInPlace(_gfx->_texturePixelFormat,
 			const_cast<byte *>(kBorderPalette), 16);
 
-	// Heartbeat/EKG animation: 5 frames, 16x11, at prog $20794, stride 96 bytes
-	// Drawn at (32, 138)
-	_heartbeatSprites.resize(5);
+	// Sound ON/OFF toggle: 5 frames, 16x11, at prog $20794, stride 96 bytes
+	// Drawn at (32, 138) when sound is toggled
+	_soundToggleSprites.resize(5);
 	for (int i = 0; i < 5; i++) {
-		_heartbeatSprites[i] = loadAtariSTRawSprite(stream, 0x20794 + kHdr + i * 96, 1, 11);
-		_heartbeatSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
+		_soundToggleSprites[i] = loadAtariSTRawSprite(stream, 0x20794 + kHdr + i * 96, 1, 11);
+		_soundToggleSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
 			const_cast<byte *>(kBorderPalette), 16);
 	}
 
