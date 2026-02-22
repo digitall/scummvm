@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-21 20:47+0000\n"
-"PO-Revision-Date: 2026-02-21 20:43+0000\n"
+"PO-Revision-Date: 2026-02-22 12:22+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -1808,7 +1808,7 @@ msgstr "50% - Меньший"
 #: gui/options.cpp:167
 #, c-format
 msgid "25% - Smallest"
-msgstr "250% - Самый маленький"
+msgstr "25% - Самый маленький"
 
 #: gui/options.cpp:851
 msgid "Failed to apply some of the graphic options changes:"
