@@ -103,7 +103,7 @@ public:
 	// Atari ST UI sprites (extracted from binary, pre-converted to target format)
 	Font _fontScore; // Font B (10 score digit glyphs, 4-plane at $249BE)
 	Common::Array<Graphics::ManagedSurface *> _eclipseSprites; // 2 eclipse animation frames (16x13)
-	Common::Array<Graphics::ManagedSurface *> _shieldSprites;  // 16 shield level frames (16x16)
+	Common::Array<Graphics::ManagedSurface *> _eclipseProgressSprites;  // 16 eclipse animation frames (16x16)
 	Common::Array<Graphics::ManagedSurface *> _compassSprites; // 37 pre-composited compass frames (32x27)
 	Common::Array<Graphics::ManagedSurface *> _lanternLightSprites;  // 6 lantern light animation frames (32x6)
 	Common::Array<Graphics::ManagedSurface *> _lanternSwitchSprites; // 2 lantern on/off frames (32x23)

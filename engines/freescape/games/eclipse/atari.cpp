@@ -326,13 +326,20 @@ void EclipseEngine::drawAmigaAtariSTUI(Graphics::Surface *surface) {
 			Common::Rect(_eclipseSprites[frame]->w, _eclipseSprites[frame]->h));
 	}
 
-	// Shield energy jar: sprite blit at x=$80(128), y=$84(132) — from $11CD8/$11CE0
-	// 16 frames showing jar fill level (0-15)
-	if (_shieldSprites.size() >= 16) {
-		int shieldLevel = _gameStateVars[k8bitVariableShield] * 15 / _maxShield;
-		shieldLevel = CLIP(shieldLevel, 0, 15);
-		surface->copyRectToSurface(*_shieldSprites[shieldLevel], 128, 132,
-			Common::Rect(_shieldSprites[shieldLevel]->w, _shieldSprites[shieldLevel]->h));
+	// Eclipse progress indicator: sprite blit at x=$80(128), y=$84(132) — from $11CA0-$11CE0
+	// 16 frames showing sun being progressively eclipsed.
+	// Frame = countdown-based: frame 0 = full sun, frame 15 = nearly fully eclipsed.
+	if (_eclipseProgressSprites.size() >= 16) {
+		// Frame 0 = fully eclipsed, frame 15 = full sun
+		// progress: 1.0 at game start (full time left), 0.0 when time's up
+		int frame = 0;
+		if (_initialCountdown > 0 && _countdown > 0) {
+			float progress = float(_countdown) / float(_initialCountdown);
+			frame = (int)(15.0f * progress);
+		}
+		frame = CLIP(frame, 0, 15);
+		surface->copyRectToSurface(*_eclipseProgressSprites[frame], 128, 132,
+			Common::Rect(_eclipseProgressSprites[frame]->w, _eclipseProgressSprites[frame]->h));
 	}
 
 	// Ankh indicators at y=$B6(182), x = i*16 + 3 — from $11D88
@@ -453,12 +460,12 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	_eclipseSprites[0] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D2C0 + kHdr, 1, 13);
 	_eclipseSprites[1] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D2C0 + 104 + kHdr, 1, 13);
 
-	// Shield energy bar sprites: 16 frames, 16x16 pixels
+	// Eclipse progress indicator: 16 frames, 16x16 pixels
 	// Descriptor at prog $1DA90 (1 col × 16 rows), mask at +6, pixels at +8
-	// Each frame = 128 bytes (16 rows × 4 words × 2 bytes)
-	_shieldSprites.resize(16);
+	// Frame 0 = full sun, frame 15 = nearly fully eclipsed. Each frame = 128 bytes.
+	_eclipseProgressSprites.resize(16);
 	for (int i = 0; i < 16; i++)
-		_shieldSprites[i] = loadAtariSTSprite(stream, 0x1DA96 + kHdr, 0x1DA98 + kHdr + i * 128, 1, 16);
+		_eclipseProgressSprites[i] = loadAtariSTSprite(stream, 0x1DA96 + kHdr, 0x1DA98 + kHdr + i * 128, 1, 16);
 
 	// Ankh indicator: 5 fade-in frames at prog $1B734, 16x15 (1 col, stride 120 bytes)
 	// Mask at prog $1B732. Frame 3 = fully visible ankh.
@@ -556,10 +563,10 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 		sprite->convertToInPlace(_gfx->_texturePixelFormat,
 			const_cast<byte *>(kBorderPalette), 16);
 
-	// Convert eclipse and shield sprites from CLUT8 to target format using border palette
+	// Convert heart and eclipse progress sprites from CLUT8 to target format using border palette
 	for (auto &sprite : _eclipseSprites)
 		sprite->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
-	for (auto &sprite : _shieldSprites)
+	for (auto &sprite : _eclipseProgressSprites)
 		sprite->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
 
 	_fontLoaded = true;
