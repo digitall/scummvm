@@ -311,25 +311,22 @@ void EclipseEngine::drawAmigaAtariSTUI(Graphics::Surface *surface) {
 	// Ankh indicators at y=$B6(182), x = (ankh_idx-1)*16 + 3 — from $11D88
 	drawIndicator(surface, 3, 182, 16);
 
-	// Compass at x=$30(48), y=$8B(139) — pre-rendered background + needle
+	// Compass at x=$B0(176), y=$97(151) — from sprite header at prog $2097C/$2097E
 	if (_compassSprites.size() >= 37) {
-		// Map yaw (0-359) to lookup table index (0-71, 5 degrees each)
-		int lookupIdx = ((int)_yaw % 360) / 5;
-		if (lookupIdx < 0)
-			lookupIdx += 72;
+		// Normalize yaw to 0-359 first (C++ modulo can return negative), then map to table index
+		int deg = ((int)_yaw % 360 + 360) % 360;
+		int lookupIdx = deg / 5;
 		int needleFrame = _compassLookup[lookupIdx];
 		if (needleFrame < (int)_compassSprites.size()) {
-			surface->copyRectToSurface(*_compassSprites[needleFrame], 48, 139,
+			surface->copyRectToSurface(*_compassSprites[needleFrame], 176, 151,
 				Common::Rect(_compassSprites[needleFrame]->w, _compassSprites[needleFrame]->h));
 		}
 	}
 
-	// Lantern switch at x=$30(48), y=$91(145) — 2 frames (32x23), toggled with 'T' key
-	// Frame 0 = on, frame 1 = off
-	if (_lanternSwitchSprites.size() >= 2) {
-		int switchFrame = _flashlightOn ? 0 : 1;
-		surface->copyRectToSurface(*_lanternSwitchSprites[switchFrame], 48, 145,
-			Common::Rect(_lanternSwitchSprites[switchFrame]->w, _lanternSwitchSprites[switchFrame]->h));
+	// Lantern switch at x=$30(48), y=$91(145) — only drawn when lantern is ON
+	if (_flashlightOn && _lanternSwitchSprites.size() >= 2) {
+		surface->copyRectToSurface(*_lanternSwitchSprites[0], 48, 145,
+			Common::Rect(_lanternSwitchSprites[0]->w, _lanternSwitchSprites[0]->h));
 	}
 
 	// Lantern light animation overlay at (48, 139) — 6 frames, 32x6, toggled with 'T' key
