@@ -94,6 +94,7 @@ EclipseEngine::EclipseEngine(OSystem *syst, const ADGameDescription *gd) : Frees
 	_lastFiveSeconds = 0;
 	_lastSecond = -1;
 	_resting = false;
+	_flashlightOn = false;
 }
 
 void EclipseEngine::initGameState() {
@@ -109,6 +110,7 @@ void EclipseEngine::initGameState() {
 	_lastThirtySeconds = seconds / 30;
 	_lastFiveSeconds = seconds / 5;
 	_resting = false;
+	_flashlightOn = false;
 
 	// Start playing music, if any, in any supported format
 	playMusic("Total Eclipse Theme");
@@ -291,6 +293,11 @@ void EclipseEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *in
 	act = new Common::Action("FACEFRWARD", _("Face Forward"));
 	act->setCustomEngineActionEvent(kActionFaceForward);
 	act->addDefaultInputMapping("f");
+	engineKeyMap->addAction(act);
+
+	act = new Common::Action("FLASHLIGHT", _("Toggle Flashlight"));
+	act->setCustomEngineActionEvent(kActionToggleFlashlight);
+	act->addDefaultInputMapping("t");
 	engineKeyMap->addAction(act);
 }
 
@@ -531,6 +538,8 @@ void EclipseEngine::pressedKey(const int keycode) {
 	} else if (keycode == kActionFaceForward) {
 		_pitch = 0;
 		updateCamera();
+	} else if (keycode == kActionToggleFlashlight) {
+		_flashlightOn = !_flashlightOn;
 	}
 }
 
@@ -770,19 +779,46 @@ void EclipseEngine::drawScoreString(int score, int x, int y, uint32 front, uint3
 			drawStringInSurface(scoreStr, x, y, front, back, surface);
 			return;
 		}
+	}
 
+	// Atari ST: use Font B (_fontScore) with dedicated score digit glyphs.
+	// Font B has 10 glyphs (0-9) for digits. In the original, the score bytes
+	// have $2F subtracted to map '0'→glyph 0, '1'→glyph 1, etc.
+	// For drawChar: chr = glyph_index + 32, so digit '0' → chr 32, '9' → chr 41.
+	if (isAtariST()) {
+		_fontScore.setBackground(back);
+		_fontScore.setSecondaryColor(front);
+		// Font B uses palette indices 1-4 like Font A
+		uint32 pal2 = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 182, 109, 36);
+		uint32 pal3 = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 218, 145, 36);
+		uint32 pal4 = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 255, 182, 36);
+		_fontScore.setSecondaryColor(pal2);
+		_fontScore.setTertiaryColor(pal3);
+		_fontScore.setQuaternaryColor(pal4);
+		for (int i = 0; i < int(scoreStr.size()); i++) {
+			int chr = (scoreStr[i] - '0') + 32;
+			_fontScore.drawChar(surface, chr, x, y, front);
+			x += 8;
+		}
+		return;
 	}
 
 	// Start in x,y and draw each digit, from left to right, adding a gap every 3 digits
 	int gapSize = isC64() ? 8 : 4;
+	int charStep = 8;
+
+	Font *scoreFont = &_font;
+	scoreFont->setBackground(back);
+	scoreFont->setSecondaryColor(front);
 
 	for (int i = 0; i < int(scoreStr.size()); i++) {
-		drawStringInSurface(Common::String(scoreStr[i]), x, y, front, back, surface);
-		x += 8;
+		Common::String digit(scoreStr[i]);
+		digit.toUppercase();
+		scoreFont->drawString(surface, digit, x, y, _screenW, front);
+		x += charStep;
 		if ((i - scoreStr.size() + 1) % 3 == 1)
 			x += gapSize;
 	}
-
 }
 
 

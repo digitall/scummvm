@@ -107,6 +107,8 @@ enum FreescapeAction {
 	kActionSelectPrince,
 	kActionSelectPrincess,
 	kActionQuit,
+	kActionToggleFlashlight,
+
 	// Demo actions
 	kActionUnknownKey,
 	kActionWait
@@ -574,6 +576,7 @@ public:
 	Common::Array<Graphics::ManagedSurface *> getChars(Common::SeekableReadStream *file, int offset, int charsNumber);
 	Common::Array<Graphics::ManagedSurface *> getCharsAmigaAtariInternal(int sizeX, int sizeY, int additional, int m1, int m2, Common::SeekableReadStream *file, int offset, int charsNumber);
 	Common::Array<Graphics::ManagedSurface *> getCharsAmigaAtari(Common::SeekableReadStream *file, int offset, int charsNumber);
+	Common::Array<Graphics::ManagedSurface *> getChars4Plane(Common::SeekableReadStream *file, int offset, int charsNumber);
 	Common::StringArray _currentAreaMessages;
 	Common::StringArray _currentEphymeralMessages;
 	Font _font;

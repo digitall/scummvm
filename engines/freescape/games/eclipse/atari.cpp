@@ -158,13 +158,220 @@ void EclipseEngine::drawCPCUI(Graphics::Surface *surface) {
 	drawEclipseIndicator(surface, 228, 0, front, other);
 }*/
 
+// Border palette from CONSOLE.NEO (Atari ST 9-bit $0RGB, scaled to 8-bit).
+// Used for font rendering and sprite conversion.
+static const byte kBorderPalette[16 * 3] = {
+	0, 0, 0,        // 0: $000 black
+	145, 72, 0,     // 1: $420 dark brown
+	182, 109, 36,   // 2: $531 medium brown
+	218, 145, 36,   // 3: $641 golden brown
+	255, 182, 36,   // 4: $751 bright gold
+	255, 218, 145,  // 5: $764
+	218, 218, 218,  // 6: $666
+	182, 182, 182,  // 7: $555
+	145, 145, 145,  // 8: $444
+	109, 109, 109,  // 9: $333
+	72, 72, 72,     // 10: $222
+	182, 36, 0,     // 11: $510 dark red
+	255, 72, 0,     // 12: $720
+	255, 109, 0,    // 13: $730
+	255, 145, 0,    // 14: $740
+	255, 255, 255,  // 15: $777 white
+};
+
+// Load raw 4-plane pixel data (no mask) from stream into a CLUT8 surface.
+static Graphics::ManagedSurface *loadAtariSTRawSprite(Common::SeekableReadStream *stream,
+		int pixelOffset, int cols, int rows) {
+	stream->seek(pixelOffset);
+	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
+	surface->create(cols * 16, rows, Graphics::PixelFormat::createFormatCLUT8());
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0; col < cols; col++) {
+			uint16 p0 = stream->readUint16BE();
+			uint16 p1 = stream->readUint16BE();
+			uint16 p2 = stream->readUint16BE();
+			uint16 p3 = stream->readUint16BE();
+			for (int bit = 15; bit >= 0; bit--) {
+				int x = col * 16 + (15 - bit);
+				byte color = ((p0 >> bit) & 1)
+				           | (((p1 >> bit) & 1) << 1)
+				           | (((p2 >> bit) & 1) << 2)
+				           | (((p3 >> bit) & 1) << 3);
+				surface->setPixel(x, row, color);
+			}
+		}
+	}
+	return surface;
+}
+
+static Graphics::ManagedSurface *loadAtariSTSprite(Common::SeekableReadStream *stream,
+		int maskOffset, int pixelOffset, int cols, int rows) {
+	// Read per-column mask (1 word per column, same for all rows)
+	stream->seek(maskOffset);
+	Common::Array<uint16> mask(cols);
+	for (int c = 0; c < cols; c++)
+		mask[c] = stream->readUint16BE();
+
+	// Read pixel data: sequential 4-plane words, cols per row
+	stream->seek(pixelOffset);
+	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
+	surface->create(cols * 16, rows, Graphics::PixelFormat::createFormatCLUT8());
+	for (int row = 0; row < rows; row++) {
+		for (int col = 0; col < cols; col++) {
+			uint16 p0 = stream->readUint16BE();
+			uint16 p1 = stream->readUint16BE();
+			uint16 p2 = stream->readUint16BE();
+			uint16 p3 = stream->readUint16BE();
+			for (int bit = 15; bit >= 0; bit--) {
+				int x = col * 16 + (15 - bit);
+				byte color = ((p0 >> bit) & 1)
+				           | (((p1 >> bit) & 1) << 1)
+				           | (((p2 >> bit) & 1) << 2)
+				           | (((p3 >> bit) & 1) << 3);
+				surface->setPixel(x, row, color);
+			}
+		}
+	}
+	return surface;
+}
+
+void EclipseEngine::drawAmigaAtariSTUI(Graphics::Surface *surface) {
+	// Border palette colors for the 4-plane font (from CONSOLE.NEO).
+	// The Atari ST uses raster interrupts to switch palettes between
+	// the 3D viewport (area palette) and the border/UI area (border palette).
+	uint32 pal[5];
+	pal[0] = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 0, 0, 0);
+	pal[1] = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 145, 72, 0);
+	pal[2] = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 182, 109, 36);
+	pal[3] = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 218, 145, 36);
+	pal[4] = _gfx->_texturePixelFormat.ARGBToColor(0xFF, 255, 182, 36);
+	_font.setBackground(pal[0]);
+	_font.setSecondaryColor(pal[2]);
+	_font.setTertiaryColor(pal[3]);
+	_font.setQuaternaryColor(pal[4]);
+
+	// Score: Font B at x=$8B(139), y=$06(6) — from $11A66/$11A6E
+	int score = _gameStateVars[k8bitVariableScore];
+	drawScoreString(score, 139, 6, pal[1], pal[0], surface);
+
+	// Room name / messages: $CE2 at x=$55(85), y=$77(119) — from $11BDC-$11C02
+	Common::String message;
+	int deadline;
+	getLatestMessages(message, deadline);
+	if (deadline <= _countdown) {
+		drawStringInSurface(message, 85, 119, pal[1], pal[2], pal[0], surface);
+		_temporaryMessages.push_back(message);
+		_temporaryMessageDeadlines.push_back(deadline);
+	} else if (!_currentAreaMessages.empty())
+		drawStringInSurface(_currentArea->_name, 85, 119, pal[1], pal[2], pal[0], surface);
+
+	// Step indicator: $CDC at x=$4C(76), y=$77(119)
+	// d7 = $42 + (2 - _playerStepIndex) * 2, drawChar chr = d7 + 31
+	{
+		int d7 = 0x42 + (2 - _playerStepIndex) * 2;
+		int chr = d7 + 31;
+		_font.drawChar(surface, chr, 76, 119, pal[1]);
+	}
+
+	// Height indicator: $CDC at x=$E0(224), y=$77(119)
+	// d7 = $48 + (2 - _playerHeightNumber) * 2, drawChar chr = d7 + 31
+	{
+		int d7 = 0x48 + (2 - _playerHeightNumber) * 2;
+		int chr = d7 + 31;
+		_font.drawChar(surface, chr, 224, 119, pal[1]);
+	}
+
+	// Rotation/shooting indicator: $CDC at x=$E9(233), y=$77(119)
+	// d7 = $4E normally, $50 when shooting
+	if (_shootingFrames > 0) {
+		int chr = 0x50 + 31;
+		_font.drawChar(surface, chr, 233, 119, pal[1]);
+	} else {
+		int chr = 0x4E + 31;
+		_font.drawChar(surface, chr, 233, 119, pal[1]);
+	}
+
+	// Eclipse animation: sprite blit at x=$A0(160), y=$86(134) — from $1E9E/$1EA6
+	if (_eclipseSprites.size() >= 2) {
+		// Toggle between 2 frames based on countdown
+		int frame = (_countdown / 30) % 2;
+		surface->copyRectToSurface(*_eclipseSprites[frame], 160, 134,
+			Common::Rect(_eclipseSprites[frame]->w, _eclipseSprites[frame]->h));
+	}
+
+	// Shield energy bar: sprite blit at x=$80(128), y=$84(132) — from $11CD8/$11CE0
+	// 16 frames selected by shield level (0-15)
+	if (_shieldSprites.size() >= 16) {
+		int shieldLevel = _gameStateVars[k8bitVariableShield] * 15 / _maxShield;
+		shieldLevel = CLIP(shieldLevel, 0, 15);
+		surface->copyRectToSurface(*_shieldSprites[shieldLevel], 128, 132,
+			Common::Rect(_shieldSprites[shieldLevel]->w, _shieldSprites[shieldLevel]->h));
+	}
+
+	// Ankh indicators at y=$B6(182), x = (ankh_idx-1)*16 + 3 — from $11D88
+	drawIndicator(surface, 3, 182, 16);
+
+	// Compass at x=$30(48), y=$8B(139) — pre-rendered background + needle
+	if (_compassSprites.size() >= 37) {
+		// Map yaw (0-359) to lookup table index (0-71, 5 degrees each)
+		int lookupIdx = ((int)_yaw % 360) / 5;
+		if (lookupIdx < 0)
+			lookupIdx += 72;
+		int needleFrame = _compassLookup[lookupIdx];
+		if (needleFrame < (int)_compassSprites.size()) {
+			surface->copyRectToSurface(*_compassSprites[needleFrame], 48, 139,
+				Common::Rect(_compassSprites[needleFrame]->w, _compassSprites[needleFrame]->h));
+		}
+	}
+
+	// Lantern switch at x=$30(48), y=$91(145) — 2 frames (32x23), toggled with 'T' key
+	// Frame 0 = on, frame 1 = off
+	if (_lanternSwitchSprites.size() >= 2) {
+		int switchFrame = _flashlightOn ? 0 : 1;
+		surface->copyRectToSurface(*_lanternSwitchSprites[switchFrame], 48, 145,
+			Common::Rect(_lanternSwitchSprites[switchFrame]->w, _lanternSwitchSprites[switchFrame]->h));
+	}
+
+	// Lantern light animation overlay at (48, 139) — 6 frames, 32x6, toggled with 'T' key
+	if (_flashlightOn && _lanternLightSprites.size() >= 6) {
+		int lightFrame = (_ticks / 8) % 6;
+		surface->copyRectToSurface(*_lanternLightSprites[lightFrame], 48, 139,
+			Common::Rect(_lanternLightSprites[lightFrame]->w, _lanternLightSprites[lightFrame]->h));
+	}
+
+	// Shooting crosshair overlay at x=$80(128), y=$9F(159)
+	if (_shootingFrames > 0 && _shootSprites.size() >= 2) {
+		int shootFrame = (_shootingFrames > 5) ? 1 : 0;
+		surface->copyRectToSurface(*_shootSprites[shootFrame], 128, 159,
+			Common::Rect(_shootSprites[shootFrame]->w, _shootSprites[shootFrame]->h));
+	}
+
+	// Analog clock — kept from existing implementation
+	uint8 r, g, b;
+	uint32 color = _currentArea->_underFireBackgroundColor;
+	_gfx->readFromPalette(color, r, g, b);
+	uint32 front = _gfx->_texturePixelFormat.ARGBToColor(0xFF, r, g, b);
+
+	color = _currentArea->_usualBackgroundColor;
+	if (_gfx->_colorRemaps && _gfx->_colorRemaps->contains(color))
+		color = (*_gfx->_colorRemaps)[color];
+	_gfx->readFromPalette(color, r, g, b);
+	uint32 back = _gfx->_texturePixelFormat.ARGBToColor(0xFF, r, g, b);
+
+	color = _currentArea->_inkColor;
+	_gfx->readFromPalette(color, r, g, b);
+	uint32 other = _gfx->_texturePixelFormat.ARGBToColor(0xFF, r, g, b);
+
+	drawAnalogClock(surface, 90, 172, back, other, front);
+}
+
 void EclipseEngine::loadAssetsAtariFullGame() {
 	Common::File file;
 	file.open("0.tec");
 	_title = loadAndConvertNeoImage(&file, 0x17ac);
 	file.close();
 
-    Common::SeekableReadStream *stream = decryptFileAmigaAtari("1.tec", "0.tec", 0x1774 - 4 * 1024);
+	Common::SeekableReadStream *stream = decryptFileAmigaAtari("1.tec", "0.tec", 0x1774 - 4 * 1024);
 	parseAmigaAtariHeader(stream);
 
 	loadMessagesVariableSize(stream, 0x87a6, 28);
@@ -183,17 +390,121 @@ void EclipseEngine::loadAssetsAtariFullGame() {
 	stream->read(_musicData.data(), kTEMusicTextSize);
 	debug(3, "TE-Atari: Loaded TEMUSIC.ST TEXT segment (%d bytes)", kTEMusicTextSize);
 
-	/*
-	loadFonts(stream, 0xd06b, _fontBig);
-	loadFonts(stream, 0xd49a, _fontMedium);
-	loadFonts(stream, 0xd49b, _fontSmall);
+	// UI font (Font A): 4-plane 16-color bordered font at prog $24C3E (file offset $24C5A)
+	// 85 characters: ASCII text (32-116) plus special indicator glyphs (65-84)
+	Common::Array<Graphics::ManagedSurface *> chars;
+	chars = getChars4Plane(stream, 0x24C5A, 85);
+	_font = Font(chars);
 
-	load8bitBinary(stream, 0x20918, 16);
-	loadMessagesVariableSize(stream, 0x3f6f, 66);
+	// Score font (Font B): 4-plane 10-glyph font at prog $249BE (file offset $249DA)
+	// Dedicated score digits 0-9 with different bordered style
+	Common::Array<Graphics::ManagedSurface *> scoreChars;
+	scoreChars = getChars4Plane(stream, 0x249DA, 11);
+	_fontScore = Font(scoreChars);
 
-	loadPalettes(stream, 0x204d6);
-	loadGlobalObjects(stream, 0x32f6, 24);
-	loadSoundsFx(stream, 0x266e8, 11);*/
+	// All sprite addresses below are program addresses from the 68K disassembly.
+	// The decrypted stream includes a $1C-byte GEMDOS header, so add $1C to
+	// convert program addresses to stream offsets.
+	static const int kHdr = 0x1C;
+
+	// Eclipse animation sprites: 2 frames, 16x13 pixels
+	// Descriptor at prog $1D2B8 (1 col × 13 rows), mask at +6, pixels at +8
+	// Frame 1 pixels at prog $1D7AB
+	_eclipseSprites.resize(2);
+	_eclipseSprites[0] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D2C0 + kHdr, 1, 13);
+	_eclipseSprites[1] = loadAtariSTSprite(stream, 0x1D2BE + kHdr, 0x1D7AB + kHdr, 1, 13);
+
+	// Shield energy bar sprites: 16 frames, 16x16 pixels
+	// Descriptor at prog $1DA90 (1 col × 16 rows), mask at +6, pixels at +8
+	// Each frame = 128 bytes (16 rows × 4 words × 2 bytes)
+	_shieldSprites.resize(16);
+	for (int i = 0; i < 16; i++)
+		_shieldSprites[i] = loadAtariSTSprite(stream, 0x1DA96 + kHdr, 0x1DA98 + kHdr + i * 128, 1, 16);
+
+	// Ankh indicator: descriptor at prog $1B72C (1 col × 15 rows = 16x15), mask at +6, pixels at +8
+	Graphics::ManagedSurface *ankhManaged = loadAtariSTSprite(stream, 0x1B732 + kHdr, 0x1B734 + kHdr, 1, 15);
+	ankhManaged->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
+	Graphics::Surface *ankhSurface = new Graphics::Surface();
+	ankhSurface->copyFrom(*ankhManaged);
+	delete ankhManaged;
+	_indicators.push_back(ankhSurface);
+
+	// Compass background at prog $20986 (32x27, raw 4-plane) and needle at prog $20B36
+	// (37 frames, 32x27 each, stride 432 bytes). Pre-composite background + needle.
+	{
+		Graphics::ManagedSurface *compassBG = loadAtariSTRawSprite(stream, 0x20986 + kHdr, 2, 27);
+
+		// Load compass direction lookup table (72 entries at prog $1542)
+		stream->seek(0x1542 + kHdr);
+		stream->read(_compassLookup, 72);
+
+		// Find max needle frame index
+		int maxFrame = 0;
+		for (int i = 0; i < 72; i++)
+			if (_compassLookup[i] < 200 && _compassLookup[i] > maxFrame)
+				maxFrame = _compassLookup[i];
+
+		int numFrames = maxFrame + 1;
+		_compassSprites.resize(numFrames);
+		for (int f = 0; f < numFrames; f++) {
+			// Load needle frame (raw 4-plane, no mask)
+			Graphics::ManagedSurface *needle = loadAtariSTRawSprite(stream,
+				0x20B36 + kHdr + f * 432, 2, 27);
+
+			// Composite: copy background, then overlay needle where non-zero
+			Graphics::ManagedSurface *composite = new Graphics::ManagedSurface();
+			composite->create(32, 27, Graphics::PixelFormat::createFormatCLUT8());
+			composite->copyFrom(*compassBG);
+			for (int y = 0; y < 27; y++) {
+				for (int x = 0; x < 32; x++) {
+					byte needlePixel = *(const byte *)needle->getBasePtr(x, y);
+					if (needlePixel != 0)
+						composite->setPixel(x, y, needlePixel);
+				}
+			}
+			delete needle;
+
+			// Convert to target format
+			composite->convertToInPlace(_gfx->_texturePixelFormat,
+				const_cast<byte *>(kBorderPalette), 16);
+			_compassSprites[f] = composite;
+		}
+		delete compassBG;
+	}
+
+	// Lantern light animation: 6 frames, 32x6, at prog $2026A, stride 96 bytes
+	_lanternLightSprites.resize(6);
+	for (int i = 0; i < 6; i++) {
+		_lanternLightSprites[i] = loadAtariSTRawSprite(stream, 0x2026A + kHdr + i * 96, 2, 6);
+		_lanternLightSprites[i]->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+	}
+
+	// Lantern switch: 2 frames, 32x23, at prog $204B4, stride $170 bytes
+	// Frame 0 = on, frame 1 = off (toggled with 'T' key)
+	_lanternSwitchSprites.resize(2);
+	_lanternSwitchSprites[0] = loadAtariSTRawSprite(stream, 0x204B4 + kHdr, 2, 23);
+	_lanternSwitchSprites[1] = loadAtariSTRawSprite(stream, 0x204B4 + 0x170 + kHdr, 2, 23);
+	for (auto &sprite : _lanternSwitchSprites)
+		sprite->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+
+	// Shooting crosshair sprites: 2 frames with mask, at prog $1CC26 and $1CDC0
+	// Frame 0: 32x25 (2 cols), frame 1: 48x25 (3 cols)
+	_shootSprites.resize(2);
+	_shootSprites[0] = loadAtariSTSprite(stream, 0x1CC2C + kHdr, 0x1CC30 + kHdr, 2, 25);
+	_shootSprites[1] = loadAtariSTSprite(stream, 0x1CDC6 + kHdr, 0x1CDCC + kHdr, 3, 25);
+	for (auto &sprite : _shootSprites)
+		sprite->convertToInPlace(_gfx->_texturePixelFormat,
+			const_cast<byte *>(kBorderPalette), 16);
+
+	// Convert eclipse and shield sprites from CLUT8 to target format using border palette
+	for (auto &sprite : _eclipseSprites)
+		sprite->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
+	for (auto &sprite : _shieldSprites)
+		sprite->convertToInPlace(_gfx->_texturePixelFormat, const_cast<byte *>(kBorderPalette), 16);
+
+	_fontLoaded = true;
 }
 
 } // End of namespace Freescape

@@ -59,6 +59,7 @@ public:
 	int _soundIndexEndFalling;
 
 	bool _resting;
+	bool _flashlightOn;
 	int _lastThirtySeconds;
 	int _lastFiveSeconds;
 
@@ -87,6 +88,7 @@ public:
 	void drawCPCUI(Graphics::Surface *surface) override;
 	void drawC64UI(Graphics::Surface *surface) override;
 	void drawZXUI(Graphics::Surface *surface) override;
+	void drawAmigaAtariSTUI(Graphics::Surface *surface) override;
 	void drawAnalogClock(Graphics::Surface *surface, int x, int y, uint32 colorHand1, uint32 colorHand2, uint32 colorBack);
 	void drawAnalogClockHand(Graphics::Surface *surface, int x, int y, double degrees, double magnitude, uint32 color);
 	void drawCompass(Graphics::Surface *surface, int x, int y, double degrees, double magnitude, uint32 color);
@@ -97,6 +99,16 @@ public:
 	soundFx *load1bPCM(Common::SeekableReadStream *file, int offset);
 
 	Common::Array<byte> _musicData; // TEMUSIC.ST TEXT segment (Atari ST)
+
+	// Atari ST UI sprites (extracted from binary, pre-converted to target format)
+	Font _fontScore; // Font B (10 score digit glyphs, 4-plane at $249BE)
+	Common::Array<Graphics::ManagedSurface *> _eclipseSprites; // 2 eclipse animation frames (16x13)
+	Common::Array<Graphics::ManagedSurface *> _shieldSprites;  // 16 shield level frames (16x16)
+	Common::Array<Graphics::ManagedSurface *> _compassSprites; // 37 pre-composited compass frames (32x27)
+	Common::Array<Graphics::ManagedSurface *> _lanternLightSprites;  // 6 lantern light animation frames (32x6)
+	Common::Array<Graphics::ManagedSurface *> _lanternSwitchSprites; // 2 lantern on/off frames (32x23)
+	Common::Array<Graphics::ManagedSurface *> _shootSprites;         // 2 shooting crosshair frames (32x25, 48x25)
+	byte _compassLookup[72];  // direction-to-needle-frame lookup table
 
 	bool checkIfGameEnded() override;
 	void endGame() override;
