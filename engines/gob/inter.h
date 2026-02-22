@@ -681,6 +681,7 @@ protected:
 	void oPlaytoons_freeSprite(OpFuncParams &params);
 	void oPlaytoons_checkData(OpFuncParams &params);
 	void oPlaytoons_readData(OpFuncParams &params);
+	void oPlaytoons_writeData(OpFuncParams &params);
 
 	void oPlaytoons_loadMultObject();
 	void oPlaytoons_getObjAnimSize();
@@ -786,7 +787,6 @@ protected:
 	void o7_invalidate(OpFuncParams &params);
 	void o7_checkData(OpFuncParams &params);
 	void o7_readData(OpFuncParams &params);
-	void o7_writeData(OpFuncParams &params);
 	void o7_manageDataFile(OpFuncParams &params);
 
 	bool readAdi4InfDataForChild(Common::Array<byte> &dest, uint32 childNumber, uint32 offset, uint32 size);

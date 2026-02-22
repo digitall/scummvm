@@ -35,7 +35,6 @@
 #include "graphics/cursorman.h"
 #include "graphics/wincursor.h"
 
-#include "gui/gui-manager.h"
 #include "gui/message.h"
 
 #include "image/iff.h"
@@ -148,7 +147,6 @@ void Inter_v7::setupOpcodesFunc() {
 	OPCODEFUNC(0x3E, o7_getFreeMem);
 	OPCODEFUNC(0x3F, o7_checkData);
 	OPCODEFUNC(0x4D, o7_readData);
-	OPCODEFUNC(0x4E, o7_writeData);
 	OPCODEFUNC(0x4F, o7_manageDataFile);
 }
 
@@ -1944,89 +1942,6 @@ void Inter_v7::o7_readData(OpFuncParams &params) {
 		WRITE_VAR(1, 0);
 
 	delete stream;
-}
-
-void Inter_v7::o7_writeData(OpFuncParams &params) {
-	Common::String file = getFile(_vm->_game->_script->evalString(), false);
-
-	uint16 dataVar = _vm->_game->_script->readVarIndex();
-	int32 size    = _vm->_game->_script->readValExpr();
-	int32 offset  = _vm->_game->_script->evalInt();
-
-	debugC(2, kDebugFileIO, "Write to file \"%s\" (%d, %d bytes at %d)",
-		   file.c_str(), dataVar, size, offset);
-
-	WRITE_VAR(1, 1);
-
-	if (file.compareToIgnoreCase("PRINTER") == 0) {
-		// Send a sprite to the printer.
-		int32 spriteIndex = -size - 1;
-		if (spriteIndex < 0 || spriteIndex >= Draw::kSpriteCount) {
-			warning("o7_writeData: Invalid sprite index %d for printing", spriteIndex);
-			return;
-		}
-
-		SurfacePtr sprite = _vm->_draw->_spritesArray[spriteIndex];
-		if (!sprite) {
-			warning("o7_writeData: no sprite at index %d for printing", spriteIndex);
-			return;
-		}
-
-		Graphics::ManagedSurface surf(sprite->getWidth(),
-									  sprite->getHeight(),
-									  sprite->getBPP() > 1 ? _vm->getPixelFormat()
-														   : Graphics::PixelFormat::createFormatCLUT8());
-
-		if (sprite->getBPP() > 1) {
-			// Fill the background with white color, and ensure 0 is treated as the transparent color key
-			surf.fillRect(Common::Rect(0, 0, surf.w, surf.h),
-						  surf.format.RGBToColor(255, 255, 255));
-			surf.copyRectToSurfaceWithKey(sprite->getData(),
-										  sprite->getWidth() * sprite->getBPP(),
-										  0,
-										  0,
-										  sprite->getWidth(),
-										  sprite->getHeight(),
-										  0);
-		} else {
-			byte pal[768];
-			int16 numcolors = _vm->_global->_setAllPalette ? 256 : 16;
-			for (int i = 0; i < numcolors; i++) {
-				_vm->_video->setPalColor(pal + i * 3, _vm->_global->_pPaletteDesc->vgaPal[i]);
-			}
-			surf.setPalette(pal, 0, numcolors);
-			surf.copyRectToSurface(sprite->getData(),
-								   sprite->getWidth() * sprite->getBPP(),
-								   0,
-								   0,
-								   sprite->getWidth(),
-								   sprite->getHeight());
-		}
-
-		g_gui.printImage(surf);
-		return;
-	}
-
-	if (size == 0) {
-		dataVar = 0;
-		size = _vm->_game->_script->getVariablesCount() * 4;
-	}
-
-	SaveLoad::SaveMode mode = _vm->_saveLoad ? _vm->_saveLoad->getSaveMode(file.c_str()) : SaveLoad::kSaveModeNone;
-	if (mode == SaveLoad::kSaveModeSave) {
-
-		if (!_vm->_saveLoad->save(file.c_str(), dataVar, size, offset)) {
-
-			GUI::MessageDialog dialog(_("Failed to save game to file."));
-			dialog.runModal();
-
-		} else
-			WRITE_VAR(1, 0);
-
-	} else if (mode == SaveLoad::kSaveModeIgnore)
-		return;
-	else if (mode == SaveLoad::kSaveModeNone)
-		warning("Attempted to write to file \"%s\"", file.c_str());
 }
 
 void Inter_v7::o7_manageDataFile(OpFuncParams &params) {
