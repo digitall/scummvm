@@ -41,7 +41,7 @@ For a more comprehensive changelog of the latest experimental code, see:
    - Added support for original playback file in Monkey Island 2 Non-Interactive
      DOS demo.
 
- TEENGENT:
+ TEENAGENT:
    - Fixed 'could not locate language block' error when starting the Polish and Russian versions.
 
  WAGE:
