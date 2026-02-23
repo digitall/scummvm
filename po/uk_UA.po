@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-23 14:24+0000\n"
-"PO-Revision-Date: 2026-02-20 22:05+0000\n"
+"PO-Revision-Date: 2026-02-23 14:45+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Ukrainian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/uk/>\n"
@@ -8979,14 +8979,10 @@ msgid "Info menu"
 msgstr "Інфо меню"
 
 #: engines/freescape/games/castle/castle.cpp:348
-#, fuzzy
-#| msgid "Select Prince"
 msgid "Select prince"
-msgstr "Виберати Принца"
+msgstr "Вибрати Принца"
 
 #: engines/freescape/games/castle/castle.cpp:353
-#, fuzzy
-#| msgid "Select Princess"
 msgid "Select princess"
 msgstr "Вибрати Принцесу"
 
@@ -9002,8 +8998,6 @@ msgstr "Перемкнути звук"
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
 #: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Rotate Left"
 msgid "Rotate left"
 msgstr "Обертання наліво"
 
@@ -9011,8 +9005,6 @@ msgstr "Обертання наліво"
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
 #: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Rotate Right"
 msgid "Rotate right"
 msgstr "Обертання направо"
 
@@ -9022,8 +9014,6 @@ msgstr "Повзти"
 
 #: engines/freescape/games/castle/castle.cpp:408
 #: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Face Forward"
 msgid "Face forward"
 msgstr "Повернутись уперед"
 
@@ -9042,53 +9032,39 @@ msgstr "Перекотитись направо"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-#, fuzzy
-#| msgid "Increase Turn Angle"
 msgid "Increase turn angle"
 msgstr "Підвищення кута повороту"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-#, fuzzy
-#| msgid "Decrease Turn Angle"
 msgid "Decrease turn angle"
 msgstr "Пониження кута повороту"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-#, fuzzy
-#| msgid "Increase Step Size"
 msgid "Increase step size"
 msgstr "Збільшити розмір кроку"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-#, fuzzy
-#| msgid "Decrease Step Size"
 msgid "Decrease step size"
 msgstr "Зменшити розмір кроку"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-#, fuzzy
-#| msgid "Rise/Fly up"
 msgid "Rise / Fly up"
-msgstr "Піднятися/Летіти догори"
+msgstr "Піднятися / Летіти догори"
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
-#, fuzzy
-#| msgid "Lower/Fly down"
 msgid "Lower / Fly down"
-msgstr "Знизитись/Летіти додолу"
+msgstr "Знизитись / Летіти додолу"
 
 #: engines/freescape/games/dark/dark.cpp:269
-#, fuzzy
-#| msgid "Enable/Disable Jetpack"
 msgid "Enable / Disable jetpack"
-msgstr "Ввімкнути/вимкнути реактивний ранець"
+msgstr "Ввімкнути / Вимкнути реактивний ранець"
 
 #. I18N: drilling rig is an in game item
 #: engines/freescape/games/driller/driller.cpp:200
@@ -9102,21 +9078,15 @@ msgstr "Взяти обладнання буріння"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-#, fuzzy
-#| msgid "Change Angle"
 msgid "Change angle"
-msgstr "Змінити вугол"
+msgstr "Змінити кут"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-#, fuzzy
-#| msgid "Change Step Size"
 msgid "Change step size"
 msgstr "Змінити розмір кроку"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-#, fuzzy
-#| msgid "Toggle Height"
 msgid "Toggle height"
 msgstr "Перемкнути висоту"
 
@@ -9129,10 +9099,8 @@ msgid "Rest"
 msgstr "Відпочити"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
-#, fuzzy
-#| msgid "Flashlight"
 msgid "Toggle flashlight"
-msgstr "Ліхтарик"
+msgstr "Перемкнути ліхтарик"
 
 #: engines/glk/glk_api.cpp:62
 msgid "[ press any key to exit ]"
