@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-23 14:24+0000\n"
-"PO-Revision-Date: 2026-02-20 15:48+0000\n"
+"PO-Revision-Date: 2026-02-23 19:51+0000\n"
 "Last-Translator: Walter Agazzi <walter.agazzi@protonmail.com>\n"
 "Language-Team: Italian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/it/>\n"
@@ -8034,58 +8034,40 @@ msgstr "Finestra di chiusura"
 #. I18N: Here ALTered Item refers to the dice that has been altered/changed.
 #. In order to escape the dice game loop press Right/Left Alt
 #: engines/cge/metaengine.cpp:250
-#, fuzzy
-#| msgid "ALTered Item"
 msgid "ALTered item"
 msgstr "Oggetto ALTerato"
 
 #: engines/cge/metaengine.cpp:257
-#, fuzzy
-#| msgid "Inventory Item 1 (Select / Deselect)"
 msgid "Inventory item 1 (Select / Deselect)"
-msgstr "Oggetto 1 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 1 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:262
-#, fuzzy
-#| msgid "Inventory Item 2 (Select / Deselect)"
 msgid "Inventory item 2 (Select / Deselect)"
-msgstr "Oggetto 2 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 2 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:267
-#, fuzzy
-#| msgid "Inventory Item 3 (Select / Deselect)"
 msgid "Inventory item 3 (Select / Deselect)"
-msgstr "Oggetto 3 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 3 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:272
-#, fuzzy
-#| msgid "Inventory Item 4 (Select / Deselect)"
 msgid "Inventory item 4 (Select / Deselect)"
-msgstr "Oggetto 4 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 4 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:277
-#, fuzzy
-#| msgid "Inventory Item 5 (Select / Deselect)"
 msgid "Inventory item 5 (Select / Deselect)"
-msgstr "Oggetto 5 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 5 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:282
-#, fuzzy
-#| msgid "Inventory Item 6 (Select / Deselect)"
 msgid "Inventory item 6 (Select / Deselect)"
-msgstr "Oggetto 6 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 6 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:287
-#, fuzzy
-#| msgid "Inventory Item 7 (Select / Deselect)"
 msgid "Inventory item 7 (Select / Deselect)"
-msgstr "Oggetto 7 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 7 inventario (Seleziona / Deseleziona)"
 
 #: engines/cge/metaengine.cpp:292
-#, fuzzy
-#| msgid "Inventory Item 8 (Select / Deselect)"
 msgid "Inventory item 8 (Select / Deselect)"
-msgstr "Oggetto 8 Inventario (Seleziona / Deseleziona)"
+msgstr "Oggetto 8 inventario (Seleziona / Deseleziona)"
 
 #. I18N: There are 24 single-room/screen locations in the game.
 #. You switch between them from numbered buttons on interface.
@@ -9079,16 +9061,12 @@ msgid "Info menu"
 msgstr "Menù informazioni"
 
 #: engines/freescape/games/castle/castle.cpp:348
-#, fuzzy
-#| msgid "Select Prince"
 msgid "Select prince"
-msgstr "Seleziona il Principe"
+msgstr "Seleziona il principe"
 
 #: engines/freescape/games/castle/castle.cpp:353
-#, fuzzy
-#| msgid "Select Princess"
 msgid "Select princess"
-msgstr "Seleziona la Principessa"
+msgstr "Seleziona la principessa"
 
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
@@ -9102,8 +9080,6 @@ msgstr "Attiva/disattiva sonoro"
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
 #: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Rotate Left"
 msgid "Rotate left"
 msgstr "Ruota verso sinistra"
 
@@ -9111,8 +9087,6 @@ msgstr "Ruota verso sinistra"
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
 #: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Rotate Right"
 msgid "Rotate right"
 msgstr "Ruota verso destra"
 
@@ -9122,8 +9096,6 @@ msgstr "Avanza lentamente"
 
 #: engines/freescape/games/castle/castle.cpp:408
 #: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Face Forward"
 msgid "Face forward"
 msgstr "Guarda in avanti"
 
@@ -9142,53 +9114,39 @@ msgstr "Vira a destra"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-#, fuzzy
-#| msgid "Increase Turn Angle"
 msgid "Increase turn angle"
-msgstr "Aumenta Angolo di Rotazione"
+msgstr "Aumenta angolo di rotazione"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-#, fuzzy
-#| msgid "Decrease Turn Angle"
 msgid "Decrease turn angle"
-msgstr "Riduci Angolo di Rotazione"
+msgstr "Riduci angolo di rotazione"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-#, fuzzy
-#| msgid "Increase Step Size"
 msgid "Increase step size"
 msgstr "Aumenta lunghezza dei passi"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-#, fuzzy
-#| msgid "Decrease Step Size"
 msgid "Decrease step size"
 msgstr "Riduci lunghezza dei passi"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-#, fuzzy
-#| msgid "Rise/Fly up"
 msgid "Rise / Fly up"
-msgstr "Ascendi/Vola verso l'alto"
+msgstr "Ascendi / Vola verso l'alto"
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
-#, fuzzy
-#| msgid "Lower/Fly down"
 msgid "Lower / Fly down"
-msgstr "Atterra/Vola verso il basso"
+msgstr "Atterra / Vola verso il basso"
 
 #: engines/freescape/games/dark/dark.cpp:269
-#, fuzzy
-#| msgid "Enable/Disable Jetpack"
 msgid "Enable / Disable jetpack"
-msgstr "Attiva/disattiva jetpack"
+msgstr "Attiva / disattiva jetpack"
 
 #. I18N: drilling rig is an in game item
 #: engines/freescape/games/driller/driller.cpp:200
@@ -9202,21 +9160,15 @@ msgstr "Ritira trivella"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-#, fuzzy
-#| msgid "Change Angle"
 msgid "Change angle"
 msgstr "Modifica angolo di rotazione"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-#, fuzzy
-#| msgid "Change Step Size"
 msgid "Change step size"
 msgstr "Modifica lunghezza dei passi"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-#, fuzzy
-#| msgid "Toggle Height"
 msgid "Toggle height"
 msgstr "Alterna altezza"
 
@@ -9229,10 +9181,8 @@ msgid "Rest"
 msgstr "Riposa"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
-#, fuzzy
-#| msgid "Flashlight"
 msgid "Toggle flashlight"
-msgstr "Torcia Elettrica"
+msgstr "Torcia accesa / spenta"
 
 #: engines/glk/glk_api.cpp:62
 msgid "[ press any key to exit ]"
@@ -13674,8 +13624,6 @@ msgid "Menu scrolling keymappings"
 msgstr "Mappature tasti scorrimento menù"
 
 #: engines/sherlock/metaengine.cpp:784
-#, fuzzy
-#| msgid "save / load menu keymappings"
 msgid "Save / load menu keymappings"
 msgstr "Mappature tasti manù salvataggio/caricamento"
 
