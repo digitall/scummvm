@@ -251,34 +251,34 @@ void EclipseEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *in
 		act->addDefaultInputMapping("ESCAPE");
 	infoScreenKeyMap->addAction(act);
 
-	act = new Common::Action("TOGGLESOUND", _("Toggle Sound"));
+	act = new Common::Action("TOGGLESOUND", _("Toggle sound"));
 	act->setCustomEngineActionEvent(kActionToggleSound);
 	act->addDefaultInputMapping("t");
 	infoScreenKeyMap->addAction(act);
 
-	act = new Common::Action("ROTL", _("Rotate Left"));
+	act = new Common::Action("ROTL", _("Rotate left"));
 	act->setCustomEngineActionEvent(kActionRotateLeft);
 	act->addDefaultInputMapping("q");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("ROTR", _("Rotate Right"));
+	act = new Common::Action("ROTR", _("Rotate right"));
 	act->setCustomEngineActionEvent(kActionRotateRight);
 	act->addDefaultInputMapping("w");
 	engineKeyMap->addAction(act);
 
 	// I18N: Illustrates the angle at which you turn left or right.
-	act = new Common::Action("CHNGANGLE", _("Change Angle"));
+	act = new Common::Action("CHNGANGLE", _("Change angle"));
 	act->setCustomEngineActionEvent(kActionIncreaseAngle);
 	act->addDefaultInputMapping("a");
 	engineKeyMap->addAction(act);
 
 	// I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
-	act = new Common::Action("CHNGSTEPSIZE", _("Change Step Size"));
+	act = new Common::Action("CHNGSTEPSIZE", _("Change step size"));
 	act->setCustomEngineActionEvent(kActionChangeStepSize);
 	act->addDefaultInputMapping("s");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("TGGLHEIGHT", _("Toggle Height"));
+	act = new Common::Action("TGGLHEIGHT", _("Toggle height"));
 	act->setCustomEngineActionEvent(kActionToggleRiseLower);
 	act->addDefaultInputMapping("JOY_B");
 	act->addDefaultInputMapping("h");
@@ -290,12 +290,12 @@ void EclipseEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *in
 	act->addDefaultInputMapping("r");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("FACEFRWARD", _("Face Forward"));
+	act = new Common::Action("FACEFRWARD", _("Face forward"));
 	act->setCustomEngineActionEvent(kActionFaceForward);
 	act->addDefaultInputMapping("f");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("FLASHLIGHT", _("Toggle Flashlight"));
+	act = new Common::Action("FLASHLIGHT", _("Toggle flashlight"));
 	act->setCustomEngineActionEvent(kActionToggleFlashlight);
 	act->addDefaultInputMapping("t");
 	engineKeyMap->addAction(act);
