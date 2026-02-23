@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 14:12+0000\n"
+"POT-Creation-Date: 2026-02-23 14:24+0000\n"
 "PO-Revision-Date: 2024-10-10 12:33+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Turkish <https://translations.scummvm.org/projects/scummvm/"
@@ -8730,33 +8730,37 @@ msgstr "Müzik cihazı:"
 
 #: engines/freescape/games/castle/castle.cpp:348
 #, fuzzy
-msgid "Select Prince"
+msgid "Select prince"
 msgstr "Tema seç"
 
 #: engines/freescape/games/castle/castle.cpp:353
 #, fuzzy
-msgid "Select Princess"
+msgid "Select princess"
 msgstr "Tema seç"
 
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
 #, fuzzy
-msgid "Toggle Sound"
+msgid "Toggle sound"
 msgstr "Altyazılar"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
+#: engines/freescape/games/eclipse/eclipse.cpp:259
 #, fuzzy
-msgid "Rotate Left"
+msgid "Rotate left"
 msgstr "Sol"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
+#: engines/freescape/games/eclipse/eclipse.cpp:264
 #, fuzzy
-msgid "Rotate Right"
+msgid "Rotate right"
 msgstr "Sağ"
 
 #: engines/freescape/games/castle/castle.cpp:402
@@ -8764,9 +8768,10 @@ msgid "Crawl"
 msgstr ""
 
 #: engines/freescape/games/castle/castle.cpp:408
+#: engines/freescape/games/eclipse/eclipse.cpp:293
 #, fuzzy
 #| msgid "Backend"
-msgid "Face Forward"
+msgid "Face forward"
 msgstr "Altyapı"
 
 #: engines/freescape/games/dark/dark.cpp:224
@@ -8787,40 +8792,43 @@ msgstr "Sağ"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-msgid "Increase Turn Angle"
+msgid "Increase turn angle"
 msgstr ""
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-msgid "Decrease Turn Angle"
+msgid "Decrease turn angle"
 msgstr ""
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-msgid "Increase Step Size"
-msgstr ""
+#, fuzzy
+msgid "Increase step size"
+msgstr "Grafik modu:"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-msgid "Decrease Step Size"
-msgstr ""
+#, fuzzy
+msgid "Decrease step size"
+msgstr "Grafik modu:"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-msgid "Rise/Fly up"
+msgid "Rise / Fly up"
 msgstr ""
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
 #, fuzzy
-msgid "Lower/Fly down"
+msgid "Lower / Fly down"
 msgstr "Aşağı"
 
 #: engines/freescape/games/dark/dark.cpp:269
-msgid "Enable/Disable Jetpack"
-msgstr ""
+#, fuzzy
+msgid "Enable / Disable jetpack"
+msgstr "3B Anti merdiven efekti:"
 
 #. I18N: drilling rig is an in game item
 #: engines/freescape/games/driller/driller.cpp:200
@@ -8831,22 +8839,6 @@ msgstr ""
 #: engines/freescape/games/driller/driller.cpp:207
 msgid "Collect drilling rig"
 msgstr ""
-
-#: engines/freescape/games/eclipse/eclipse.cpp:254
-#: engines/hugo/metaengine.cpp:154
-#, fuzzy
-msgid "Toggle sound"
-msgstr "Altyazılar"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-msgid "Rotate left"
-msgstr "Sol"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-msgid "Rotate right"
-msgstr "Sağ"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
@@ -8872,12 +8864,6 @@ msgstr "Altyazılar"
 #: engines/ultima/nuvie/metaengine.cpp:200
 msgid "Rest"
 msgstr ""
-
-#: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Backend"
-msgid "Face forward"
-msgstr "Altyapı"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
@@ -16505,6 +16491,23 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Toggle Sound"
+#~ msgstr "Altyazılar"
+
+#, fuzzy
+#~ msgid "Rotate Left"
+#~ msgstr "Sol"
+
+#, fuzzy
+#~ msgid "Rotate Right"
+#~ msgstr "Sağ"
+
+#, fuzzy
+#~| msgid "Backend"
+#~ msgid "Face Forward"
+#~ msgstr "Altyapı"
 
 #, fuzzy
 #~| msgid "Backend"

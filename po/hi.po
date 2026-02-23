@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 14:12+0000\n"
+"POT-Creation-Date: 2026-02-23 14:24+0000\n"
 "PO-Revision-Date: 2024-07-11 17:47+0000\n"
 "Last-Translator: Krish <ganatrakrish2882005@gmail.com>\n"
 "Language-Team: Hindi <https://translations.scummvm.org/projects/scummvm/"
@@ -8646,35 +8646,41 @@ msgstr "गेम मेनू"
 #: engines/freescape/games/castle/castle.cpp:348
 #, fuzzy
 #| msgid "Select shader"
-msgid "Select Prince"
+msgid "Select prince"
 msgstr "Shader चुनें"
 
 #: engines/freescape/games/castle/castle.cpp:353
 #, fuzzy
 #| msgid "Select shader"
-msgid "Select Princess"
+msgid "Select princess"
 msgstr "Shader चुनें"
 
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-msgid "Toggle Sound"
-msgstr ""
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+#, fuzzy
+#| msgid "Manual mode"
+msgid "Toggle sound"
+msgstr "मैन्युअल मोड"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
+#: engines/freescape/games/eclipse/eclipse.cpp:259
 #, fuzzy
 #| msgid "Strafe Left"
-msgid "Rotate Left"
+msgid "Rotate left"
 msgstr "बाएं Strafe करें"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
+#: engines/freescape/games/eclipse/eclipse.cpp:264
 #, fuzzy
 #| msgid "Strafe Right"
-msgid "Rotate Right"
+msgid "Rotate right"
 msgstr "दाहिने strafe करें"
 
 #: engines/freescape/games/castle/castle.cpp:402
@@ -8682,9 +8688,10 @@ msgid "Crawl"
 msgstr ""
 
 #: engines/freescape/games/castle/castle.cpp:408
+#: engines/freescape/games/eclipse/eclipse.cpp:293
 #, fuzzy
 #| msgid "Move Forward"
-msgid "Face Forward"
+msgid "Face forward"
 msgstr "आगे बढ़ो"
 
 #: engines/freescape/games/dark/dark.cpp:224
@@ -8705,41 +8712,47 @@ msgstr "दायें मुड़िए"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-msgid "Increase Turn Angle"
+msgid "Increase turn angle"
 msgstr ""
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-msgid "Decrease Turn Angle"
+msgid "Decrease turn angle"
 msgstr ""
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-msgid "Increase Step Size"
-msgstr ""
+#, fuzzy
+#| msgid "Manual mode"
+msgid "Increase step size"
+msgstr "मैन्युअल मोड"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-msgid "Decrease Step Size"
-msgstr ""
+#, fuzzy
+#| msgid "Manual mode"
+msgid "Decrease step size"
+msgstr "मैन्युअल मोड"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-msgid "Rise/Fly up"
+msgid "Rise / Fly up"
 msgstr ""
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
 #, fuzzy
 #| msgid "Move down"
-msgid "Lower/Fly down"
+msgid "Lower / Fly down"
 msgstr "नीचे को चलें"
 
 #: engines/freescape/games/dark/dark.cpp:269
-msgid "Enable/Disable Jetpack"
-msgstr ""
+#, fuzzy
+#| msgid "Disable falling"
+msgid "Enable / Disable jetpack"
+msgstr "गिरना डिसएबल करें"
 
 #. I18N: drilling rig is an in game item
 #: engines/freescape/games/driller/driller.cpp:200
@@ -8750,25 +8763,6 @@ msgstr ""
 #: engines/freescape/games/driller/driller.cpp:207
 msgid "Collect drilling rig"
 msgstr ""
-
-#: engines/freescape/games/eclipse/eclipse.cpp:254
-#: engines/hugo/metaengine.cpp:154
-#, fuzzy
-#| msgid "Manual mode"
-msgid "Toggle sound"
-msgstr "मैन्युअल मोड"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Strafe Left"
-msgid "Rotate left"
-msgstr "बाएं Strafe करें"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Strafe Right"
-msgid "Rotate right"
-msgstr "दाहिने strafe करें"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
@@ -8796,12 +8790,6 @@ msgstr "दायें मुड़िए"
 #: engines/ultima/nuvie/metaengine.cpp:200
 msgid "Rest"
 msgstr ""
-
-#: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Move Forward"
-msgid "Face forward"
-msgstr "आगे बढ़ो"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
@@ -16559,6 +16547,21 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Strafe Left"
+#~ msgid "Rotate Left"
+#~ msgstr "बाएं Strafe करें"
+
+#, fuzzy
+#~| msgid "Strafe Right"
+#~ msgid "Rotate Right"
+#~ msgstr "दाहिने strafe करें"
+
+#, fuzzy
+#~| msgid "Move Forward"
+#~ msgid "Face Forward"
+#~ msgstr "आगे बढ़ो"
 
 #, fuzzy
 #~| msgid "Move Forward"

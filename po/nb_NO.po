@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 14:12+0000\n"
+"POT-Creation-Date: 2026-02-23 14:24+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Einar Johan Trøan Sømåen <einarjohants@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://translations.scummvm.org/projects/"
@@ -9576,29 +9576,41 @@ msgid "Info menu"
 msgstr "Info Meny"
 
 #: engines/freescape/games/castle/castle.cpp:348
-msgid "Select Prince"
+#, fuzzy
+#| msgid "Select Prince"
+msgid "Select prince"
 msgstr "Velg prins"
 
 #: engines/freescape/games/castle/castle.cpp:353
-msgid "Select Princess"
+#, fuzzy
+#| msgid "Select Princess"
+msgid "Select princess"
 msgstr "Velg prinsesse"
 
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-msgid "Toggle Sound"
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+msgid "Toggle sound"
 msgstr "Lyd av/på"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-msgid "Rotate Left"
+#: engines/freescape/games/eclipse/eclipse.cpp:259
+#, fuzzy
+#| msgid "Rotate Left"
+msgid "Rotate left"
 msgstr "Roter mot venstre"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-msgid "Rotate Right"
+#: engines/freescape/games/eclipse/eclipse.cpp:264
+#, fuzzy
+#| msgid "Rotate Right"
+msgid "Rotate right"
 msgstr "Roter mot høyre"
 
 #: engines/freescape/games/castle/castle.cpp:402
@@ -9606,7 +9618,10 @@ msgid "Crawl"
 msgstr "Krype"
 
 #: engines/freescape/games/castle/castle.cpp:408
-msgid "Face Forward"
+#: engines/freescape/games/eclipse/eclipse.cpp:293
+#, fuzzy
+#| msgid "Face Forward"
+msgid "Face forward"
 msgstr "Se fremover"
 
 #: engines/freescape/games/dark/dark.cpp:224
@@ -9630,40 +9645,50 @@ msgstr "Gå til høyre"
 #: engines/freescape/games/driller/driller.cpp:155
 #, fuzzy
 #| msgid "Increasing Volume"
-msgid "Increase Turn Angle"
+msgid "Increase turn angle"
 msgstr "Øker volum"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
 #, fuzzy
 #| msgid "Decreasing Volume"
-msgid "Decrease Turn Angle"
+msgid "Decrease turn angle"
 msgstr "Senker volum"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-msgid "Increase Step Size"
+#, fuzzy
+#| msgid "Increase Step Size"
+msgid "Increase step size"
 msgstr "Øk stegstørrelse"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-msgid "Decrease Step Size"
+#, fuzzy
+#| msgid "Decrease Step Size"
+msgid "Decrease step size"
 msgstr "Minsk stegstørrelse"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-msgid "Rise/Fly up"
+#, fuzzy
+#| msgid "Rise/Fly up"
+msgid "Rise / Fly up"
 msgstr "Stig/Fly opp"
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
-msgid "Lower/Fly down"
+#, fuzzy
+#| msgid "Lower/Fly down"
+msgid "Lower / Fly down"
 msgstr "Nedstigning/Fly ned"
 
 #: engines/freescape/games/dark/dark.cpp:269
-msgid "Enable/Disable Jetpack"
+#, fuzzy
+#| msgid "Enable/Disable Jetpack"
+msgid "Enable / Disable jetpack"
 msgstr "Skru på/av ryggrakett"
 
 #. I18N: drilling rig is an in game item
@@ -9675,23 +9700,6 @@ msgstr "Utplasser drillenhet"
 #: engines/freescape/games/driller/driller.cpp:207
 msgid "Collect drilling rig"
 msgstr "Innhent drillenhet"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:254
-#: engines/hugo/metaengine.cpp:154
-msgid "Toggle sound"
-msgstr "Lyd av/på"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Rotate Left"
-msgid "Rotate left"
-msgstr "Roter mot venstre"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Rotate Right"
-msgid "Rotate right"
-msgstr "Roter mot høyre"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
@@ -9720,12 +9728,6 @@ msgstr "Høyde av/på"
 #: engines/ultima/nuvie/metaengine.cpp:200
 msgid "Rest"
 msgstr "Hvil"
-
-#: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Face Forward"
-msgid "Face forward"
-msgstr "Se fremover"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
@@ -18081,6 +18083,18 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Toggle Sound"
+#~ msgstr "Lyd av/på"
+
+#~ msgid "Rotate Left"
+#~ msgstr "Roter mot venstre"
+
+#~ msgid "Rotate Right"
+#~ msgstr "Roter mot høyre"
+
+#~ msgid "Face Forward"
+#~ msgstr "Se fremover"
 
 #, fuzzy
 #~| msgid "Move backwards"
