@@ -40,17 +40,15 @@ ScriptValue CodeChunk::executeNextBlock() {
 	debugC(7, kDebugScript, "%s: Entering new block (blockSize: %d, startingPos: %lld)",
 		__func__, blockSize, static_cast<long long int>(startingPos));
 
-	ScriptValue returnValue;
 	ExpressionType expressionType = static_cast<ExpressionType>(_bytecode->readTypedUint16());
 	while (expressionType != kExpressionTypeEmpty && !_returnImmediately) {
-		returnValue = evaluateExpression(expressionType);
+		evaluateExpression(expressionType);
 		expressionType = static_cast<ExpressionType>(_bytecode->readTypedUint16());
 
-		if (expressionType == kExpressionTypeEmpty) {
-			debugC(7, kDebugScript, "%s: Done executing block due to end of chunk", __func__);
-		}
 		if (_returnImmediately) {
-			debugC(7, kDebugScript, "%s: Done executing block due to script requesting immediate return", __func__);
+			debugC(7, kDebugScript, "%s: Done executing block due to script returning value (%s)", __func__, _returnValue.getDebugString().c_str());
+		} else if (expressionType == kExpressionTypeEmpty) {
+			debugC(7, kDebugScript, "%s: Done executing block due to end of chunk", __func__);
 		}
 	}
 
@@ -61,7 +59,8 @@ ScriptValue CodeChunk::executeNextBlock() {
 			error("%s: Expected to have read %d script bytes, actually read %d", __func__, blockSize, bytesRead);
 		}
 	}
-	return returnValue;
+
+	return _returnValue;
 }
 
 void CodeChunk::skipNextBlock() {
@@ -193,7 +192,7 @@ ScriptValue CodeChunk::evaluateOperation() {
 		break;
 
 	case kOpcodeReturn:
-		returnValue = evaluateReturn();
+		evaluateReturn();
 		break;
 
 	case kOpcodeReturnNoValue:
@@ -594,10 +593,9 @@ void CodeChunk::evaluateDeclareLocals() {
 	_locals = Common::Array<ScriptValue>(localVariableCount);
 }
 
-ScriptValue CodeChunk::evaluateReturn() {
-	ScriptValue returnValue = evaluateExpression();
+void CodeChunk::evaluateReturn() {
+	_returnValue = evaluateExpression();
 	_returnImmediately = true;
-	return returnValue;
 }
 
 void CodeChunk::evaluateReturnNoValue() {
