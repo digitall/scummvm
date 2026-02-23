@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-22 15:38+0000\n"
+"POT-Creation-Date: 2026-02-23 10:39+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Einar Johan Trøan Sømåen <einarjohants@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://translations.scummvm.org/projects/"
@@ -8048,7 +8048,7 @@ msgstr "Ledetråder privat/offentlig"
 #: engines/freescape/games/castle/castle.cpp:358
 #: engines/freescape/games/dark/dark.cpp:188
 #: engines/freescape/games/driller/driller.cpp:120
-#: engines/freescape/games/eclipse/eclipse.cpp:227
+#: engines/freescape/games/eclipse/eclipse.cpp:236
 #: engines/hopkins/metaengine.cpp:236 engines/hugo/metaengine.cpp:165
 #: engines/lure/metaengine.cpp:191 engines/made/metaengine.cpp:192
 #: engines/mads/metaengine.cpp:305 engines/mohawk/myst.cpp:583
@@ -8076,7 +8076,7 @@ msgstr "Lagre spill"
 #: engines/freescape/games/castle/castle.cpp:363
 #: engines/freescape/games/dark/dark.cpp:193
 #: engines/freescape/games/driller/driller.cpp:125
-#: engines/freescape/games/eclipse/eclipse.cpp:232
+#: engines/freescape/games/eclipse/eclipse.cpp:241
 #: engines/hopkins/metaengine.cpp:242 engines/made/metaengine.cpp:198
 #: engines/mohawk/myst_stacks/menu.cpp:283
 #: engines/mohawk/riven_stacks/aspit.cpp:349 engines/pegasus/pegasus.cpp:2831
@@ -8132,7 +8132,7 @@ msgstr "Ledetrådsdatabase"
 #: engines/freescape/games/castle/castle.cpp:371
 #: engines/freescape/games/dark/dark.cpp:198
 #: engines/freescape/games/driller/driller.cpp:130
-#: engines/freescape/games/eclipse/eclipse.cpp:237
+#: engines/freescape/games/eclipse/eclipse.cpp:246
 #: engines/mads/metaengine.cpp:361 engines/phoenixvr/metaengine.cpp:80
 #: engines/saga/metaengine.cpp:437 engines/sherlock/metaengine.cpp:359
 #: engines/sherlock/metaengine.cpp:618 engines/sherlock/metaengine.cpp:852
@@ -9586,21 +9586,21 @@ msgstr "Velg prinsesse"
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-#: engines/freescape/games/eclipse/eclipse.cpp:245
+#: engines/freescape/games/eclipse/eclipse.cpp:254
 msgid "Toggle Sound"
 msgstr "Lyd av/på"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-#: engines/freescape/games/eclipse/eclipse.cpp:250
+#: engines/freescape/games/eclipse/eclipse.cpp:259
 msgid "Rotate Left"
 msgstr "Roter mot venstre"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-#: engines/freescape/games/eclipse/eclipse.cpp:255
+#: engines/freescape/games/eclipse/eclipse.cpp:264
 msgid "Rotate Right"
 msgstr "Roter mot høyre"
 
@@ -9609,7 +9609,7 @@ msgid "Crawl"
 msgstr "Krype"
 
 #: engines/freescape/games/castle/castle.cpp:408
-#: engines/freescape/games/eclipse/eclipse.cpp:284
+#: engines/freescape/games/eclipse/eclipse.cpp:293
 msgid "Face Forward"
 msgstr "Se fremover"
 
@@ -9681,26 +9681,32 @@ msgid "Collect drilling rig"
 msgstr "Innhent drillenhet"
 
 #. I18N: Illustrates the angle at which you turn left or right.
-#: engines/freescape/games/eclipse/eclipse.cpp:261
+#: engines/freescape/games/eclipse/eclipse.cpp:270
 msgid "Change Angle"
 msgstr "Endre vinkel"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
-#: engines/freescape/games/eclipse/eclipse.cpp:267
+#: engines/freescape/games/eclipse/eclipse.cpp:276
 msgid "Change Step Size"
 msgstr "Endre stetstørrelse"
 
-#: engines/freescape/games/eclipse/eclipse.cpp:272
+#: engines/freescape/games/eclipse/eclipse.cpp:281
 msgid "Toggle Height"
 msgstr "Høyde av/på"
 
 #. I18N: Action of hero party in Might & Magic 1
-#: engines/freescape/games/eclipse/eclipse.cpp:278
+#: engines/freescape/games/eclipse/eclipse.cpp:287
 #: engines/kyra/engine/lol.cpp:516 engines/mm/mm1/metaengine.cpp:109
 #: engines/ultima/nuvie/metaengine.cpp:195
 #: engines/ultima/nuvie/metaengine.cpp:200
 msgid "Rest"
 msgstr "Hvil"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:298
+#, fuzzy
+#| msgid "Flashlight"
+msgid "Toggle Flashlight"
+msgstr "Lommelykt"
 
 #: engines/glk/glk_api.cpp:62
 msgid "[ press any key to exit ]"
