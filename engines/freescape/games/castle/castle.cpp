@@ -345,12 +345,12 @@ void CastleEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *inf
 	FreescapeEngine::initKeymaps(engineKeyMap, infoScreenKeyMap, target);
 	Common::Action *act;
 
-	act = new Common::Action("SELECTPRINCE", _("Select Prince"));
+	act = new Common::Action("SELECTPRINCE", _("Select prince"));
 	act->setCustomEngineActionEvent(kActionSelectPrince);
 	act->addDefaultInputMapping("1");
 	infoScreenKeyMap->addAction(act);
 
-	act = new Common::Action("SELECTPRINCESS", _("Select Princess"));
+	act = new Common::Action("SELECTPRINCESS", _("Select princess"));
 	act->setCustomEngineActionEvent(kActionSelectPrincess);
 	act->addDefaultInputMapping("2");
 	infoScreenKeyMap->addAction(act);
@@ -373,17 +373,17 @@ void CastleEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *inf
 	act->addDefaultInputMapping("q");
 	infoScreenKeyMap->addAction(act);
 
-	act = new Common::Action("TOGGLESOUND", _("Toggle Sound"));
+	act = new Common::Action("TOGGLESOUND", _("Toggle sound"));
 	act->setCustomEngineActionEvent(kActionToggleSound);
 	act->addDefaultInputMapping("t");
 	infoScreenKeyMap->addAction(act);
 
-	act = new Common::Action("ROTL", _("Rotate Left"));
+	act = new Common::Action("ROTL", _("Rotate left"));
 	act->setCustomEngineActionEvent(kActionRotateLeft);
 	act->addDefaultInputMapping("z");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("ROTR", _("Rotate Right"));
+	act = new Common::Action("ROTR", _("Rotate right"));
 	act->setCustomEngineActionEvent(kActionRotateRight);
 	act->addDefaultInputMapping("x");
 	engineKeyMap->addAction(act);
@@ -405,7 +405,7 @@ void CastleEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *inf
 	act->addDefaultInputMapping("c");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("FACEFRWARD", _("Face Forward"));
+	act = new Common::Action("FACEFRWARD", _("Face forward"));
 	act->setCustomEngineActionEvent(kActionFaceForward);
 	act->addDefaultInputMapping("f");
 	engineKeyMap->addAction(act);

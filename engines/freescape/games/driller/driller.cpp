@@ -135,46 +135,46 @@ void DrillerEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *in
 			act->addDefaultInputMapping("ESCAPE");
 		infoScreenKeyMap->addAction(act);
 
-		act = new Common::Action("TOGGLESOUND", _("Toggle Sound"));
+		act = new Common::Action("TOGGLESOUND", _("Toggle sound"));
 		act->setCustomEngineActionEvent(kActionToggleSound);
 		act->addDefaultInputMapping("t");
 		infoScreenKeyMap->addAction(act);
 	}
 
-	act = new Common::Action("ROTL", _("Rotate Left"));
+	act = new Common::Action("ROTL", _("Rotate left"));
 	act->setCustomEngineActionEvent(kActionRotateLeft);
 	act->addDefaultInputMapping("q");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("ROTR", _("Rotate Right"));
+	act = new Common::Action("ROTR", _("Rotate right"));
 	act->setCustomEngineActionEvent(kActionRotateRight);
 	act->addDefaultInputMapping("w");
 	engineKeyMap->addAction(act);
 
 	// I18N: Illustrates the angle at which you turn left or right.
-	act = new Common::Action("INCANGLE", _("Increase Turn Angle"));
+	act = new Common::Action("INCANGLE", _("Increase turn angle"));
 	act->setCustomEngineActionEvent(kActionIncreaseAngle);
 	act->addDefaultInputMapping("a");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("DECANGLE", _("Decrease Turn Angle"));
+	act = new Common::Action("DECANGLE", _("Decrease turn angle"));
 	act->setCustomEngineActionEvent(kActionDecreaseAngle);
 	act->addDefaultInputMapping("z");
 	engineKeyMap->addAction(act);
 
 	// I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
-	act = new Common::Action("INCSTEPSIZE", _("Increase Step Size"));
+	act = new Common::Action("INCSTEPSIZE", _("Increase step size"));
 	act->setCustomEngineActionEvent(kActionIncreaseStepSize);
 	act->addDefaultInputMapping("s");
 	engineKeyMap->addAction(act);
 
 	// I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
-	act = new Common::Action("DECSTEPSIZE", _("Decrease Step Size"));
+	act = new Common::Action("DECSTEPSIZE", _("Decrease step size"));
 	act->setCustomEngineActionEvent(kActionDecreaseStepSize);
 	act->addDefaultInputMapping("x");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("RISE", _("Rise/Fly up"));
+	act = new Common::Action("RISE", _("Rise / Fly up"));
 	act->setCustomEngineActionEvent(kActionRiseOrFlyUp);
 	act->addDefaultInputMapping("JOY_B");
 	act->addDefaultInputMapping("r");
@@ -190,7 +190,7 @@ void DrillerEngine::initKeymaps(Common::Keymap *engineKeyMap, Common::Keymap *in
 	act->addDefaultInputMapping("m");
 	engineKeyMap->addAction(act);
 
-	act = new Common::Action("LOWER", _("Lower/Fly down"));
+	act = new Common::Action("LOWER", _("Lower / Fly down"));
 	act->setCustomEngineActionEvent(kActionLowerOrFlyDown);
 	act->addDefaultInputMapping("JOY_Y");
 	act->addDefaultInputMapping("f");
