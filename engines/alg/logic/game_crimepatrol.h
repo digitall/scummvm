@@ -184,7 +184,7 @@ private:
 	// misc game functions
 	void displayShotFiredImage(Common::Point *point);
 	void enableVideoFadeIn();
-	uint16 sceneToNumber(Scene *scene);
+	uint16 sceneToNumber(Common::String sceneName);
 	uint16 randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude);
 	uint16 pickRandomScene(uint8 index, uint8 max);
 	uint16 pickDeathScene();

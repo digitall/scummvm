@@ -679,9 +679,11 @@ void GameBountyHunter::setNextScene(uint16 sceneId) {
 
 void GameBountyHunter::displayShotFiredImage(Common::Point *point) {
 	if (point->x >= _videoPosX && point->x <= (_videoPosX + _videoDecoder->getWidth()) && point->y >= _videoPosY && point->y <= (_videoPosY + _videoDecoder->getHeight())) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 	}
 }
 

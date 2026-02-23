@@ -690,9 +690,11 @@ bool GameMaddog::loadState() {
 // misc game functions
 void GameMaddog::defaultBullethole(Common::Point *point) {
 	if (point->x >= 59 && point->y <= 166) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 		updateCursor();
 		_shotFired = true;
 		playSound(_shotSound);
@@ -901,9 +903,11 @@ void GameMaddog::zoneBullethole(Common::Point *point) {
 
 void GameMaddog::zoneSkullhole(Common::Point *point) {
 	if (point->x >= 59 && point->y <= 166) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 		updateCursor();
 		_shotFired = true;
 

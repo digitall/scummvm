@@ -844,9 +844,11 @@ uint16 GameJohnnyRock::sceneToNum(Common::String sceneName) {
 
 void GameJohnnyRock::defaultBullethole(Common::Point *point) {
 	if (point->x >= 14 && point->x <= 306 && point->y >= 5 && point->y <= 169) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 		updateCursor();
 		_shotFired = true;
 		playSound(_shotSound);

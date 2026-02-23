@@ -95,6 +95,7 @@ void GameSpacePirates::init() {
 
 	registerScriptFunctions();
 	verifyScriptFunctions();
+	fixScriptBugs();
 
 	_menuZone = new Zone("MainMenu", "GLOBALHIT");
 	_menuZone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
@@ -268,6 +269,19 @@ void GameSpacePirates::verifyScriptFunctions() {
 		for (auto zone : scene->_zones) {
 			for (auto rect : zone->_rects) {
 				getScriptFunctionRectHit(rect->_rectHit);
+			}
+		}
+	}
+}
+
+void GameSpacePirates::fixScriptBugs() {
+	auto scenes = _sceneInfo->getScenes();
+	for (auto scene : *scenes) {
+		for (auto zone : scene->_zones) {
+			for (auto rect : zone->_rects) {
+				if (rect->_scene == "scene363") {
+					rect->_scene = "scene11";
+				}
 			}
 		}
 	}
@@ -640,8 +654,7 @@ bool GameSpacePirates::weaponDown() {
 }
 
 bool GameSpacePirates::saveState() {
-	Scene *scene = _sceneInfo->findScene(_curScene);
-	uint16 sceneNum = sceneToNumber(scene);
+	uint16 sceneNum = sceneToNumber(_curScene);
 	if ((sceneNum < 0xAC || sceneNum > 0xB9) && sceneNum != 0x6F) {
 		Common::OutSaveFile *outSaveFile;
 		Common::String saveFileName = _vm->getSaveStateName(0);
@@ -761,9 +774,11 @@ void GameSpacePirates::displayShotFiredImage() {
 
 void GameSpacePirates::displayShotFiredImage(Common::Point *point) {
 	if (point->x >= _videoPosX && point->x <= (_videoPosX + _videoDecoder->getWidth()) && point->y >= _videoPosY && point->y <= (_videoPosY + _videoDecoder->getHeight())) {
-		uint16 targetX = point->x - _videoPosX - 4;
-		uint16 targetY = point->y - _videoPosY - 4;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX - 4;
+		int32 targetY = point->y - _videoPosY - 4;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 	}
 }
 
@@ -817,8 +832,8 @@ void GameSpacePirates::enableVideoFadeIn() {
 	// TODO implement
 }
 
-uint16 GameSpacePirates::sceneToNumber(Scene *scene) {
-	return atoi(scene->_name.substr(5).c_str());
+uint16 GameSpacePirates::sceneToNumber(Common::String sceneName) {
+	return atoi(sceneName.substr(5).c_str());
 }
 
 uint16 GameSpacePirates::randomUnusedScene(uint8 max) {
@@ -956,8 +971,7 @@ void GameSpacePirates::rectKillInnocentPerson(Rect *rect) {
 		_curScene = "scene185";
 		return;
 	}
-	Scene *scene = _sceneInfo->findScene(rect->_scene);
-	uint16 picked = sceneToNumber(scene);
+	uint16 picked = sceneToNumber(rect->_scene);
 	if (picked == 0) {
 		picked = randomNumberInRange(0xB7, 0xB9);
 	}
@@ -1291,8 +1305,7 @@ void GameSpacePirates::rectDoFlyingSkull(Rect *rect) {
 	displayShotFiredImage();
 	playSound(_shotSound);
 	_nextSceneFound = true;
-	Scene *scene = _sceneInfo->findScene(rect->_scene);
-	_sceneBeforeFlyingSkulls = sceneToNumber(scene);
+	_sceneBeforeFlyingSkulls = sceneToNumber(rect->_scene);
 	uint16 picked = randomNumberInRange(0x014A, 0x014D);
 	_curScene = Common::String::format("scene%d", picked);
 }
@@ -1320,16 +1333,16 @@ void GameSpacePirates::scenePsoFadeInVideo(Scene *scene) {
 
 void GameSpacePirates::scenePsoSetGotTo(Scene *scene) {
 	enableVideoFadeIn();
-	_gotTo = sceneToNumber(scene);
+	_gotTo = sceneToNumber(scene->_name);
 }
 
 void GameSpacePirates::scenePsoSetGotToNoFadeIn(Scene *scene) {
-	_gotTo = sceneToNumber(scene);
+	_gotTo = sceneToNumber(scene->_name);
 }
 
 void GameSpacePirates::scenePsoSetWorldGotTo(Scene *scene) {
 	enableVideoFadeIn();
-	uint16 sceneNum = sceneToNumber(scene);
+	uint16 sceneNum = sceneToNumber(scene->_name);
 	_worldGotTo[_currentWorld] = sceneNum;
 }
 
@@ -1339,8 +1352,8 @@ void GameSpacePirates::sceneIsoPickAWorld(Scene *scene) {
 	uint8 world = 3;
 	for (auto &rect : zone->_rects) {
 		if (_worldDone[world]) {
-			uint16 centerX = rect->left + (rect->width() / 2);
-			uint16 centerY = rect->top + (rect->height() / 2);
+			int32 centerX = rect->left + (rect->width() / 2);
+			int32 centerY = rect->top + (rect->height() / 2);
 			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), (*_gun)[2], centerX - 16, centerY - 24);
 		}
 		world--;
@@ -1358,7 +1371,7 @@ void GameSpacePirates::sceneIsoPickAWorld(Scene *scene) {
 }
 
 void GameSpacePirates::sceneIsoSetWorldGotTo(Scene *scene) {
-	uint16 sceneNum = sceneToNumber(scene);
+	uint16 sceneNum = sceneToNumber(scene->_name);
 	_worldGotTo[_currentWorld] = sceneNum;
 }
 
@@ -1515,7 +1528,7 @@ void GameSpacePirates::sceneNxtscnAsteroidsDone(Scene *scene) {
 }
 
 void GameSpacePirates::sceneNxtscnDoFlyingSkulls(Scene *scene) {
-	_sceneBeforeFlyingSkulls = sceneToNumber(scene);
+	_sceneBeforeFlyingSkulls = sceneToNumber(scene->_name);
 	uint16 picked = randomNumberInRange(0x014A, 0x014D);
 	_curScene = Common::String::format("scene%d", picked);
 }
@@ -1761,7 +1774,7 @@ void GameSpacePirates::sceneNxtscnStartDragonsTeethPopup(Scene *scene) {
 }
 
 void GameSpacePirates::sceneNxtscnContinueDragonsTeethPopup(Scene *scene) {
-	if (sceneToNumber(scene) != 0x14F) {
+	if (sceneToNumber(scene->_name) != 0x14F) {
 		_randomCount++;
 	}
 	if (((_difficulty * 9) + 9) > _randomCount) {

@@ -591,9 +591,11 @@ bool GameDrugWars::loadState() {
 // misc game functions
 void GameDrugWars::displayShotFiredImage(Common::Point *point) {
 	if (point->x >= _videoPosX && point->x <= (_videoPosX + _videoDecoder->getWidth()) && point->y >= _videoPosY && point->y <= (_videoPosY + _videoDecoder->getHeight())) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 	}
 }
 
@@ -601,8 +603,8 @@ void GameDrugWars::enableVideoFadeIn() {
 	// TODO implement
 }
 
-uint16 GameDrugWars::sceneToNumber(Scene *scene) {
-	return atoi(scene->_name.substr(5).c_str());
+uint16 GameDrugWars::sceneToNumber(Common::String sceneName) {
+	return atoi(sceneName.substr(5).c_str());
 }
 
 uint16 GameDrugWars::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude) {
@@ -830,10 +832,10 @@ void GameDrugWars::rectSelectVillage(Rect *rect) {
 
 // Script functions: Scene PreOps
 void GameDrugWars::scenePsoGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	_gotTo[_gotToIndex] = sceneId;
 	if (_gotToIndex == 13) {
-		_finalStageScene = sceneToNumber(scene);
+		_finalStageScene = sceneToNumber(scene->_name);
 	}
 	enableVideoFadeIn();
 }

@@ -60,6 +60,7 @@ private:
 	void init() override;
 	void registerScriptFunctions();
 	void verifyScriptFunctions();
+	void fixScriptBugs();
 	SPScriptFunctionRect getScriptFunctionRectHit(Common::String name);
 	SPScriptFunctionScene getScriptFunctionScene(SceneFuncType type, Common::String name);
 	void callScriptFunctionRectHit(Common::String name, Rect *rect);
@@ -164,7 +165,7 @@ private:
 	void displayShotLine(uint16 startX, uint16 startY, uint16 endX, uint16 endY);
 	void displayMultipleShotLines();
 	void enableVideoFadeIn();
-	uint16 sceneToNumber(Scene *scene);
+	uint16 sceneToNumber(Common::String sceneName);
 	uint16 randomUnusedScene(uint8 max);
 	uint16 randomNumberInRange(uint16 min, uint16 max);
 	uint16 pickCrystalScene(uint16 scene1, uint16 scene2, uint16 scene3);

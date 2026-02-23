@@ -639,9 +639,11 @@ bool GameCrimePatrol::loadState() {
 // misc game functions
 void GameCrimePatrol::displayShotFiredImage(Common::Point *point) {
 	if (point->x >= _videoPosX && point->x <= (_videoPosX + _videoDecoder->getWidth()) && point->y >= _videoPosY && point->y <= (_videoPosY + _videoDecoder->getHeight())) {
-		uint16 targetX = point->x - _videoPosX;
-		uint16 targetY = point->y - _videoPosY;
-		AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		int32 targetX = point->x - _videoPosX;
+		int32 targetY = point->y - _videoPosY;
+		if (targetX > 0 && targetY > 0) {
+			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+		}
 	}
 }
 
@@ -649,8 +651,8 @@ void GameCrimePatrol::enableVideoFadeIn() {
 	// TODO implement
 }
 
-uint16 GameCrimePatrol::sceneToNumber(Scene *scene) {
-	return atoi(scene->_name.substr(5).c_str());
+uint16 GameCrimePatrol::sceneToNumber(Common::String sceneName) {
+	return atoi(sceneName.substr(5).c_str());
 }
 
 uint16 GameCrimePatrol::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude) {
@@ -822,7 +824,7 @@ void GameCrimePatrol::rectExit(Rect *rect) {
 void GameCrimePatrol::rectTargetPractice(Rect *rect) {
 	uint16 nextScene = 0;
 	Scene *scene = _sceneInfo->findScene(_curScene);
-	if (_levelScenes[0][0] == sceneToNumber(scene)) {
+	if (_levelScenes[0][0] == sceneToNumber(_curScene)) {
 		_practiceMask = 0x1F;
 	}
 	if (_practiceMask == 0) {
@@ -912,13 +914,13 @@ void GameCrimePatrol::rectKillInnocentMan(Rect *rect) {
 
 // Script functions: Scene PreOps
 void GameCrimePatrol::scenePsoWarehouseGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(2, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoGangFightGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(1, sceneId);
 	enableVideoFadeIn();
 }
@@ -929,55 +931,55 @@ void GameCrimePatrol::scenePsoWestcoastSoundGotTo(Scene *scene) {
 }
 
 void GameCrimePatrol::scenePsoDrugDealGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(4, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoCarRingGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(5, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoBankGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(7, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoCrackHouseGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(9, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoMethLabGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(8, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoAirplaneGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(10, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoAirportGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(12, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoNukeTransportGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(11, sceneId);
 	enableVideoFadeIn();
 }
 
 void GameCrimePatrol::scenePsoPowerPlantGotTo(Scene *scene) {
-	uint16 sceneId = sceneToNumber(scene);
+	uint16 sceneId = sceneToNumber(scene->_name);
 	sceneIsoGotToGeneric(13, sceneId);
 	_finalStageScene = sceneId;
 	enableVideoFadeIn();
