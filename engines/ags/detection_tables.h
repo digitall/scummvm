@@ -372,6 +372,7 @@ const PlainGameDescriptor GAME_NAMES[] = {
 	{ "oldskies", "Old Skies" },
 	{ "onironauta", "Onironauta" },
 	{ "oott", "Order of the Thorne: The King's Challenge" },
+	{ "paradisefalls", "Paradise Falls" },
 	{ "pepperodyssey", "Pepper Odyssey" },
 	{ "perfecttides", "Perfect Tides" },
 	{ "perfecttidess2s", "Perfect Tides: Station to Station" },
@@ -4437,6 +4438,8 @@ const AGSGameDescription GAME_DESCRIPTIONS[] = {
 	GAME_ENTRY_EN("alemmo", "al_emmo.exe", "6cddccb3744ec5c6af7c398fb7b3b11c", 19181537),
 	GAME_ENTRY_LANG("alemmo", "al_emmo.exe", "1b437e4d969480e6e8bccad2873701d0", 21201908, Common::DE_DEU), // German DVD
 	GAME_ENTRY_LANG("alemmo", "Al_EmmoSPA.exe", "a6608b37277f1220a1aecc6c18102a04", 2479104, Common::ES_ESP), // Fanmade Spanish translation
+	GAME_ENTRY_LANG("alemmo", "al_emmo.exe", "6cddccb3744ec5c6af7c398fb7b3b11c", 16790667, Common::RU_RUS), // Russian official (Russobit-M)
+	GAME_ENTRY_LANG("alemmo", "al_emmo.exe", "612dafa2839879e0a3442394939b7519", 19181537, Common::RU_RUS), // Russian fanmade (NeoGame)
 	GAME_ENTRY_EN("alemmoanozira", "postcards from anozira.exe", "f5f73b35e809d9e01a2cff32abeffadf", 5567476), // 3.0, Desura
 	GAME_ENTRY_EN_STEAM("alemmoanozira", "Postcards_from_Anozira.exe", "a33691e4a84e2645b4cbe1f681511798", 5567690),
 	GAME_ENTRY_EN("alemmoanozira", "postcards from anozira.exe", "893f31faa33f1219b316894a0cbe7b27", 174781776),
@@ -5068,6 +5071,7 @@ const AGSGameDescription GAME_DESCRIPTIONS[] = {
 	GAME_ENTRY_PLUGIN_STEAM_EN_NOAUTOSAVE("oott", "agsgame.dat", "801b35fe313a432e44671ab04178b679", 465670839, 0), // Linux
 	GAME_ENTRY("ozorwell1", "OZORWELL.exe", "7036a7f21cfe585bc890093b4e004d52", 588631118), // itch.io  Eng-Ita
 	GAME_ENTRY("ozorwell2", "OZ2.exe", "99a9a592b2ffe51a93b5f18b927441b0", 1028373987), // itch.io  Eng-Ita
+	GAME_ENTRY_EN_STEAM("paradisefalls", "ParadiseFalls2.ags", "4eff4c8dbf834a900d23f516a5272dec", 602648471),
 	GAME_ENTRY_EN_STEAM("perfecttides", "perfecttides.exe", "63f8a60cc094996bd070e68cb3c4722c", 1201068548),  // Win v1.0.2
 	GAME_ENTRY_EN_STEAM("perfecttides", "perfecttides.exe", "7a2ea9a4824badcacb5c779ff98b380f", 1243795250),  // Win v2.0
 	GAME_ENTRY_EN_STEAM("perfecttides", "perfecttides.exe", "7a2ea9a4824badcacb5c779ff98b380f", 1243797801),  // Win v2.0.1
