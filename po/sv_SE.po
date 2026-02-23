@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.5.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-23 14:24+0000\n"
-"PO-Revision-Date: 2026-02-08 22:22+0000\n"
+"PO-Revision-Date: 2026-02-23 14:45+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/sv/>\n"
@@ -2796,24 +2796,19 @@ msgstr "* ABC"
 
 #: gui/printing-dialog.cpp:61
 msgid "Print"
-msgstr ""
+msgstr "Skriv ut"
 
 #: gui/printing-dialog.cpp:62
-#, fuzzy
-#| msgid "Save Image"
 msgid "Save as image"
-msgstr "Spara bild"
+msgstr "Spara som bild"
 
 #: gui/printing-dialog.cpp:64
-#, fuzzy
-#| msgid "Pointer Speed:"
 msgid "Printer:"
-msgstr "Pekarhastighet:"
+msgstr "Skrivare:"
 
 #: gui/printing-dialog.cpp:87
-#, fuzzy
 msgid "Orientation:"
-msgstr "~F~öregående"
+msgstr "Orientering:"
 
 #: gui/recorderdialog.cpp:67
 msgid "Recorder or Playback Gameplay"
@@ -6844,7 +6839,7 @@ msgstr "Använd originalskärmar för spara/läs in"
 
 #: engines/agos/dialogs.cpp:94
 msgid "Toggle between the system cursor and the default cursor."
-msgstr ""
+msgstr "Växla mellan systemmarkören och standardmarkören."
 
 #: engines/agos/dialogs.cpp:107 engines/sci/detection_options.h:263
 msgid "MIDI mode:"
@@ -7953,56 +7948,38 @@ msgstr "Avslutningsfråga"
 #. I18N: Here ALTered Item refers to the dice that has been altered/changed.
 #. In order to escape the dice game loop press Right/Left Alt
 #: engines/cge/metaengine.cpp:250
-#, fuzzy
-#| msgid "ALTered Item"
 msgid "ALTered item"
 msgstr "Ändrat (ALT) föremål"
 
 #: engines/cge/metaengine.cpp:257
-#, fuzzy
-#| msgid "Inventory Item 1 (Select / Deselect)"
 msgid "Inventory item 1 (Select / Deselect)"
 msgstr "Inventarieobjekt 1 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:262
-#, fuzzy
-#| msgid "Inventory Item 2 (Select / Deselect)"
 msgid "Inventory item 2 (Select / Deselect)"
 msgstr "Inventarieobjekt 2 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:267
-#, fuzzy
-#| msgid "Inventory Item 3 (Select / Deselect)"
 msgid "Inventory item 3 (Select / Deselect)"
 msgstr "Inventarieobjekt 3 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:272
-#, fuzzy
-#| msgid "Inventory Item 4 (Select / Deselect)"
 msgid "Inventory item 4 (Select / Deselect)"
 msgstr "Inventarieobjekt 4 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:277
-#, fuzzy
-#| msgid "Inventory Item 5 (Select / Deselect)"
 msgid "Inventory item 5 (Select / Deselect)"
 msgstr "Inventarieobjekt 5 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:282
-#, fuzzy
-#| msgid "Inventory Item 6 (Select / Deselect)"
 msgid "Inventory item 6 (Select / Deselect)"
 msgstr "Inventarieobjekt 6 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:287
-#, fuzzy
-#| msgid "Inventory Item 7 (Select / Deselect)"
 msgid "Inventory item 7 (Select / Deselect)"
 msgstr "Inventarieobjekt 7 (Välj/avmarkera)"
 
 #: engines/cge/metaengine.cpp:292
-#, fuzzy
-#| msgid "Inventory Item 8 (Select / Deselect)"
 msgid "Inventory item 8 (Select / Deselect)"
 msgstr "Inventarieobjekt 8 (Välj/avmarkera)"
 
@@ -13017,16 +12994,17 @@ msgstr ""
 "Aktivera demo-/kioskläge i den fullständiga versionen av Maniac Mansion."
 
 #: engines/scumm/metaengine.cpp:839
-#, fuzzy
-#| msgid "Playback"
 msgid "Disable Playback"
-msgstr "Spela upp"
+msgstr "Inaktivera uppspelning"
 
 #: engines/scumm/metaengine.cpp:840
 msgid ""
 "Disable the scripted part of the demo (dangerous!). This makes it "
 "interactive, but as this was never intended, expect frequent crashes!"
 msgstr ""
+"Inaktivera den skriptbaserade delen av demon (farligt!). Detta gör den "
+"interaktiv, men eftersom detta aldrig var meningen kan du förvänta dig "
+"frekventa krascher!"
 
 #: engines/scumm/metaengine.cpp:848
 msgid "Use remastered audio"
