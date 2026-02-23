@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 10:39+0000\n"
+"POT-Creation-Date: 2026-02-23 14:12+0000\n"
 "PO-Revision-Date: 2026-02-22 12:22+0000\n"
 "Last-Translator: Hoseok Seo <ddinghoya@gmail.com>\n"
 "Language-Team: Korean <https://translations.scummvm.org/projects/scummvm/"
@@ -8879,21 +8879,18 @@ msgstr "공주 선택"
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-#: engines/freescape/games/eclipse/eclipse.cpp:254
 msgid "Toggle Sound"
 msgstr "사운드 전환"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-#: engines/freescape/games/eclipse/eclipse.cpp:259
 msgid "Rotate Left"
 msgstr "왼쪽으로 회전"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-#: engines/freescape/games/eclipse/eclipse.cpp:264
 msgid "Rotate Right"
 msgstr "오른쪽으로 회전"
 
@@ -8902,7 +8899,6 @@ msgid "Crawl"
 msgstr "기어가다"
 
 #: engines/freescape/games/castle/castle.cpp:408
-#: engines/freescape/games/eclipse/eclipse.cpp:293
 msgid "Face Forward"
 msgstr "얼굴 앞으로"
 
@@ -8965,18 +8961,41 @@ msgstr "드릴링 장비 배치"
 msgid "Collect drilling rig"
 msgstr "드릴링 장비를 수집"
 
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+msgid "Toggle sound"
+msgstr "사운드 전환"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:259
+#, fuzzy
+#| msgid "Rotate Left"
+msgid "Rotate left"
+msgstr "왼쪽으로 회전"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:264
+#, fuzzy
+#| msgid "Rotate Right"
+msgid "Rotate right"
+msgstr "오른쪽으로 회전"
+
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-msgid "Change Angle"
+#, fuzzy
+#| msgid "Change Angle"
+msgid "Change angle"
 msgstr "각도 변경"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-msgid "Change Step Size"
+#, fuzzy
+#| msgid "Change Step Size"
+msgid "Change step size"
 msgstr "단계 크기 변경"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-msgid "Toggle Height"
+#, fuzzy
+#| msgid "Toggle Height"
+msgid "Toggle height"
 msgstr "높이 전환"
 
 #. I18N: Action of hero party in Might & Magic 1
@@ -8987,10 +9006,16 @@ msgstr "높이 전환"
 msgid "Rest"
 msgstr "휴식"
 
+#: engines/freescape/games/eclipse/eclipse.cpp:293
+#, fuzzy
+#| msgid "Face Forward"
+msgid "Face forward"
+msgstr "얼굴 앞으로"
+
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
 #| msgid "Flashlight"
-msgid "Toggle Flashlight"
+msgid "Toggle flashlight"
 msgstr "손전등"
 
 #: engines/glk/glk_api.cpp:62
@@ -9457,10 +9482,6 @@ msgstr "윈도우 버전의 마우스와 툴바 사용"
 #: engines/hugo/metaengine.cpp:148
 msgid "User help"
 msgstr "사용자 도움말"
-
-#: engines/hugo/metaengine.cpp:154
-msgid "Toggle sound"
-msgstr "사운드 전환"
 
 #: engines/hugo/metaengine.cpp:159
 msgid "Repeat last line"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 10:39+0000\n"
+"POT-Creation-Date: 2026-02-23 14:12+0000\n"
 "PO-Revision-Date: 2026-02-11 14:23+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Dutch <https://translations.scummvm.org/projects/scummvm/"
@@ -9000,21 +9000,18 @@ msgstr "Selecteer prinses"
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-#: engines/freescape/games/eclipse/eclipse.cpp:254
 msgid "Toggle Sound"
 msgstr "Geluid in- en uitschakelen"
 
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-#: engines/freescape/games/eclipse/eclipse.cpp:259
 msgid "Rotate Left"
 msgstr "Draai Linksom"
 
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-#: engines/freescape/games/eclipse/eclipse.cpp:264
 msgid "Rotate Right"
 msgstr "Draai Rechtsom"
 
@@ -9023,7 +9020,6 @@ msgid "Crawl"
 msgstr "Kruip"
 
 #: engines/freescape/games/castle/castle.cpp:408
-#: engines/freescape/games/eclipse/eclipse.cpp:293
 msgid "Face Forward"
 msgstr "Met het gezicht naar voren"
 
@@ -9086,18 +9082,41 @@ msgstr "Boortoren inzetten"
 msgid "Collect drilling rig"
 msgstr "Boorinstallatie verzamelen"
 
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+msgid "Toggle sound"
+msgstr "Geluid in- en uitschakelen"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:259
+#, fuzzy
+#| msgid "Rotate Left"
+msgid "Rotate left"
+msgstr "Draai Linksom"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:264
+#, fuzzy
+#| msgid "Rotate Right"
+msgid "Rotate right"
+msgstr "Draai Rechtsom"
+
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-msgid "Change Angle"
+#, fuzzy
+#| msgid "Change Angle"
+msgid "Change angle"
 msgstr "Hoek wijzigen"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-msgid "Change Step Size"
+#, fuzzy
+#| msgid "Change Step Size"
+msgid "Change step size"
 msgstr "Stapgrootte wijzigen"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-msgid "Toggle Height"
+#, fuzzy
+#| msgid "Toggle Height"
+msgid "Toggle height"
 msgstr "Hoogte wijzigen"
 
 #. I18N: Action of hero party in Might & Magic 1
@@ -9108,10 +9127,16 @@ msgstr "Hoogte wijzigen"
 msgid "Rest"
 msgstr "Rust"
 
+#: engines/freescape/games/eclipse/eclipse.cpp:293
+#, fuzzy
+#| msgid "Face Forward"
+msgid "Face forward"
+msgstr "Met het gezicht naar voren"
+
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
 #| msgid "Flashlight"
-msgid "Toggle Flashlight"
+msgid "Toggle flashlight"
 msgstr "Zaklantaarn"
 
 #: engines/glk/glk_api.cpp:62
@@ -9589,10 +9614,6 @@ msgstr "Gebruik de muis en werkbalk van de Windows-versie"
 #: engines/hugo/metaengine.cpp:148
 msgid "User help"
 msgstr "Gebruikershulp"
-
-#: engines/hugo/metaengine.cpp:154
-msgid "Toggle sound"
-msgstr "Geluid in- en uitschakelen"
 
 #: engines/hugo/metaengine.cpp:159
 msgid "Repeat last line"

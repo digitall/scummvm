@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 10:39+0000\n"
+"POT-Creation-Date: 2026-02-23 14:12+0000\n"
 "PO-Revision-Date: 2024-10-10 12:33+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Turkish <https://translations.scummvm.org/projects/scummvm/"
@@ -8741,7 +8741,6 @@ msgstr "Tema seç"
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-#: engines/freescape/games/eclipse/eclipse.cpp:254
 #, fuzzy
 msgid "Toggle Sound"
 msgstr "Altyazılar"
@@ -8749,7 +8748,6 @@ msgstr "Altyazılar"
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-#: engines/freescape/games/eclipse/eclipse.cpp:259
 #, fuzzy
 msgid "Rotate Left"
 msgstr "Sol"
@@ -8757,7 +8755,6 @@ msgstr "Sol"
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-#: engines/freescape/games/eclipse/eclipse.cpp:264
 #, fuzzy
 msgid "Rotate Right"
 msgstr "Sağ"
@@ -8767,7 +8764,6 @@ msgid "Crawl"
 msgstr ""
 
 #: engines/freescape/games/castle/castle.cpp:408
-#: engines/freescape/games/eclipse/eclipse.cpp:293
 #, fuzzy
 #| msgid "Backend"
 msgid "Face Forward"
@@ -8836,21 +8832,37 @@ msgstr ""
 msgid "Collect drilling rig"
 msgstr ""
 
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+#, fuzzy
+msgid "Toggle sound"
+msgstr "Altyazılar"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:259
+#, fuzzy
+msgid "Rotate left"
+msgstr "Sol"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:264
+#, fuzzy
+msgid "Rotate right"
+msgstr "Sağ"
+
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
 #, fuzzy
-msgid "Change Angle"
+msgid "Change angle"
 msgstr "Grafik modu:"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
 #, fuzzy
-msgid "Change Step Size"
+msgid "Change step size"
 msgstr "Grafik modu:"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
 #, fuzzy
-msgid "Toggle Height"
+msgid "Toggle height"
 msgstr "Altyazılar"
 
 #. I18N: Action of hero party in Might & Magic 1
@@ -8861,9 +8873,15 @@ msgstr "Altyazılar"
 msgid "Rest"
 msgstr ""
 
+#: engines/freescape/games/eclipse/eclipse.cpp:293
+#, fuzzy
+#| msgid "Backend"
+msgid "Face forward"
+msgstr "Altyapı"
+
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
-msgid "Toggle Flashlight"
+msgid "Toggle flashlight"
 msgstr "Altyazılar"
 
 #: engines/glk/glk_api.cpp:62
@@ -9327,11 +9345,6 @@ msgstr ""
 #| msgid "User canceled"
 msgid "User help"
 msgstr "Kullanıcı iptal etti"
-
-#: engines/hugo/metaengine.cpp:154
-#, fuzzy
-msgid "Toggle sound"
-msgstr "Altyazılar"
 
 #: engines/hugo/metaengine.cpp:159
 #, fuzzy

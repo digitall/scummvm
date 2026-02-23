@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 10:39+0000\n"
+"POT-Creation-Date: 2026-02-23 14:12+0000\n"
 "PO-Revision-Date: 2020-09-26 21:13+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Galician <https://translations.scummvm.org/projects/scummvm/"
@@ -8985,7 +8985,6 @@ msgstr "Seleccionar tema"
 #: engines/freescape/games/castle/castle.cpp:376
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
-#: engines/freescape/games/eclipse/eclipse.cpp:254
 #, fuzzy
 msgid "Toggle Sound"
 msgstr "Activar/desactivar captura de rato"
@@ -8993,7 +8992,6 @@ msgstr "Activar/desactivar captura de rato"
 #: engines/freescape/games/castle/castle.cpp:381
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
-#: engines/freescape/games/eclipse/eclipse.cpp:259
 #, fuzzy
 #| msgid "Slide Left"
 msgid "Rotate Left"
@@ -9002,7 +9000,6 @@ msgstr "Esvarar á esquerda"
 #: engines/freescape/games/castle/castle.cpp:386
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
-#: engines/freescape/games/eclipse/eclipse.cpp:264
 #, fuzzy
 #| msgid "Slide Right"
 msgid "Rotate Right"
@@ -9013,7 +9010,6 @@ msgid "Crawl"
 msgstr ""
 
 #: engines/freescape/games/castle/castle.cpp:408
-#: engines/freescape/games/eclipse/eclipse.cpp:293
 #, fuzzy
 #| msgid "Move Forward"
 msgid "Face Forward"
@@ -9088,22 +9084,40 @@ msgstr ""
 msgid "Collect drilling rig"
 msgstr ""
 
+#: engines/freescape/games/eclipse/eclipse.cpp:254
+#: engines/hugo/metaengine.cpp:154
+#, fuzzy
+msgid "Toggle sound"
+msgstr "Activar/desactivar captura de rato"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:259
+#, fuzzy
+#| msgid "Slide Left"
+msgid "Rotate left"
+msgstr "Esvarar á esquerda"
+
+#: engines/freescape/games/eclipse/eclipse.cpp:264
+#, fuzzy
+#| msgid "Slide Right"
+msgid "Rotate right"
+msgstr "Esvarar á dereita"
+
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
 #, fuzzy
 #| msgid "Fast mode"
-msgid "Change Angle"
+msgid "Change angle"
 msgstr "Modo Rápido"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
 #, fuzzy
-msgid "Change Step Size"
+msgid "Change step size"
 msgstr "Aumentar/reducir factor de escala"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
 #, fuzzy
-msgid "Toggle Height"
+msgid "Toggle height"
 msgstr "Activar/desactivar captura de rato"
 
 #. I18N: Action of hero party in Might & Magic 1
@@ -9114,10 +9128,16 @@ msgstr "Activar/desactivar captura de rato"
 msgid "Rest"
 msgstr "Parar"
 
+#: engines/freescape/games/eclipse/eclipse.cpp:293
+#, fuzzy
+#| msgid "Move Forward"
+msgid "Face forward"
+msgstr "Mover cara diante"
+
 #: engines/freescape/games/eclipse/eclipse.cpp:298
 #, fuzzy
 #| msgid "Fly straight"
-msgid "Toggle Flashlight"
+msgid "Toggle flashlight"
 msgstr "Voar recto"
 
 #: engines/glk/glk_api.cpp:62
@@ -9603,11 +9623,6 @@ msgstr ""
 #| msgid "User canceled"
 msgid "User help"
 msgstr "Usuario cancelado"
-
-#: engines/hugo/metaengine.cpp:154
-#, fuzzy
-msgid "Toggle sound"
-msgstr "Activar/desactivar captura de rato"
 
 #: engines/hugo/metaengine.cpp:159
 #, fuzzy
