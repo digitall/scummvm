@@ -14,6 +14,7 @@ For a more comprehensive changelog of the latest experimental code, see:
    - Fixed incorrect evolution logic in Game of Life.
    - Hopeful fix for occasional crash entering boardgame stores.
    - Fix crash when hiding boardgame turn start spinner.
+   - Fix Poker minigame bet icons rendering over game over dialog.
 
  M4:
    - Added music support in Ripley.

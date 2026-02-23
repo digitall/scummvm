@@ -1004,6 +1004,9 @@ bool CMainPokerWindow::OnCommand(WPARAM wParam, LPARAM lParam) {
 				SetBet(0);
 				if (m_lpGameStruct->bPlayingMetagame) {
 					if (roundOfPlay >= m_nRound) {
+						UpdateWindow();
+
+						// Show the game over dialog
 						CMessageBox cMsgBox((CWnd *)this, pGamePalette, "Your 4 rounds", "are over.");
 						PostMessage(WM_CLOSE);
 					}
