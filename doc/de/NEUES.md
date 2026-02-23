@@ -41,6 +41,9 @@ Umfangreichere Informationen über die Änderungen des aktuellen Codes findest D
    - Unterstützung für die originale Wiedergabe-Datei in der DOS-Version der 
      nicht-interaktiven Demo von Monkey Island 2 hinzugefügt.
 
+ TEENAGENT:
+   - Fehler "could not locate language block" beim Start der polnischen und russischen Versionen behoben.
+
  WAGE:
    - Kampf-System implementiert.
    - Korrektur mehrerer Darstellungsfehler.
