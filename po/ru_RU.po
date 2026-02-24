@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-23 14:24+0000\n"
-"PO-Revision-Date: 2026-02-22 15:18+0000\n"
+"PO-Revision-Date: 2026-02-24 22:26+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -8983,14 +8983,10 @@ msgid "Info menu"
 msgstr "Инфо-меню"
 
 #: engines/freescape/games/castle/castle.cpp:348
-#, fuzzy
-#| msgid "Select Prince"
 msgid "Select prince"
 msgstr "Выбрать принца"
 
 #: engines/freescape/games/castle/castle.cpp:353
-#, fuzzy
-#| msgid "Select Princess"
 msgid "Select princess"
 msgstr "Выбрать принцессу"
 
@@ -9006,8 +9002,6 @@ msgstr "Переключить звук"
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
 #: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Rotate Left"
 msgid "Rotate left"
 msgstr "Вращение влево"
 
@@ -9015,8 +9009,6 @@ msgstr "Вращение влево"
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
 #: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Rotate Right"
 msgid "Rotate right"
 msgstr "Вращение вправо"
 
@@ -9026,8 +9018,6 @@ msgstr "Ползти"
 
 #: engines/freescape/games/castle/castle.cpp:408
 #: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Face Forward"
 msgid "Face forward"
 msgstr "Лицом вперёд"
 
@@ -9046,53 +9036,39 @@ msgstr "Перекат вправо"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-#, fuzzy
-#| msgid "Increase Turn Angle"
 msgid "Increase turn angle"
 msgstr "Увеличить угол поворота"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-#, fuzzy
-#| msgid "Decrease Turn Angle"
 msgid "Decrease turn angle"
 msgstr "Уменьшить угол поворота"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-#, fuzzy
-#| msgid "Increase Step Size"
 msgid "Increase step size"
 msgstr "Увеличить размер шага"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-#, fuzzy
-#| msgid "Decrease Step Size"
 msgid "Decrease step size"
 msgstr "Уменьшить размер шага"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-#, fuzzy
-#| msgid "Rise/Fly up"
 msgid "Rise / Fly up"
-msgstr "Подняться/Взлететь вверх"
+msgstr "Подняться / Взлететь вверх"
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
-#, fuzzy
-#| msgid "Lower/Fly down"
 msgid "Lower / Fly down"
-msgstr "Снижаться/Лететь вниз"
+msgstr "Снизиться / Лететь вниз"
 
 #: engines/freescape/games/dark/dark.cpp:269
-#, fuzzy
-#| msgid "Enable/Disable Jetpack"
 msgid "Enable / Disable jetpack"
-msgstr "Включить/выключить реактивный ранец"
+msgstr "Включить / Выключить реактивный ранец"
 
 #. I18N: drilling rig is an in game item
 #: engines/freescape/games/driller/driller.cpp:200
@@ -9106,21 +9082,15 @@ msgstr "Подобрать установку бурения"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-#, fuzzy
-#| msgid "Change Angle"
 msgid "Change angle"
 msgstr "Изменить угол"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-#, fuzzy
-#| msgid "Change Step Size"
 msgid "Change step size"
 msgstr "Изменить размер шага"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-#, fuzzy
-#| msgid "Toggle Height"
 msgid "Toggle height"
 msgstr "Переключить высоту"
 
@@ -9133,10 +9103,8 @@ msgid "Rest"
 msgstr "Отдохнуть"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
-#, fuzzy
-#| msgid "Flashlight"
 msgid "Toggle flashlight"
-msgstr "Фонарик"
+msgstr "Переключить фонарик"
 
 #: engines/glk/glk_api.cpp:62
 msgid "[ press any key to exit ]"
@@ -10270,34 +10238,24 @@ msgid "Run while following virtual bread crumbs"
 msgstr ""
 
 #: engines/lab/metaengine.cpp:311
-#, fuzzy
-#| msgid "Switch to 2xSai scaling"
 msgid "Switch to main display"
-msgstr "Переключить масштабирование на 2xSai"
+msgstr "Переключиться на главный дисплей"
 
 #: engines/lab/metaengine.cpp:317
-#, fuzzy
-#| msgid "Save / Load dialog"
 msgid "Open save / load dialog"
-msgstr "Диалог записи / чтения"
+msgstr "Открыть диалог записи / чтения"
 
 #: engines/lab/metaengine.cpp:329
-#, fuzzy
-#| msgid "Look at"
 msgid "Look at scene"
-msgstr "Смотреть на"
+msgstr "Смотреть на сцену"
 
 #: engines/lab/metaengine.cpp:335
-#, fuzzy
-#| msgid "Inventory"
 msgid "Previous inventory item"
-msgstr "Инвентарь"
+msgstr "Предыдущий элемент инвентаря"
 
 #: engines/lab/metaengine.cpp:342
-#, fuzzy
-#| msgid "Animated inventory items"
 msgid "Next inventory item"
-msgstr "Анимированные объекты инвентаря"
+msgstr "Следующий элемент инвентаря"
 
 #: engines/lab/metaengine.cpp:373
 msgid "Exit map display"
@@ -10312,22 +10270,16 @@ msgid "Down one level"
 msgstr "На уровень ниже"
 
 #: engines/lab/metaengine.cpp:391
-#, fuzzy
-#| msgid "Show journal"
 msgid "Go back in journal"
-msgstr "Показать журнал"
+msgstr "Вернуться в журнал"
 
 #: engines/lab/metaengine.cpp:397
-#, fuzzy
-#| msgid "Show journal"
 msgid "Exit journal"
-msgstr "Показать журнал"
+msgstr "Выйти из журнала"
 
 #: engines/lab/metaengine.cpp:402
-#, fuzzy
-#| msgid "Show journal"
 msgid "Go forward in journal"
-msgstr "Показать журнал"
+msgstr "Продвинуться вперёд в журнале"
 
 #: engines/lab/processroom.cpp:320
 msgid ""
@@ -10530,38 +10482,26 @@ msgstr ""
 "Заменить цветной драгоценный камень полосками очков жизни и очков заклинаний."
 
 #: engines/mm/mm1/metaengine.cpp:54
-#, fuzzy
-#| msgid "View Party Member 1"
 msgid "View party member 1"
 msgstr "Смотреть члена команды №1"
 
 #: engines/mm/mm1/metaengine.cpp:55
-#, fuzzy
-#| msgid "View Party Member 2"
 msgid "View party member 2"
 msgstr "Смотреть члена команды №2"
 
 #: engines/mm/mm1/metaengine.cpp:56
-#, fuzzy
-#| msgid "View Party Member 3"
 msgid "View party member 3"
 msgstr "Смотреть члена команды №3"
 
 #: engines/mm/mm1/metaengine.cpp:57
-#, fuzzy
-#| msgid "View Party Member 4"
 msgid "View party member 4"
 msgstr "Смотреть члена команды №4"
 
 #: engines/mm/mm1/metaengine.cpp:58
-#, fuzzy
-#| msgid "View Party Member 5"
 msgid "View party member 5"
 msgstr "Смотреть члена команды №5"
 
 #: engines/mm/mm1/metaengine.cpp:59
-#, fuzzy
-#| msgid "View Party Member 6"
 msgid "View party member 6"
 msgstr "Смотреть члена команды №6"
 
@@ -10583,10 +10523,8 @@ msgstr "Сражаться"
 
 #. I18N: Combat command in Might & Magic 1
 #: engines/mm/mm1/metaengine.cpp:75 engines/mm/mm1/metaengine.cpp:116
-#, fuzzy
-#| msgid "Quick Reference"
 msgid "Quick reference"
-msgstr "Быстрый просмотр"
+msgstr "Быстрый осмотр"
 
 #. I18N: Combat command in Might & Magic 1
 #: engines/mm/mm1/metaengine.cpp:77
@@ -10615,14 +10553,10 @@ msgid "Backwards"
 msgstr "Назад"
 
 #: engines/mm/mm1/metaengine.cpp:104
-#, fuzzy
-#| msgid "Toggle Minimap"
 msgid "Toggle minimap"
-msgstr "Переключить карту"
+msgstr "Переключить мини-карту"
 
 #: engines/mm/mm1/metaengine.cpp:105
-#, fuzzy
-#| msgid "Reorder Party"
 msgid "Reorder party"
 msgstr "Поменять порядок команды"
 
@@ -10842,10 +10776,8 @@ msgstr "Игра приостановлена. Для продолжения н�
 
 #: engines/mohawk/myst.cpp:578 engines/mohawk/riven.cpp:859
 #: engines/sludge/keymapper_tables.h:113 engines/sludge/keymapper_tables.h:162
-#, fuzzy
-#| msgid "Load Game"
 msgid "Load save"
-msgstr "Загрузить игру"
+msgstr "Загрузить сохранение"
 
 #: engines/mohawk/myst.cpp:588 engines/mohawk/riven.cpp:869
 msgid "Show options menu"
@@ -11117,10 +11049,8 @@ msgid "Nancy Drew - Maze"
 msgstr "Нэнси Дрю - Лабиринт"
 
 #: engines/nancy/input.cpp:236
-#, fuzzy
-#| msgid "Show/hide maze map"
 msgid "Show / hide maze map"
-msgstr "Показать/убрать карту лабиринта"
+msgstr "Показать / спрятать карту лабиринта"
 
 #: engines/nancy/metaengine.cpp:38
 msgid "Player Speech"
@@ -11187,10 +11117,8 @@ msgstr ""
 "Это официальный патч от HeR Interactive."
 
 #: engines/nancy/state/loadsave.cpp:108
-#, fuzzy
-#| msgid "Would you like to save or restore a game?"
 msgid "Would you like to load or save a game?"
-msgstr "Вы хотите сохранить либо загрузить игру?"
+msgstr "Вы хотите загрузить либо сохранить игру?"
 
 #: engines/neverhood/dialogs.cpp:52
 msgid "Skip the Hall of Records storyboard scenes"
@@ -11241,23 +11169,17 @@ msgstr "Раскладка клавиш меню паузы"
 #: engines/sludge/keymapper_tables.h:275 engines/sludge/keymapper_tables.h:386
 #: engines/sludge/keymapper_tables.h:446 engines/sludge/keymapper_tables.h:478
 #: engines/sludge/keymapper_tables.h:529 engines/tot/metaengine.cpp:112
-#, fuzzy
-#| msgid "Move left"
 msgid "Move / Interact"
-msgstr "Идти влево"
+msgstr "Передвинуть / Взаимодействовать"
 
 #: engines/neverhood/metaengine.cpp:206
-#, fuzzy
-#| msgid "Skip cutscene"
 msgid "Pause / Exit menu"
-msgstr "Пропустить заставку"
+msgstr "Пауза / Выйти из меню"
 
 #. I18N: (Game name: The Neverhood) The game has multiple cutscenes, and this action skips part of the scene.
 #: engines/neverhood/metaengine.cpp:214
-#, fuzzy
-#| msgid "Skip cutscene"
 msgid "Skip section of cutscene"
-msgstr "Пропустить заставку"
+msgstr "Пропустить часть заставки"
 
 #. I18N: (Game name: The Neverhood) The game has multiple cutscenes, and this action skips the entire scene.
 #: engines/neverhood/metaengine.cpp:221
@@ -11266,10 +11188,8 @@ msgstr ""
 
 #. I18N: (Game name: The Neverhood) This action confirms the selected save or entered new save name in the save file management menus.
 #: engines/neverhood/metaengine.cpp:228
-#, fuzzy
-#| msgid "Create a new saved game"
 msgid "Confirm the selected save / new save name"
-msgstr "Создать новую запись игры"
+msgstr "Подтвердите выбранное имя сохранения"
 
 #: engines/ngi/metaengine.cpp:118
 msgid "Credits keymappings"
