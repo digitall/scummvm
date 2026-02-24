@@ -163,6 +163,21 @@ static const MADSGameDescription gameDescriptions[] = {
 	},
 
 	{
+		// Return of the Phantom GOG DOS English
+		{
+			"phantom",
+			0,
+			AD_ENTRY1s("global.idx", "cf17ab33b5ab084763cf83c76a8d9634", 4638),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_UNSTABLE,
+			GUIO1(GAMEOPTION_EASY_MOUSE)
+		},
+		GType_Phantom,
+		0
+	},
+
+	{
 		// Return of the Phantom DOS English Demo
 		{
 			"phantom",
