@@ -2602,38 +2602,39 @@ bool CGtlData::ProcessGameResult(CXodj *xpXodj, int iGameCode, LPGAMESTRUCT lpGa
 		//
 		iSoundCode -= MG_SOUND_BASE;
 		assert(iSoundCode >= 0 && iSoundCode <= MG_SOUND_MAX);
-		if ((pSound = new CSound(xpGtlView, szGameSounds[iSoundCode], SOUND_WAVE | SOUND_QUEUE | SOUND_ASYNCH | SOUND_AUTODELETE)) != nullptr) {
+		if ((pSound = new CSound(xpGtlView, szGameSounds[iSoundCode],
+			SOUND_WAVE | SOUND_QUEUE | SOUND_ASYNCH | (bWin ? 0 : SOUND_AUTODELETE) )) != nullptr) {
 			pSound->setDrivePath(lpMetaGameStruct->m_chCDPath);
 			pSound->play();
 		}
 	}
 
 	if (bWin) {
-
+		// Win information
 		switch (iWinCode) {
-
-		// win information
-		//
 		case MG_WIN_INFO:
 			DivulgeInformation(m_xpCurXodj, false);
-			break ;
+			break;
 
-		// give the player an object from storage
-		//
+		// Give the player an object from storage
 		case MG_WIN_OBJECT:
 			GainRandomItem(m_xpCurXodj);
-			break ;
+			break;
 
-		// player gains
-		//
+		// Player gains money
 		case MG_WIN_MONEY:
-
 			if (lMoneyWon > 0)
 				GainMoney(m_xpCurXodj, lMoneyWon);
-			break ;
+			break;
 
 		default:
-			break ;
+			break;
+		}
+
+		// Stop playing dialog dictation if it's still playing, now that the dialog is closed
+		if (pSound != nullptr) {
+			pSound->stop();
+			delete pSound;
 		}
 	}
 
