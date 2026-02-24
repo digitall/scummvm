@@ -378,7 +378,7 @@ Common::Error GameMaddog2::run() {
 						}
 						updateStat();
 						Rect *hitRect = nullptr;
-						Zone *hitSceneZone = checkZonesV1(scene, hitRect, &firedCoords);
+						Zone *hitSceneZone = checkZones(scene, hitRect, &firedCoords);
 						if (hitSceneZone != nullptr) {
 							callScriptFunctionZonePtrFb(hitSceneZone->_ptrfb, &firedCoords);
 							callScriptFunctionRectHit(hitRect->_rectHit, hitRect);
@@ -542,7 +542,7 @@ void GameMaddog2::changeDifficulty(uint8 newDifficulty) {
 		return;
 	}
 	showDifficulty(newDifficulty, true);
-	Game::adjustDifficulty(newDifficulty, _oldDifficulty);
+	adjustDifficulty(newDifficulty, _oldDifficulty);
 	_oldDifficulty = newDifficulty;
 	_difficulty = newDifficulty;
 }
@@ -553,6 +553,31 @@ void GameMaddog2::showDifficulty(uint8 newDifficulty, bool cursor) {
 	AlgGraphics::drawImageCentered(_screen, _knifeIcon, _diffPos[newDifficulty - 1][0], _diffPos[newDifficulty - 1][1]);
 	if (cursor) {
 		updateCursor();
+	}
+}
+
+void GameMaddog2::adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty) {
+	Common::Array<Scene *> *scenes = _sceneInfo->getScenes();
+	for (size_t i = 0; i < scenes->size(); i++) {
+		Scene *scene = (*scenes)[i];
+		if (!(scene->_diff & 0x01)) {
+			if (scene->_preop == "PAUSE" || scene->_preop == "PAUSFI" || scene->_preop == "PAUSPR") {
+				scene->_dataParam1 = (scene->_dataParam1 * _pauseDiffScale[newDifficulty - 1]) / _pauseDiffScale[oldDifficulty - 1];
+			}
+		}
+		for (size_t j = 0; j < scene->_zones.size(); j++) {
+			Zone *zone = scene->_zones[j];
+			for (size_t k = 0; k < zone->_rects.size(); k++) {
+				Rect *rect = zone->_rects[k];
+				if (!(scene->_diff & 0x02)) {
+					int16 cx = (rect->left + rect->right) / 2;
+					int16 cy = (rect->top + rect->bottom) / 2;
+					int32 w = (rect->width() * _rectDiffScale[newDifficulty - 1]) / _rectDiffScale[oldDifficulty - 1];
+					int32 h = (rect->height() * _rectDiffScale[newDifficulty - 1]) / _rectDiffScale[oldDifficulty - 1];
+					rect->center(cx, cy, w, h);
+				}
+			}
+		}
 	}
 }
 
@@ -703,6 +728,20 @@ bool GameMaddog2::loadState() {
 	delete inSaveFile;
 	changeDifficulty(_difficulty);
 	return true;
+}
+
+Zone *GameMaddog2::checkZones(Scene *scene, Rect *&hitRect, Common::Point *point) {
+	for (auto &zone : scene->_zones) {
+		uint32 startFrame = zone->_startFrame - _videoFrameSkip + 1;
+		uint32 endFrame = zone->_endFrame + _videoFrameSkip - 1;
+		if (_currentFrame >= startFrame && _currentFrame <= endFrame) {
+			hitRect = checkZone(zone, point);
+			if (hitRect != nullptr) {
+				return zone;
+			}
+		}
+	}
+	return nullptr;
 }
 
 // misc game functions

@@ -162,6 +162,7 @@ private:
 	void updateStat();
 	void changeDifficulty(uint8 newDifficulty);
 	void showDifficulty(uint8 newDifficulty, bool updateCursor);
+	void adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty);
 	void updateCursor();
 	void updateMouse();
 	void moveMouse();
@@ -169,6 +170,7 @@ private:
 	bool weaponDown();
 	bool saveState();
 	bool loadState();
+	Zone *checkZones(Scene *scene, Rect *&hitRect, Common::Point *point);
 
 	// misc game functions
 	void defaultBullethole(Common::Point *point);

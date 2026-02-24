@@ -80,7 +80,6 @@ private:
 	Graphics::Surface *_emptyIcon;
 	Graphics::Surface *_liveIcon;
 	Graphics::Surface *_deadIcon;
-	Graphics::Surface *_diffIcon;
 	Graphics::Surface *_bulletholeIcon;
 	Graphics::Surface *_playersIcon1;
 	Graphics::Surface *_playersIcon2;
@@ -123,7 +122,7 @@ private:
 	const uint8 _mainLevelMasks[5] = {2, 4, 8, 0x10, 0x80};
 	const uint8 _gunfightCountDown[15] = {5, 4, 3, 3, 3, 4, 3, 3, 2, 1, 3, 2, 2, 2, 1};
 
-	// const uint16 _firstSceneInScenario[4] = {4, 0x36, 0x36, 0x66};
+	// const uint16 _firstSceneInScenario[4] = {0x04, 0x36, 0x36, 0x66};
 	const uint16 _moneyScenes[4] = {0x017D, 0x013C, 0xC3, 0x69};
 	const uint16 _gunfightScenarios[18] = {0x0116, 0x0118, 0x011B, 0x011D, 0x011F, 0x0121, 0x0123, 0x0125, 0x0127,
 										   0x0129, 0x012B, 0x012D, 0x012F, 0x0131, 0x0133, 0x0135, 0x0137, 0x0139};
@@ -133,17 +132,19 @@ private:
 	const uint16 _allPlayersDead = 0x108;
 
 	// gamestate
-	uint8 _difficulty = 1;
+	uint8 _difficulty = 0;
 	uint8 _oldDifficulty = 1;
-	bool _holster = false;
-	int8 _lives = 0;
-	int8 _oldLives = 0;
-	int32 _score = 0;
-	int32 _oldScore = -1;
-	uint16 _shots = 0;
-	uint8 _oldShots = 0;
+	uint32 _lastShotTime = 0;
+	int8 _lives[2] = {0, 0};
+	int8 _oldLives[2] = {0, 0};
+	int32 _score[2] = {0, 0};
+	int32 _oldScore[2] = {-1, -1};
+	uint32 _pointsSinceLastBonus[2] = {0, 0};
+	uint16 _shots[2] = {0, 0};
+	uint8 _oldShots[2] = {0, 0};
 	uint8 _whichGun = 0;
 	uint8 _oldWhichGun = 0xFF;
+	// TODO verify, whichGun for player2?
 
 	uint16 _restartScene = 0;
 	uint8 _numPlayers = 1;
@@ -191,8 +192,6 @@ private:
 	uint32 _firstDrawFrame = 0;
 	uint8 _count = 0;
 
-	uint8 _unk_2ADA6 = 0;
-
 	Common::String _subScene;
 
 	// base functions
@@ -207,6 +206,8 @@ private:
 	bool weaponDown();
 	bool saveState();
 	bool loadState();
+	Zone *checkZones(Scene *scene, Rect *&hitRect, Common::Point *point);
+	Rect *checkZone(Zone *zone, Common::Point *point);
 
 	// misc game functions
 	void setNextScene(uint16 sceneId);
@@ -231,9 +232,6 @@ private:
 	void rectLoad(Rect *rect);
 	void rectContinue(Rect *rect);
 	void rectStart(Rect *rect);
-	void rectEasy(Rect *rect);
-	void rectAverage(Rect *rect);
-	void rectHard(Rect *rect);
 	void rectExit(Rect *rect);
 	void rectTogglePlayers(Rect *rect);
 	void rectHitIconJug(Rect *rect);
@@ -299,6 +297,9 @@ private:
 
 	// Script functions: ScnScr
 	void sceneDefaultScore(Scene *scene);
+
+	// debug methods
+	void debug_drawZoneRects();
 };
 
 class DebuggerBountyHunter : public GUI::Debugger {

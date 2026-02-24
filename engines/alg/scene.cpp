@@ -248,37 +248,37 @@ void SceneInfo::parseZone(const Common::String &zoneName, uint32 startFrame, uin
 void SceneInfo::addZonesToScenes() {
 	for (auto &scene : _scenes) {
 		if (!scene->_zonesStart.empty()) {
-			Zone *zone = findZone(scene->_zonesStart);
-			scene->_zones.push_back(zone);
-			while (!zone->_next.empty()) {
-				zone = findZone(zone->_next);
-				if (zone == nullptr) {
-					break;
+			Zone *zone = nullptr;
+			do {
+				Zone *found = findZone(scene->_zonesStart);
+				if (zone) {
+					zone = found->clone();
+					zone->_difficulty = 0;
+					scene->_zones.push_back(zone);
 				}
-				scene->_zones.push_back(zone);
-			}
+			} while (zone && !zone->_next.empty());
 		}
 		if (!scene->_zonesStart2.empty() && scene->_zonesStart2 != scene->_zonesStart) {
-			Zone *zone = findZone(scene->_zonesStart2);
-			scene->_zones.push_back(zone);
-			while (!zone->_next.empty()) {
-				zone = findZone(zone->_next);
-				if (zone == nullptr) {
-					break;
+			Zone *zone = nullptr;
+			do {
+				Zone *found = findZone(scene->_zonesStart);
+				if (zone) {
+					zone = found->clone();
+					zone->_difficulty = 1;
+					scene->_zones.push_back(zone);
 				}
-				scene->_zones.push_back(zone);
-			}
+			} while (zone && !zone->_next.empty());
 		}
 		if (!scene->_zonesStart3.empty() && scene->_zonesStart3 != scene->_zonesStart2) {
-			Zone *zone = findZone(scene->_zonesStart3);
-			scene->_zones.push_back(zone);
-			while (!zone->_next.empty()) {
-				zone = findZone(zone->_next);
-				if (zone == nullptr) {
-					break;
+			Zone *zone = nullptr;
+			do {
+				Zone *found = findZone(scene->_zonesStart);
+				if (zone) {
+					zone = found->clone();
+					zone->_difficulty = 2;
+					scene->_zones.push_back(zone);
 				}
-				scene->_zones.push_back(zone);
-			}
+			} while (zone && !zone->_next.empty());
 		}
 	}
 }
@@ -355,6 +355,12 @@ Scene::Scene(const Common::String &name, uint32 startFrame, uint32 endFrame) {
 	_difficultyMod = 0;
 }
 
+Scene::~Scene() {
+	for (auto zone : _zones) {
+		delete zone;
+	}
+}
+
 Zone::Zone(const Common::String &name, const Common::String &ptrfb) {
 	_name = name;
 	_ptrfb = ptrfb;
@@ -372,7 +378,7 @@ Zone::~Zone() {
 	}
 }
 
-void Zone::addRect(int16 left, int16 top, int16 right, int16 bottom, const Common::String &scene, uint32 score, const Common::String &rectHit, const Common::String &unknown) {
+void Zone::addRect(int16 left, int16 top, int16 right, int16 bottom, const Common::String scene, uint32 score, const Common::String rectHit, const Common::String unknown) {
 	Rect *rect = new Rect();
 	rect->left = left;
 	rect->top = top;
@@ -383,6 +389,49 @@ void Zone::addRect(int16 left, int16 top, int16 right, int16 bottom, const Commo
 	rect->_rectHit = rectHit;
 	rect->_unknown = unknown;
 	_rects.push_back(rect);
+}
+
+Zone *Zone::clone() {
+	Zone *clone = new Zone(_name, _startFrame, _endFrame);
+	clone->_ptrfb = _ptrfb;
+	clone->_next = _next;
+	clone->_rects = _rects;
+	return clone;
+}
+
+void Rect::center(int16 cx, int16 cy, int16 w, int16 h) {
+	right = cx + (w / 2);
+	left = cx - (w / 2);
+	top = cy - (h / 2);
+	bottom = cy + (h / 2);
+}
+
+Common::Rect Rect::getInterpolatedRect(uint32 startFrame, uint32 endFrame, uint32 currentFrame) {
+	if (_isMoving && currentFrame >= startFrame && currentFrame < endFrame) {
+		Rect interpolated;
+		uint32 totalFrames = endFrame - startFrame;
+		uint32 relativeFrame = currentFrame - startFrame;
+		double percentage = relativeFrame * 100.0f / totalFrames;
+		interpolated.top = top + ((_dest.top - top) / 100.0f * percentage);
+		interpolated.left = left + ((_dest.left - left) / 100.0f * percentage);
+		interpolated.bottom = bottom + ((_dest.bottom - bottom) / 100.0f * percentage);
+		interpolated.right = right + ((_dest.right - right) / 100.0f * percentage);
+		return interpolated;
+	} else if (_isMoving && currentFrame >= endFrame) {
+		Rect finished;
+		finished.top = _dest.top;
+		finished.left = _dest.left;
+		finished.bottom = _dest.bottom;
+		finished.right = _dest.right;
+		return finished;
+	} else {
+		Rect normal;
+		normal.top = top;
+		normal.left = left;
+		normal.bottom = bottom;
+		normal.right = right;
+		return normal;
+	}
 }
 
 } // End of namespace Alg

@@ -159,6 +159,7 @@ private:
 	bool weaponDown();
 	bool saveState();
 	bool loadState();
+	Zone *checkZones(Scene *scene, Rect *&hitRect, Common::Point *point);
 
 	// misc game functions
 	void displayShotFiredImage(Common::Point *point);

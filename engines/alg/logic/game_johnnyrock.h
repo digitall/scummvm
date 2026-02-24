@@ -191,6 +191,7 @@ private:
 	void displayScore();
 	void showDifficulty(uint8 newDifficulty, bool updateCursor);
 	void changeDifficulty(uint8 newDifficulty);
+	void adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty);
 	void updateCursor();
 	void updateMouse();
 	void moveMouse();
@@ -198,6 +199,7 @@ private:
 	bool saveState();
 	bool loadState();
 	void doMoneySound();
+	Zone *checkZones(Scene *scene, Rect *&hitRect, Common::Point *point);
 
 	// misc game functions
 	Common::String numToScene(int n);

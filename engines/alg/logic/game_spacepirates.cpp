@@ -384,7 +384,7 @@ Common::Error GameSpacePirates::run() {
 						displayShotFiredImage(&firedCoords);
 						playSound(_shotSound);
 						Rect *hitRect = nullptr;
-						Zone *hitSceneZone = checkZonesV2(scene, hitRect, &firedCoords, _difficulty);
+						Zone *hitSceneZone = checkZones(scene, hitRect, &firedCoords);
 						if (hitSceneZone != nullptr) {
 							callScriptFunctionRectHit(hitRect->_rectHit, hitRect);
 						} else {
@@ -761,6 +761,20 @@ bool GameSpacePirates::loadState() {
 		_curScene = "scene110";
 	}
 	return true;
+}
+
+Zone *GameSpacePirates::checkZones(Scene *scene, Rect *&hitRect, Common::Point *point) {
+	for (auto &zone : scene->_zones) {
+		uint32 startFrame = zone->_startFrame - (_videoFrameSkip + 1) + ((_difficulty - 1) * _videoFrameSkip);
+		uint32 endFrame = zone->_endFrame + (_videoFrameSkip - 1) - ((_difficulty - 1) * _videoFrameSkip);
+		if (_currentFrame >= startFrame && _currentFrame <= endFrame) {
+			hitRect = checkZone(zone, point);
+			if (hitRect != nullptr) {
+				return zone;
+			}
+		}
+	}
+	return nullptr;
 }
 
 // misc game functions

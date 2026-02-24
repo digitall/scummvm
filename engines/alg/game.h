@@ -84,10 +84,7 @@ protected:
 	uint32 getMsTime();
 	bool fired(Common::Point *point);
 	Rect *checkZone(Zone *zone, Common::Point *point);
-	Zone *checkZonesV1(Scene *scene, Rect *&hitRect, Common::Point *point);
-	Zone *checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point, uint8 difficulty);
 	uint32 getFrame(Scene *scene);
-	void adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty);
 	int8 skipToNewScene(Scene *scene);
 	void debug_drawZoneRects();
 

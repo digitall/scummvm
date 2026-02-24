@@ -199,59 +199,6 @@ Rect *Game::checkZone(Zone *zone, Common::Point *point) {
 	return nullptr;
 }
 
-// This is used by earlier games
-Zone *Game::checkZonesV1(Scene *scene, Rect *&hitRect, Common::Point *point) {
-	for (auto &zone : scene->_zones) {
-		uint32 startFrame = zone->_startFrame - _videoFrameSkip + 1;
-		uint32 endFrame = zone->_endFrame + _videoFrameSkip - 1;
-		if (_currentFrame >= startFrame && _currentFrame <= endFrame) {
-			hitRect = checkZone(zone, point);
-			if (hitRect != nullptr) {
-				return zone;
-			}
-		}
-	}
-	return nullptr;
-}
-
-// This is used by later games
-Zone *Game::checkZonesV2(Scene *scene, Rect *&hitRect, Common::Point *point, uint8 difficulty) {
-	for (auto &zone : scene->_zones) {
-		uint32 startFrame = zone->_startFrame - (_videoFrameSkip + 1) + ((difficulty - 1) * _videoFrameSkip);
-		uint32 endFrame = zone->_endFrame + (_videoFrameSkip - 1) - ((difficulty - 1) * _videoFrameSkip);
-		if (_currentFrame >= startFrame && _currentFrame <= endFrame) {
-			hitRect = checkZone(zone, point);
-			if (hitRect != nullptr) {
-				return zone;
-			}
-		}
-	}
-	return nullptr;
-}
-
-// only used by earlier games
-void Game::adjustDifficulty(uint8 newDifficulty, uint8 oldDifficulty) {
-	Common::Array<Scene *> *scenes = _sceneInfo->getScenes();
-	for (const auto &scene : *scenes) {
-		if (!(scene->_diff & 0x01)) {
-			if (scene->_preop == "PAUSE" || scene->_preop == "PAUSFI" || scene->_preop == "PAUSPR") {
-				scene->_dataParam1 = (scene->_dataParam1 * _pauseDiffScale[newDifficulty - 1]) / _pauseDiffScale[oldDifficulty - 1];
-			}
-		}
-		for (const auto &zone : scene->_zones) {
-			for (const auto &rect : zone->_rects) {
-				if (!(scene->_diff & 0x02)) {
-					int16 cx = (rect->left + rect->right) / 2;
-					int16 cy = (rect->top + rect->bottom) / 2;
-					int32 w = (rect->width() * _rectDiffScale[newDifficulty - 1]) / _rectDiffScale[oldDifficulty - 1];
-					int32 h = (rect->height() * _rectDiffScale[newDifficulty - 1]) / _rectDiffScale[oldDifficulty - 1];
-					rect->center(cx, cy, w, h);
-				}
-			}
-		}
-	}
-}
-
 uint32 Game::getFrame(Scene *scene) {
 	if (_videoDecoder->getCurrentFrame() == 0) {
 		return scene->_startFrame;
@@ -411,10 +358,14 @@ void Game::debug_drawZoneRects() {
 			Scene *targetScene = _sceneInfo->findScene(_curScene);
 			for (auto &zone : targetScene->_zones) {
 				for (auto rect : zone->_rects) {
-					_screen->drawLine(rect->left, rect->top, rect->right, rect->top, 1);
-					_screen->drawLine(rect->left, rect->top, rect->left, rect->bottom, 1);
-					_screen->drawLine(rect->right, rect->bottom, rect->right, rect->top, 1);
-					_screen->drawLine(rect->right, rect->bottom, rect->left, rect->bottom, 1);
+					// only draw frames that appear soon or are current
+					if (_currentFrame + 30 >= zone->_startFrame && _currentFrame <= zone->_endFrame) {
+						Common::Rect interpolated = rect->getInterpolatedRect(zone->_startFrame, zone->_endFrame, _currentFrame);
+						_screen->drawLine(interpolated.left, interpolated.top, interpolated.right, interpolated.top, 1);
+						_screen->drawLine(interpolated.left, interpolated.top, interpolated.left, interpolated.bottom, 1);
+						_screen->drawLine(interpolated.right, interpolated.bottom, interpolated.right, interpolated.top, 1);
+						_screen->drawLine(interpolated.right, interpolated.bottom, interpolated.left, interpolated.bottom, 1);
+					}
 				}
 			}
 		}
