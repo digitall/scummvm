@@ -6,6 +6,7 @@ Umfangreichere Informationen über die Änderungen des aktuellen Codes findest D
  Allgemein:
    - Verbesserte PC-Speaker-Emulation.
    - Unterstützung für Mehrfach-Auswahl in der Spiele-Liste im ScummVM-Launcher hinzugefügt.
+   - ImGui-Bibliothek auf Version 1.92.6-docker aktualisiert.
 
  Bagel:
    - Verhalten der Enter-/Escape-Taste im Raten-Dialog in The Guessing Game korrigiert.
@@ -14,6 +15,7 @@ Umfangreichere Informationen über die Änderungen des aktuellen Codes findest D
    - Fehlerhafte Evolutions-Logik in Game of Life korrigiert.
    - Absturz beim Betreten der Brettspiel-Geschäfte korrigiert.
    - Absturz beim Ausblenden des Spinners für den Beginn einer Brettspielrunde korrigiert.
+   - Laufende Sprachausgabe wird jetzt korrekt beendet, wenn ein Mini-Spiel verlassen wird.
 
  M4:
    - Musik-Unterstützung in Ripley hinzugefügt.
