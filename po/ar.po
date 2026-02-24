@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: ScummVM 2.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-23 14:24+0000\n"
-"PO-Revision-Date: 2023-03-26 11:16+0000\n"
-"Last-Translator: Malek Bellasfar <bellasfarmalek450@gmail.com>\n"
+"PO-Revision-Date: 2026-02-24 22:26+0000\n"
+"Last-Translator: Mohamed Shaaban <mohmedbashamedo@hotmail.com>\n"
 "Language-Team: Arabic <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ar/>\n"
 "Language: ar\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Weblate 4.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "X-Language-name: Arabic\n"
 
 #: audio/mac_plugin.cpp:30
@@ -237,10 +237,8 @@ msgid "Quick Mode: Success"
 msgstr ""
 
 #: gui/cloudconnectionwizard.cpp:321 gui/cloudconnectionwizard.cpp:435
-#, fuzzy
-#| msgid "Connect your cloud storage account"
 msgid "Your cloud storage has been connected!"
-msgstr "قم بتوصيل حساب التخزين السحابي الخاص بك"
+msgstr "تم ربط مساحة التخزين السحابي الخاصة بك"
 
 #: gui/cloudconnectionwizard.cpp:322 gui/cloudconnectionwizard.cpp:436
 msgid "Finish"
@@ -412,10 +410,8 @@ msgstr "ملف rs غير صحيح."
 
 #. I18N: error message displayed on 'Manual Mode: Failure' step of 'Cloud Connection Wizard', describing that storage connection process was interrupted
 #: gui/cloudconnectionwizard.cpp:593
-#, fuzzy
-#| msgid "Interact"
 msgid "Interrupted."
-msgstr "التفاعل"
+msgstr "حدث انقطاع خلال الاتصال."
 
 #: gui/cloudconnectionwizard.cpp:666
 msgid ""
@@ -432,10 +428,8 @@ msgstr ""
 
 #. I18N: JSON is a file format name
 #: gui/cloudconnectionwizard.cpp:689
-#, fuzzy
-#| msgid "Failed to upload the file!"
 msgid "Failed to load JSON file"
-msgstr "فشل تحميل الملف!"
+msgstr "فشل تحميل ملف JSON"
 
 #: gui/dlcsdialog.cpp:41
 msgid "Download Freeware Games and Demos"
@@ -900,16 +894,13 @@ msgid "This game includes add-ons, pick the part you want to be checked:"
 msgstr ""
 
 #: gui/integrity-dialog.cpp:258
-#, fuzzy
-#| msgid "Scan complete!"
 msgid "Calculation complete"
-msgstr "اكتمل المسح!"
+msgstr "اكتمل الحساب"
 
 #: gui/integrity-dialog.cpp:341
-#, fuzzy, c-format
-#| msgid "Downloaded %s %S / %s %S"
+#, c-format
 msgid "Calculated %s %S / %s %S"
-msgstr "تم تنزيل %S . %s/ %S. %s"
+msgstr "تم حساب %S . %s/ %S. %s"
 
 #: gui/integrity-dialog.cpp:668
 msgid ""
@@ -1638,12 +1629,13 @@ msgid "Icons per row:"
 msgstr "الرموز لكل صف:"
 
 #: gui/launcher.cpp:1836
-#, fuzzy, c-format
-#| msgid "Do you really want to remove this game configuration?"
+#, c-format
 msgid ""
 "Do you really want to remove the following %d game configuration(s)?\n"
 "\n"
-msgstr "هل تريد حقًا إزالة تكوين هذه اللعبة؟"
+msgstr ""
+"هل تريد حقًا إزالة %d من إعدادات اللعبة؟\n"
+"\n"
 
 #: gui/massadd.cpp:77 gui/massadd.cpp:80
 msgid "... progress ..."
