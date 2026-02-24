@@ -56,16 +56,16 @@ void SpriteMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		_asset = Common::SharedPtr<SpriteAsset>(new SpriteAsset);
 		break;
 
+	case kActorHeaderStartup:
+		_isVisible = static_cast<bool>(chunk.readTypedByte());
+		break;
+
 	case kActorHeaderFrameRate:
 		_frameRate = static_cast<uint32>(chunk.readTypedDouble());
 		break;
 
 	case kActorHeaderLoadType:
-		_loadType = chunk.readTypedByte();
-		break;
-
-	case kActorHeaderStartup:
-		_isVisible = static_cast<bool>(chunk.readTypedByte());
+		_decompressImmediately = static_cast<bool>(chunk.readTypedByte());
 		break;
 
 	case kActorHeaderSpriteChunkCount:

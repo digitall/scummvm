@@ -58,7 +58,6 @@ public:
 private:
 	static const uint CURSOR_CHAR_ID = 0x104;
 	bool _isEditable = false;
-	uint _loadType = 0;
 	Common::String _text;
 	uint _maxLength = 0;
 	FontActor *_fontActor = nullptr;

@@ -31,7 +31,8 @@ void TextActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		break;
 
 	case kActorHeaderLoadType:
-		_loadType = chunk.readTypedByte();
+		// The original doesn't seem to use this, so we'll throw it away.
+		chunk.readTypedByte();
 		break;
 
 	case kActorHeaderFontActorId: {

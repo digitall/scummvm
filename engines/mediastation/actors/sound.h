@@ -50,8 +50,7 @@ public:
 private:
 	ImtStreamFeed *_streamFeed = nullptr;
 	bool _isLoadedFromChunk = false;
-	uint _loadType = 0;
-	bool _hasOwnSubfile = false;
+	bool _discardAfterUse = false;
 	SoundPlayState _playState = kSoundStopped;
 	AudioSequence _sequence;
 

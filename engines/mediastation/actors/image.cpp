@@ -47,7 +47,7 @@ void ImageActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		break;
 
 	case kActorHeaderLoadType:
-		_loadType = chunk.readTypedByte();
+		_decompressImmediately = chunk.readTypedByte();
 		break;
 
 	case kActorHeaderX:

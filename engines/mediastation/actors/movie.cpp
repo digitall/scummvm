@@ -121,25 +121,19 @@ void StreamMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		break;
 	}
 
-	case kActorHeaderMovieLoadType:
-		_loadType = chunk.readTypedByte();
-		break;
-
 	case kActorHeaderChannelIdent:
 		_channelIdent = chunk.readTypedChannelIdent();
 		registerWithStreamManager();
 		break;
 
-	case kActorHeaderHasOwnSubfile: {
-		bool hasOwnSubfile = static_cast<bool>(chunk.readTypedByte());
-		if (!hasOwnSubfile) {
-			error("%s: StreamMovieActor doesn't have a subfile", __func__);
-		}
-		break;
-	}
 
 	case kActorHeaderStartup:
 		_isVisible = static_cast<bool>(chunk.readTypedByte());
+		break;
+
+	case kActorHeaderDiscardAfterUse:
+		// The original just reads this and throws it away.
+		chunk.readTypedByte();
 		break;
 
 	case kActorHeaderMovieAudioChannelIdent: {
@@ -148,6 +142,17 @@ void StreamMovieActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramT
 		_streamSound->registerWithStreamManager();
 		break;
 	}
+
+	case kActorHeaderCachingEnabled:
+		_shouldCache = static_cast<bool>(chunk.readTypedByte());
+		break;
+
+	case kActorHeaderInstallType:
+		// In the original, this controls behavior if the files are NOT installed. But since
+		// the "installation" is just copying from the CD-ROM, we can treat the game as always
+		// installed. So just throw away this value.
+		chunk.readTypedByte();
+		break;
 
 	case kActorHeaderMovieAnimationChannelIdent: {
 		ChannelIdent framesChannelIdent = chunk.readTypedChannelIdent();

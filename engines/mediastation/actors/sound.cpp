@@ -51,16 +51,25 @@ void SoundActor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 		registerWithStreamManager();
 		break;
 
-	case kActorHeaderHasOwnSubfile:
-		_hasOwnSubfile = static_cast<bool>(chunk.readTypedByte());
+	case kActorHeaderDiscardAfterUse:
+		_discardAfterUse = static_cast<bool>(chunk.readTypedByte());
 		break;
 
 	case kActorHeaderSoundInfo:
 		_sequence.readParameters(chunk);
 		break;
 
-	case kActorHeaderMovieLoadType:
-		_loadType = chunk.readTypedByte();
+	case kActorHeaderCachingEnabled:
+		// This controls some caching behavior in the original, but since that is not currently
+		// implemented here, just throw it away.
+		chunk.readTypedByte();
+		break;
+
+	case kActorHeaderInstallType:
+		// In the original, this controls behavior if the files are NOT installed. But since
+		// the "installation" is just copying from the CD-ROM, we can treat the game as always
+		// installed. So just throw away this value.
+		chunk.readTypedByte();
 		break;
 
 	default:

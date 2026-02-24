@@ -53,7 +53,7 @@ public:
 
 private:
 	Common::SharedPtr<ImageAsset> _asset;
-	uint _loadType = 0;
+	bool _decompressImmediately = false;
 	int _xOffset = 0;
 	int _yOffset = 0;
 	uint _actorReference = 0;

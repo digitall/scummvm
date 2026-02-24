@@ -147,7 +147,7 @@ private:
 	uint _chunkCount = 0;
 	double _frameRate = 0;
 
-	uint _loadType = 0;
+	bool _shouldCache = false;
 	bool _isPlaying = false;
 	bool _hasStill = false;
 

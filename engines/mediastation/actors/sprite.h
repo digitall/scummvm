@@ -81,7 +81,7 @@ private:
 	const uint DEFAULT_FORWARD_CLIP_ID = 0x4B0;
 	const uint DEFAULT_BACKWARD_CLIP_ID = 0x4B1;
 
-	uint _loadType = 0;
+	bool _decompressImmediately = false;
 	uint _frameRate = 0;
 	uint _actorReference = 0;
 	Common::HashMap<uint, SpriteMovieClip> _clips;
