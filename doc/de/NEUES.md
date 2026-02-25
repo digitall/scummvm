@@ -7,6 +7,7 @@ Umfangreichere Informationen über die Änderungen des aktuellen Codes findest D
    - Verbesserte PC-Speaker-Emulation.
    - Unterstützung für Mehrfach-Auswahl in der Spiele-Liste im ScummVM-Launcher hinzugefügt.
    - ImGui-Bibliothek auf Version 1.92.6-docker aktualisiert.
+   - Intelligente Suche in der Icon-Ansicht im ScummVM-Launcher korrigiert.
 
  Bagel:
    - Verhalten der Enter-/Escape-Taste im Raten-Dialog in The Guessing Game korrigiert.
