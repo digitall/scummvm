@@ -24,10 +24,12 @@
 #include "mads/compression.h"
 #include "mads/mads.h"
 #include "mads/audio.h"
+#include "mads/nebular/nebular_scenes.h"
+#ifdef ENABLE_MADSV2
 #include "mads/dragonsphere/dragonsphere_scenes.h"
 #include "mads/forest/forest_scenes.h"
-#include "mads/nebular/nebular_scenes.h"
 #include "mads/phantom/phantom_scenes.h"
+#endif
 
 namespace MADS {
 

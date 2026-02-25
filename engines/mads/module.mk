@@ -1,21 +1,6 @@
 MODULE := engines/mads
 
 MODULE_OBJS := \
-	dragonsphere/game_dragonsphere.o \
-	dragonsphere/dragonsphere_scenes.o \
-	dragonsphere/dragonsphere_scenes1.o \
-	dragonsphere/globals_dragonsphere.o \
-	forest/game_forest.o \
-	forest/forest_scenes.o \
-	forest/globals_forest.o \
-	phantom/game_phantom.o \
-	phantom/globals_phantom.o \
-	phantom/phantom_scenes.o \
-	phantom/phantom_scenes1.o \
-	phantom/phantom_scenes2.o \
-	phantom/phantom_scenes3.o \
-	phantom/phantom_scenes4.o \
-	phantom/phantom_scenes5.o \
 	nebular/dialogs_nebular.o \
 	nebular/game_nebular.o \
 	nebular/globals_nebular.o \
@@ -64,6 +49,25 @@ MODULE_OBJS := \
 	sprites.o \
 	staticres.o \
 	user_interface.o
+
+ifdef ENABLE_MADSV2
+MODULE_OBJS += \
+	dragonsphere/game_dragonsphere.o \
+	dragonsphere/dragonsphere_scenes.o \
+	dragonsphere/dragonsphere_scenes1.o \
+	dragonsphere/globals_dragonsphere.o \
+	forest/game_forest.o \
+	forest/forest_scenes.o \
+	forest/globals_forest.o \
+	phantom/game_phantom.o \
+	phantom/globals_phantom.o \
+	phantom/phantom_scenes.o \
+	phantom/phantom_scenes1.o \
+	phantom/phantom_scenes2.o \
+	phantom/phantom_scenes3.o \
+	phantom/phantom_scenes4.o \
+	phantom/phantom_scenes5.o
+endif
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_MADS), DYNAMIC_PLUGIN)
