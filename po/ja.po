@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-25 09:11+0000\n"
+"POT-Creation-Date: 2026-02-25 17:10+0000\n"
 "PO-Revision-Date: 2026-02-06 00:22+0000\n"
 "Last-Translator: VAN-Gluon <van.gluonp@gmail.com>\n"
 "Language-Team: Japanese <https://translations.scummvm.org/projects/scummvm/"
@@ -110,7 +110,7 @@ msgstr "上へ"
 #: gui/editrecorddialog.cpp:66 gui/integrity-dialog.cpp:122
 #: gui/integrity-dialog.cpp:253 gui/filebrowser-dialog.cpp:68
 #: gui/fluidsynth-dialog.cpp:153 gui/massadd.cpp:93 gui/options.cpp:2416
-#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:97
+#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:96
 #: gui/recorderdialog.cpp:73 gui/recorderdialog.cpp:212
 #: gui/remotebrowser.cpp:59 gui/saveload-dialog.cpp:64
 #: gui/saveload-dialog.cpp:456 gui/saveload-dialog.cpp:540
@@ -2717,23 +2717,35 @@ msgstr "*  数字"
 msgid "*  Abc"
 msgstr "*  Abc"
 
-#: gui/printing-dialog.cpp:61
+#: gui/printing-dialog.cpp:54
 msgid "Print"
 msgstr ""
 
-#: gui/printing-dialog.cpp:62
+#: gui/printing-dialog.cpp:56
 #, fuzzy
 #| msgid "Save Image"
 msgid "Save as image"
 msgstr "画像を保存"
 
-#: gui/printing-dialog.cpp:64
+#: gui/printing-dialog.cpp:58
+#, fuzzy
+#| msgid "First page"
+msgid "Fit to page"
+msgstr "最初のページ"
+
+#: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
+#: engines/twine/metaengine.cpp:312
+msgid "Center"
+msgstr "中央"
+
+#: gui/printing-dialog.cpp:63
 #, fuzzy
 #| msgid "Pointer Speed:"
 msgid "Printer:"
 msgstr "ポインターの速度："
 
-#: gui/printing-dialog.cpp:87
+#: gui/printing-dialog.cpp:88
 #, fuzzy
 #| msgid "Next action"
 msgid "Orientation:"
@@ -4193,12 +4205,6 @@ msgstr "新規フォルダー選択"
 #: backends/graphics/sdl/sdl-graphics.cpp:515 engines/scumm/help.cpp:103
 msgid "Toggle aspect ratio correction"
 msgstr "縦横比修正の切替"
-
-#: backends/graphics/opengl/opengl-graphics.cpp:315
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
-#: engines/twine/metaengine.cpp:312
-msgid "Center"
-msgstr "中央"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:316
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:128
@@ -9471,12 +9477,12 @@ msgstr "正しくないrsファイルです。"
 msgid "Save file created by different version."
 msgstr "異なるバージョンで作成されたセーブファイルです。"
 
-#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:284
+#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:285
 #: engines/gob/inter_v2.cpp:1512 engines/tinsel/saveload.cpp:590
 msgid "Failed to load saved game from file."
 msgstr "セーブファイルのロードに失敗しました。"
 
-#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:412
+#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:426
 #: engines/gob/inter_v2.cpp:1591 engines/tinsel/saveload.cpp:603
 msgid "Failed to save game to file."
 msgstr "セーブファイルの出力に失敗しました。"

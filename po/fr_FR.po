@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-25 09:11+0000\n"
+"POT-Creation-Date: 2026-02-25 17:10+0000\n"
 "PO-Revision-Date: 2026-02-23 19:51+0000\n"
 "Last-Translator: Purple T <ZEONK@hotmail.com>\n"
 "Language-Team: French <https://translations.scummvm.org/projects/scummvm/"
@@ -110,7 +110,7 @@ msgstr "Rép. préc."
 #: gui/editrecorddialog.cpp:66 gui/integrity-dialog.cpp:122
 #: gui/integrity-dialog.cpp:253 gui/filebrowser-dialog.cpp:68
 #: gui/fluidsynth-dialog.cpp:153 gui/massadd.cpp:93 gui/options.cpp:2416
-#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:97
+#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:96
 #: gui/recorderdialog.cpp:73 gui/recorderdialog.cpp:212
 #: gui/remotebrowser.cpp:59 gui/saveload-dialog.cpp:64
 #: gui/saveload-dialog.cpp:456 gui/saveload-dialog.cpp:540
@@ -2839,19 +2839,31 @@ msgstr "*  123"
 msgid "*  Abc"
 msgstr "*  Abc"
 
-#: gui/printing-dialog.cpp:61
+#: gui/printing-dialog.cpp:54
 msgid "Print"
 msgstr "Imprimer"
 
-#: gui/printing-dialog.cpp:62
+#: gui/printing-dialog.cpp:56
 msgid "Save as image"
 msgstr "Enregistrer comme image"
 
-#: gui/printing-dialog.cpp:64
+#: gui/printing-dialog.cpp:58
+#, fuzzy
+#| msgid "First page"
+msgid "Fit to page"
+msgstr "Première page"
+
+#: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
+#: engines/twine/metaengine.cpp:312
+msgid "Center"
+msgstr "Centrer"
+
+#: gui/printing-dialog.cpp:63
 msgid "Printer:"
 msgstr "Imprimante :"
 
-#: gui/printing-dialog.cpp:87
+#: gui/printing-dialog.cpp:88
 msgid "Orientation:"
 msgstr "Orientation :"
 
@@ -4353,12 +4365,6 @@ msgstr "Choisir un nouveau dossier"
 #: backends/graphics/sdl/sdl-graphics.cpp:515 engines/scumm/help.cpp:103
 msgid "Toggle aspect ratio correction"
 msgstr "Act. / Désact. correction du rapport d'aspect"
-
-#: backends/graphics/opengl/opengl-graphics.cpp:315
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
-#: engines/twine/metaengine.cpp:312
-msgid "Center"
-msgstr "Centrer"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:316
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:128
@@ -9312,12 +9318,12 @@ msgstr "Fichier rs incorrect."
 msgid "Save file created by different version."
 msgstr "Fichier de sauvegarde créé par une version différente."
 
-#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:284
+#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:285
 #: engines/gob/inter_v2.cpp:1512 engines/tinsel/saveload.cpp:590
 msgid "Failed to load saved game from file."
 msgstr "Échec du chargement de la sauvegarde depuis un fichier."
 
-#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:412
+#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:426
 #: engines/gob/inter_v2.cpp:1591 engines/tinsel/saveload.cpp:603
 msgid "Failed to save game to file."
 msgstr "Échec de l'enregistrement de la sauvegarde vers un fichier."

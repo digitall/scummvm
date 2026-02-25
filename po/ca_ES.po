@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-25 09:11+0000\n"
+"POT-Creation-Date: 2026-02-25 17:10+0000\n"
 "PO-Revision-Date: 2026-02-17 04:22+0000\n"
 "Last-Translator: Xaviu <xaviu@xaviu.com>\n"
 "Language-Team: Catalan <https://translations.scummvm.org/projects/scummvm/"
@@ -110,7 +110,7 @@ msgstr "Amunt"
 #: gui/editrecorddialog.cpp:66 gui/integrity-dialog.cpp:122
 #: gui/integrity-dialog.cpp:253 gui/filebrowser-dialog.cpp:68
 #: gui/fluidsynth-dialog.cpp:153 gui/massadd.cpp:93 gui/options.cpp:2416
-#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:97
+#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:96
 #: gui/recorderdialog.cpp:73 gui/recorderdialog.cpp:212
 #: gui/remotebrowser.cpp:59 gui/saveload-dialog.cpp:64
 #: gui/saveload-dialog.cpp:456 gui/saveload-dialog.cpp:540
@@ -2732,19 +2732,31 @@ msgstr "*  Núm"
 msgid "*  Abc"
 msgstr "*  Abc"
 
-#: gui/printing-dialog.cpp:61
+#: gui/printing-dialog.cpp:54
 msgid "Print"
 msgstr ""
 
-#: gui/printing-dialog.cpp:62
+#: gui/printing-dialog.cpp:56
 msgid "Save as image"
 msgstr "Desa com a imatge"
 
-#: gui/printing-dialog.cpp:64
+#: gui/printing-dialog.cpp:58
+#, fuzzy
+#| msgid "First page"
+msgid "Fit to page"
+msgstr "Primera pàgina"
+
+#: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
+#: engines/twine/metaengine.cpp:312
+msgid "Center"
+msgstr "Centra"
+
+#: gui/printing-dialog.cpp:63
 msgid "Printer:"
 msgstr "Impressora:"
 
-#: gui/printing-dialog.cpp:87
+#: gui/printing-dialog.cpp:88
 msgid "Orientation:"
 msgstr "Orientació:"
 
@@ -4197,12 +4209,6 @@ msgstr "Trieu una carpeta nova"
 #: backends/graphics/sdl/sdl-graphics.cpp:515 engines/scumm/help.cpp:103
 msgid "Toggle aspect ratio correction"
 msgstr "Commuta la correcció de la relació d'aspecte"
-
-#: backends/graphics/opengl/opengl-graphics.cpp:315
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
-#: engines/twine/metaengine.cpp:312
-msgid "Center"
-msgstr "Centra"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:316
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:128
@@ -8858,12 +8864,12 @@ msgstr "Fitxer rs incorrecte."
 msgid "Save file created by different version."
 msgstr "El fitxer de la partida desada va ser creat per una versió diferent."
 
-#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:284
+#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:285
 #: engines/gob/inter_v2.cpp:1512 engines/tinsel/saveload.cpp:590
 msgid "Failed to load saved game from file."
 msgstr "No s'ha pogut carregar la partida desada al fitxer."
 
-#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:412
+#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:426
 #: engines/gob/inter_v2.cpp:1591 engines/tinsel/saveload.cpp:603
 msgid "Failed to save game to file."
 msgstr "No s'ha pogut desar la partida al fitxer."

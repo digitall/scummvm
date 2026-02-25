@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-25 09:11+0000\n"
+"POT-Creation-Date: 2026-02-25 17:10+0000\n"
 "PO-Revision-Date: 2026-02-11 14:23+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Dutch <https://translations.scummvm.org/projects/scummvm/"
@@ -111,7 +111,7 @@ msgstr "Ga omhoog"
 #: gui/editrecorddialog.cpp:66 gui/integrity-dialog.cpp:122
 #: gui/integrity-dialog.cpp:253 gui/filebrowser-dialog.cpp:68
 #: gui/fluidsynth-dialog.cpp:153 gui/massadd.cpp:93 gui/options.cpp:2416
-#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:97
+#: gui/predictivedialog.cpp:68 gui/printing-dialog.cpp:96
 #: gui/recorderdialog.cpp:73 gui/recorderdialog.cpp:212
 #: gui/remotebrowser.cpp:59 gui/saveload-dialog.cpp:64
 #: gui/saveload-dialog.cpp:456 gui/saveload-dialog.cpp:540
@@ -2785,23 +2785,35 @@ msgstr "*  Num"
 msgid "*  Abc"
 msgstr "*  Abc"
 
-#: gui/printing-dialog.cpp:61
+#: gui/printing-dialog.cpp:54
 msgid "Print"
 msgstr ""
 
-#: gui/printing-dialog.cpp:62
+#: gui/printing-dialog.cpp:56
 #, fuzzy
 #| msgid "Save Image"
 msgid "Save as image"
 msgstr "Plaatje Opslaan"
 
-#: gui/printing-dialog.cpp:64
+#: gui/printing-dialog.cpp:58
+#, fuzzy
+#| msgid "First page"
+msgid "Fit to page"
+msgstr "Eerste pagina"
+
+#: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
+#: engines/twine/metaengine.cpp:312
+msgid "Center"
+msgstr "Centreer"
+
+#: gui/printing-dialog.cpp:63
 #, fuzzy
 #| msgid "Pointer Speed:"
 msgid "Printer:"
 msgstr "Aanwijzer Snelheid:"
 
-#: gui/printing-dialog.cpp:87
+#: gui/printing-dialog.cpp:88
 #, fuzzy
 #| msgid "Next action"
 msgid "Orientation:"
@@ -4281,12 +4293,6 @@ msgstr "Selecteer een nieuwe map"
 #: backends/graphics/sdl/sdl-graphics.cpp:515 engines/scumm/help.cpp:103
 msgid "Toggle aspect ratio correction"
 msgstr "Pixelverhoudingcorrectie aan-/uitzetten"
-
-#: backends/graphics/opengl/opengl-graphics.cpp:315
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
-#: engines/twine/metaengine.cpp:312
-msgid "Center"
-msgstr "Centreer"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:316
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:128
@@ -9250,12 +9256,12 @@ msgstr "Ongeldig rs bestand."
 msgid "Save file created by different version."
 msgstr "Opgeslagen spel gecreëerd door andere versie."
 
-#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:284
+#: engines/gob/inter_geisha.cpp:237 engines/gob/inter_playtoons.cpp:285
 #: engines/gob/inter_v2.cpp:1512 engines/tinsel/saveload.cpp:590
 msgid "Failed to load saved game from file."
 msgstr "Laden van opgeslagen spel mislukt."
 
-#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:412
+#: engines/gob/inter_geisha.cpp:268 engines/gob/inter_playtoons.cpp:426
 #: engines/gob/inter_v2.cpp:1591 engines/tinsel/saveload.cpp:603
 msgid "Failed to save game to file."
 msgstr "Opslaan van spel in bestand is mislukt."
