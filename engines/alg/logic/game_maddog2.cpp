@@ -69,6 +69,14 @@ GameMaddog2::~GameMaddog2() {
 		_bulletholeIcon->free();
 		delete _bulletholeIcon;
 	}
+	for (auto item : *_gun) {
+		item->free();
+		delete item;
+	}
+	for (auto item : *_numbers) {
+		item->free();
+		delete item;
+	}
 	delete _saveSound;
 	delete _loadSound;
 	delete _skullSound;

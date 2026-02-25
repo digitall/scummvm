@@ -52,18 +52,6 @@ Game::~Game() {
 		_screen->free();
 		delete _screen;
 	}
-	for (auto item : *_gun) {
-		if (item) {
-			item->free();
-			delete item;
-		}
-	}
-	for (auto item : *_numbers) {
-		if (item) {
-			item->free();
-			delete item;
-		}
-	}
 }
 
 void Game::init() {
@@ -189,10 +177,7 @@ bool Game::fired(Common::Point *point) {
 
 Rect *Game::checkZone(Zone *zone, Common::Point *point) {
 	for (auto &rect : zone->_rects) {
-		if (point->x >= rect->left &&
-			point->x <= rect->right &&
-			point->y >= rect->top &&
-			point->y <= rect->bottom) {
+		if (rect->contains(*point)) {
 			return rect;
 		}
 	}

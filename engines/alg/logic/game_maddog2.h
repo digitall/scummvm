@@ -88,6 +88,8 @@ private:
 	Graphics::Surface *_drawIcon;
 	Graphics::Surface *_knifeIcon;
 	Graphics::Surface *_bulletholeIcon;
+	Common::Array<Graphics::Surface *> *_gun;
+	Common::Array<Graphics::Surface *> *_numbers;
 
 	// sounds
 	Audio::SeekableAudioStream *_saveSound = nullptr;

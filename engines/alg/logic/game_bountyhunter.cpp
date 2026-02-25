@@ -24,6 +24,7 @@
 #include "common/savefile.h"
 #include "common/system.h"
 
+#include "graphics/paletteman.h"
 #include "graphics/cursorman.h"
 
 #include "alg/graphics.h"
@@ -44,6 +45,10 @@ GameBountyHunter::~GameBountyHunter() {
 		_emptyIcon->free();
 		delete _emptyIcon;
 	}
+	if (_shellIcon) {
+		_shellIcon->free();
+		delete _shellIcon;
+	}
 	if (_liveIcon) {
 		_liveIcon->free();
 		delete _liveIcon;
@@ -51,10 +56,6 @@ GameBountyHunter::~GameBountyHunter() {
 	if (_deadIcon) {
 		_deadIcon->free();
 		delete _deadIcon;
-	}
-	if (_bulletholeIcon) {
-		_bulletholeIcon->free();
-		delete _bulletholeIcon;
 	}
 	if (_playersIcon1) {
 		_playersIcon1->free();
@@ -76,11 +77,23 @@ GameBountyHunter::~GameBountyHunter() {
 		_textBlackBarIcon->free();
 		delete _textBlackBarIcon;
 	}
+	for (auto item : *_gun) {
+		item->free();
+		delete item;
+	}
+	for (auto item : *_numbers) {
+		item->free();
+		delete item;
+	}
 	for (auto item : *_bagsIcons) {
 		item->free();
 		delete item;
 	}
-	for (auto item : *_shotgun) {
+	for (auto item : *_bulletHoleIcon) {
+		item->free();
+		delete item;
+	}
+	for (auto item : *_shotgunHoleIcon) {
 		item->free();
 		delete item;
 	}
@@ -111,7 +124,7 @@ void GameBountyHunter::init() {
 	verifyScriptFunctions();
 
 	_menuZone = new Zone("MainMenu", "GLOBALHIT");
-	_menuZone->addRect(0x0C, 0xAA, 0x38, 0xC7, nullptr, 0, "SHOTMENU", "0");
+	_menuZone->addRect(0x0A, 0xAE, 0x3C, 0xC7, nullptr, 0, "SHOTMENU", "0");
 
 	_subMenuZone = new Zone("SubMenu", "GLOBALHIT");
 	_subMenuZone->addRect(0, 0, 0x78, 0x3C, nullptr, 0, "STARTMENU", "0");
@@ -129,16 +142,16 @@ void GameBountyHunter::init() {
 	_skullSound = loadSoundFile("skull.8b");
 
 	_gun = AlgGraphics::loadScreenCoordAniImage("bh_gun.ani", _palette);
-	_shotgun = AlgGraphics::loadScreenCoordAniImage("bh_buck.ani", _palette);
+	_bulletHoleIcon = AlgGraphics::loadScreenCoordAniImage("bh_hole.ani", _palette);
+	_shotgunHoleIcon = AlgGraphics::loadScreenCoordAniImage("bh_buck.ani", _palette);
 	_numbers = AlgGraphics::loadAniImage("bh_num.ani", _palette);
 	auto bullets = AlgGraphics::loadAniImage("bh_ammo.ani", _palette);
 	_shotIcon = (*bullets)[0];
 	_emptyIcon = (*bullets)[1];
+	_shellIcon = (*bullets)[2];
 	auto lives = AlgGraphics::loadAniImage("bh_life.ani", _palette);
 	_liveIcon = (*lives)[0];
 	_deadIcon = (*lives)[1];
-	auto hole = AlgGraphics::loadScreenCoordAniImage("bh_hole.ani", _palette);
-	_bulletholeIcon = (*hole)[0];
 	auto players = AlgGraphics::loadAniImage("bh_plyr.ani", _palette);
 	_playersIcon1 = (*players)[0];
 	_playersIcon2 = (*players)[1];
@@ -149,6 +162,9 @@ void GameBountyHunter::init() {
 	_bagsIcons = AlgGraphics::loadScreenCoordAniImage("bh_bags.ani", _palette);
 
 	_background = AlgGraphics::loadVgaBackground("bh_menu.vga", _palette);
+	AlgGraphics::drawImage(_background, _textScoreIcon, 0x78, 0xBF);
+	AlgGraphics::drawImage(_background, _textMenuIcon, 0x0C, 0xBF);
+	displayScores(0);
 	_screen->copyRectToSurface(_background->getPixels(), _background->pitch, 0, 0, _background->w, _background->h);
 
 	moveMouse();
@@ -365,7 +381,7 @@ void GameBountyHunter::callScriptFunctionScene(SceneFuncType type, Common::Strin
 
 Common::Error GameBountyHunter::run() {
 	init();
-	newGame();
+	startMyGame();
 	_numPlayers = 1;
 	_curScene = _startScene;
 	Common::String oldscene;
@@ -390,6 +406,11 @@ Common::Error GameBountyHunter::run() {
 			if (fired(&firedCoords)) {
 				if (_lastShotTime == 0) {
 					Rect *hitGlobalRect = checkZone(_menuZone, &firedCoords);
+					if (_bagActive && _bagRect.contains(firedCoords)) {
+						if (_iconCounter < 3) {
+							_iconCounter++;
+						}
+					}
 					if (hitGlobalRect != nullptr) {
 						callScriptFunctionRectHit(hitGlobalRect->_rectHit, hitGlobalRect);
 					} else {
@@ -399,15 +420,15 @@ Common::Error GameBountyHunter::run() {
 								_lastShotTime = getMsTime();
 							}
 							displayShotFiredImage(&firedCoords);
-							playSound(_shotSound); // TODO different sound for shotgun
+							if (_playerGun[_player] == 2) {
+								playSound(_shotgunSound);
+							} else {
+								playSound(_shotSound);
+							}
 							Rect *hitRect = nullptr;
 							Zone *hitSceneZone = checkZones(scene, hitRect, &firedCoords);
 							if (hitSceneZone != nullptr) {
 								callScriptFunctionRectHit(hitRect->_rectHit, hitRect);
-								if (_curScene == oldscene) {
-									// skip to new scene
-									callScriptFunctionScene(NXTSCN, scene->_nxtscn, scene);
-								}
 							}
 						} else {
 							playSound(_emptySound);
@@ -446,6 +467,7 @@ Common::Error GameBountyHunter::run() {
 			if (remainingMillis < 10) {
 				if (_videoDecoder->getCurrentFrame() > 0) {
 					_videoDecoder->getNextFrame();
+					moveCurrentBag();
 				}
 				remainingMillis = _nextFrameTime - getMsTime();
 				_nextFrameTime = getMsTime() + (remainingMillis > 0 ? remainingMillis : 0) + 100;
@@ -474,12 +496,54 @@ Common::Error GameBountyHunter::run() {
 	return Common::kNoError;
 }
 
-void GameBountyHunter::newGame() {
-	_playerLives[0] = _playerLives[1] = 3;
-	_playerShots[0] = _playerShots[1] = 6;
-	_playerGun[0] = _playerGun[1] = 1;
-	_playerScore[0] = _playerScore[1] = 0;
+void GameBountyHunter::updateScreen() {
+	_screen->copyRectToSurface(_background->getPixels(), _background->pitch, 0, 0, _background->w, _background->h);
+	if (!_inMenu) {
+		Graphics::Surface *frame = _videoDecoder->getVideoFrame();
+		_screen->copyRectToSurface(frame->getPixels(), frame->pitch, _videoPosX, _videoPosY, frame->w, frame->h);
+	}
+	debug_drawZoneRects();
+	displayCurrentBag();
+	if (_paletteDirty || _videoDecoder->isPaletteDirty()) {
+		g_system->getPaletteManager()->setPalette(_palette, 0, 256);
+		_paletteDirty = false;
+	}
+	g_system->copyRectToScreen(_screen->getPixels(), _screen->pitch, 0, 0, _screen->w, _screen->h);
+	g_system->updateScreen();
+}
+
+uint16 GameBountyHunter::startMyGame() {
+	uint16 startScene = 0;
+	if (_restartScene == 0) {
+		_playerGun[0] = _playerGun[1] = 1;
+		_playerShots[0] = _playerShots[1] = 6;
+		_playerLives[0] = _playerLives[1] = 3;
+		_playerScore[0] = _playerScore[1] = 0;
+		initGameStatus();
+		if (_vm->isDemo()) {
+			startScene = 69; // TODO fix
+		} else {
+			startScene = 69;
+		}
+	} else {
+		startScene = _restartScene;
+		_restartScene = 0;
+	}
+	return startScene;
+}
+
+void GameBountyHunter::initGameStatus() {
+	_currentLevel = 0;
+	_continuesUsed = 0;
+	_restartScene = 0;
+	_levelDoneMask = 0;
+	_numLevelsDone = 0;
+	_numSubLevelsDone = 0;
+	_difficulty = 0;
+
 	_currentSubLevelSceneId = 0x017B;
+	iconSetup();
+	iconReset(); // not in original!
 }
 
 void GameBountyHunter::doMenu() {
@@ -517,11 +581,8 @@ void GameBountyHunter::updateCursor() {
 void GameBountyHunter::updateMouse() {
 	if (_oldWhichGun != _whichGun) {
 		Graphics::Surface *cursor = (*_gun)[_whichGun];
-		if (_playerGun[0] == 2 && _whichGun < 2) {
-			cursor = (*_shotgun)[_whichGun];
-		}
-		uint16 hotspotX = (cursor->w / 2) + 8;
-		uint16 hotspotY = (cursor->h / 2) + 8;
+		uint16 hotspotX = (cursor->w / 2) + 7;
+		uint16 hotspotY = (cursor->h / 2) + 6;
 		if (debugChannelSet(1, Alg::kAlgDebugGraphics)) {
 			cursor->drawLine(0, hotspotY, cursor->w, hotspotY, 1);
 			cursor->drawLine(hotspotX, 0, hotspotX, cursor->h, 1);
@@ -550,68 +611,75 @@ void GameBountyHunter::moveMouse() {
 			g_system->warpMouse(x, y);
 		}
 		*/
-		if (_mousePos.y >= 0xA3 && _mousePos.x >= 0xF0) {
-			_whichGun = 1; // holster
-		} else if (_mousePos.y >= 0xA3 && _mousePos.x <= 0x43) {
+		if (_mousePos.y >= 0xAE && _mousePos.x >= 0xF0) {
+			_whichGun = 4; // holster
+		} else if (_mousePos.y >= 0xAE && _mousePos.x <= 0x3C) {
 			_whichGun = 2; // menu button cursor
 		} else {
-			_whichGun = 0; // regular gun
+			_whichGun = 0; // player 1 gun cursor is 0, player 2 is 1
 		}
 	}
 	updateMouse();
 }
 
 void GameBountyHunter::displayLivesLeft(uint8 player) {
-	if (_lives[player] == _oldLives[player]) {
+	if (_playerLives[player] == _oldLives[player]) {
 		return;
 	}
+    if (_playerLives[player] < 0) {
+        _playerLives[player] = 0;
+    }
 	int posX = player == 0 ? 0xD7 : 0x50;
 	for (int i = 0; i < 3; i++) {
-		AlgGraphics::drawImage(_screen, _deadIcon, posX, 0xBE);
+		AlgGraphics::drawImage(_background, _deadIcon, posX, 0xBE);
 		posX += 10;
 	}
 	posX = player == 0 ? 0xD7 : 0x50;
-	for (int i = 0; i < _lives[player]; i++) {
-		AlgGraphics::drawImage(_screen, _liveIcon, posX, 0xBE);
+	for (int i = 0; i < _playerLives[player]; i++) {
+		AlgGraphics::drawImage(_background, _liveIcon, posX, 0xBE);
 		posX += 10;
 	}
-	_oldLives[player] = _lives[player];
+	_oldLives[player] = _playerLives[player];
 }
 
 void GameBountyHunter::displayScores(uint8 player) {
-	if (_score[player] == _oldScore[player]) {
+	if (_playerScore[player] == _oldScore[player]) {
 		return;
 	}
-	Common::String scoreString = Common::String::format("%05d", _score[player]);
+	Common::String scoreString = Common::String::format("%05d", _playerScore[player]);
 	int posX = player == 0 ? 0xA5 : 0x78;
 	for (int i = 0; i < 5; i++) {
 		uint8 digit = scoreString[i] - '0';
-		uint8 digitOffset = player == 1 ? digit : digit + 10;
-		AlgGraphics::drawImage(_screen, (*_numbers)[digitOffset], posX, 0xBF);
+		uint8 digitOffset = player == 0 ? digit : digit + 10;
+		AlgGraphics::drawImage(_background, (*_numbers)[digitOffset], posX, 0xBF);
 		posX += 5;
 	}
-	_oldScore[player] = _score[player];
+	_oldScore[player] = _playerScore[player];
 }
 
 void GameBountyHunter::displayShotsLeft(uint8 player) {
-	if (_shots[player] == _oldShots[player]) {
+	if (_playerShots[player] == _oldShots[player]) {
 		return;
 	}
 	uint16 posX = player == 0 ? 0xF8 : 0x0C;
 	for (int i = 0; i < 10; i++) {
-		AlgGraphics::drawImage(_screen, _emptyIcon, posX, 0xBF);
+		AlgGraphics::drawImage(_background, _emptyIcon, posX, 0xBF);
 		posX += 5;
 	}
 	posX = player == 0 ? 0xF8 : 0x0C;
-	for (int i = 0; i < _shots[player]; i++) {
-		AlgGraphics::drawImage(_screen, _shotIcon, posX, 0xBF);
+	for (int i = 0; i < _playerShots[player]; i++) {
+		if (_playerGun[_player] == 2) {
+			AlgGraphics::drawImage(_background, _shellIcon, posX, 0xBF);
+		} else {
+			AlgGraphics::drawImage(_background, _shotIcon, posX, 0xBF);
+		}
 		posX += 5;
 	}
-	_oldShots[player] = _shots[player];
+	_oldShots[player] = _playerShots[player];
 }
 
 bool GameBountyHunter::weaponDown() {
-	if (_rightDown && _mousePos.y >= 0xAA && _mousePos.x >= 0x113) {
+	if (_rightDown && _mousePos.y >= 0xAE && _mousePos.x >= 0xF0) {
 		return true;
 	}
 	return false;
@@ -692,10 +760,11 @@ Zone *GameBountyHunter::checkZones(Scene *scene, Rect *&hitRect, Common::Point *
 Rect *GameBountyHunter::checkZone(Zone *zone, Common::Point *point) {
 	for (auto &rect : zone->_rects) {
 		Common::Rect interpolated = rect->getInterpolatedRect(zone->_startFrame, zone->_endFrame, _currentFrame);
-		if (point->x >= interpolated.left &&
-			point->x <= interpolated.right &&
-			point->y >= interpolated.top &&
-			point->y <= interpolated.bottom) {
+		if (_playerGun[_player] == 2) {
+			// shotgun, hit area is enlarged
+			interpolated.grow(15);
+		}
+		if (interpolated.contains(*point)) {
 			return rect;
 		}
 	}
@@ -712,7 +781,11 @@ void GameBountyHunter::displayShotFiredImage(Common::Point *point) {
 		int32 targetX = point->x - _videoPosX;
 		int32 targetY = point->y - _videoPosY;
 		if (targetX > 0 && targetY > 0) {
-			AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), _bulletholeIcon, targetX, targetY);
+			if (_playerGun[_player] == 2) {
+				AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), (*_shotgunHoleIcon)[_player], targetX - 8, targetY - 10);
+			} else {
+				AlgGraphics::drawImageCentered(_videoDecoder->getVideoFrame(), (*_bulletHoleIcon)[_player], targetX - 4, targetY - 4);
+			}
 		}
 	}
 }
@@ -721,12 +794,115 @@ void GameBountyHunter::enableVideoFadeIn() {
 	// TODO implement
 }
 
+void GameBountyHunter::iconBags() {
+    if (!_bagDropped) {
+        _bagActive = true;
+		_bagRect.top = _mousePos.y;
+		_bagRect.left = _mousePos.x;
+		_bagRect.bottom = _mousePos.y + 0x26;
+		_bagRect.right = _mousePos.x + 0x11;
+        _playerWhoHitBag = _player;
+        _bagDropped = true;
+    }
+}
+
+void GameBountyHunter::iconBullets() {
+    if (!_bulletsGiven) {
+        if (_playerGun[_player] == 1) {
+        	_playerShots[_player] = 12;
+        } else {
+        	_playerShots[_player] = 5;
+        }
+        _bulletsGiven = true;
+        displayShotsLeft(_player);
+    }
+}
+
+void GameBountyHunter::iconMoney() {
+    if (!_moneyGiven) {
+        _playerScore[_player] += 50;
+        _moneyGiven = 1;
+    }
+}
+
 void GameBountyHunter::iconShotgun() {
-	// TODO implement
+    if (!_shotgunGiven) {
+        _shotgunGiven = 1;
+		_playerShots[_player] = 5;
+		_playerGun[_player] = 2;
+        displayShotsLeft(_player);
+    }
 }
 
 void GameBountyHunter::iconReset() {
-	// TODO implement
+    _bulletsGiven = 0;
+    _moneyGiven = false;
+    _shotgunGiven = false;
+    _bagDropped = false;
+    _iconOffset = 0;
+    _iconCounter = 0;
+
+}
+
+void GameBountyHunter::iconSetup() {
+    uint16 usedFlags = 0;
+    _iconOrder[0] = randomUnusedInt(4, &usedFlags, -1);
+    _iconOrder[1] = randomUnusedInt(4, &usedFlags, -1);
+    _iconOrder[2] = randomUnusedInt(4, &usedFlags, -1);
+    _iconOrder[3] = randomUnusedInt(4, &usedFlags, -1);
+    _iconOffset = 0;
+    _iconCounter = 0;
+}
+
+void GameBountyHunter::iconHitGeneric(uint8 type) {
+	uint8 selected = 0;
+	for (uint8 i = 0; i < 4; i++) {
+		if(_iconOrder[i] == type) {
+			selected = i;
+			break;
+		}
+	}
+	switch (selected)
+	{
+	case 0:
+		iconBullets();
+		break;
+	case 1:
+		iconMoney();
+		break;
+	case 2:
+		iconBags();
+		break;
+	case 3:
+		iconShotgun();
+		break;
+	}
+}
+
+void GameBountyHunter::displayCurrentBag() {
+    if (_bagActive) {
+		AlgGraphics::drawImageCentered(_screen, (*_bagsIcons)[_iconOffset], _bagRect.left, _bagRect.top);
+    }
+}
+
+void GameBountyHunter::moveCurrentBag() {
+    if (_bagActive) {
+        uint8 animState = _bagAnimToggle ? 1 : 0;
+        _iconOffset = (_iconCounter * 2) + animState;
+        _bagAnimToggle = !_bagAnimToggle;
+
+        uint16 offsetY = _difficulty + 4;
+		_bagRect.top += offsetY;
+		_bagRect.bottom += offsetY;
+
+        if (_bagRect.top > 0x99) {
+            _bagActive = false;
+            _playerScore[_playerWhoHitBag] += 2 << _iconCounter;
+            displayScores(_playerWhoHitBag);
+            _iconOffset = 0;
+            _iconCounter = 0;
+        }
+    }
 }
 
 uint16 GameBountyHunter::beginLevel(uint8 levelNumber) {
@@ -771,14 +947,18 @@ uint16 GameBountyHunter::pickRandomScene(uint16 *sceneList, uint8 max) {
 		_randomMask = 0;
 		_randomPicked = -1;
 		_randomSceneCount = 0;
-		while (_randomSceneList[_randomSceneCount] != 0) {
-			_randomSceneCount++;
+		if (_randomSceneList != nullptr) {
+			while (_randomSceneList[_randomSceneCount] != 0) {
+				_randomSceneCount++;
+			}
 		}
 	}
-	uint16 count = _randomMax--;
+	int16 count = _randomMax--;
 	if (count > 0) {
 		_randomPicked = randomUnusedInt(_randomSceneCount, &_randomMask, _randomPicked);
-		return _randomSceneList[_randomPicked];
+		if (_randomSceneList != nullptr) {
+			return _randomSceneList[_randomPicked];
+		}
 	}
 	return 0;
 }
@@ -826,13 +1006,12 @@ uint16 GameBountyHunter::pickDeathScene() {
 }
 
 uint16 GameBountyHunter::timeForGunfight() {
-	uint16 picked = 0;
 	if (--_gunfightCount <= 0) {
 		int index = (_difficulty * 5) + (_numLevelsDone);
 		_gunfightCount = _gunfightCountDown[index];
-		picked = pickGunfightScene();
+		return pickGunfightScene();
 	}
-	return picked;
+	return 0;
 }
 
 void GameBountyHunter::waitingForShootout(uint32 drawFrame) {
@@ -844,31 +1023,20 @@ void GameBountyHunter::waitingForShootout(uint32 drawFrame) {
 			displayShotsLeft(i);
 		}
 	}
-	// TODO investigate & fix
 	if (_currentFrame > _firstDrawFrame) {
-		// player1 = 1;
-		// player2 = 1;
+		_playerGun[0] = 1;
+		_playerGun[1] = 1;
 	}
-	/*
-	if (shotsPlayer1 <= 0 && shotsPlayer2 <= 0) {
-		return false;
-	}
-	return true;
-	*/
-}
-
-void GameBountyHunter::doShotgunSound() {
-	playSound(_shotgunSound);
 }
 
 // Script functions: RectHit
 void GameBountyHunter::rectNewScene(Rect *rect) {
 	uint32 _weightedScore = rect->_score + (_difficulty * 10);
-	_score[_player] += _weightedScore;
+	_playerScore[_player] += _weightedScore;
 	_pointsSinceLastBonus[_player] += _weightedScore;
 	if (_pointsSinceLastBonus[_player] > 5000) {
 		_pointsSinceLastBonus[_player] = 0;
-		_lives[_player]++;
+		_playerLives[_player]++;
 	}
 	if (!rect->_scene.empty()) {
 		_curScene = rect->_scene;
@@ -915,14 +1083,8 @@ void GameBountyHunter::rectStart(Rect *rect) {
 	_inMenu = false;
 	_fired = false;
 	_gameInProgress = true;
-	_restartScene = 0;
-	if (_vm->isDemo()) {
-		debug(5, "FIXME: Demo Next Scene is 0x45?");
-		setNextScene(0x45); // TODO fix
-	} else {
-		setNextScene(0x45);
-	}
-	newGame();
+	uint16 startScene = startMyGame();
+	setNextScene(startScene);
 }
 
 void GameBountyHunter::rectExit(Rect *rect) {
@@ -935,45 +1097,39 @@ void GameBountyHunter::rectTogglePlayers(Rect *rect) {
 		AlgGraphics::drawImage(_background, _playersIcon2, 0xCE, 0x95);
 		AlgGraphics::drawImage(_background, _textBlackBarIcon, 0x78, 0xBF);
 		AlgGraphics::drawImage(_background, _textBlackBarIcon, 0x0C, 0xBF);
+		// force rendering
+		_oldShots[1] = 0;
+		_oldLives[1] = 0;
 		displayShotsLeft(1);
 		displayLivesLeft(1);
 	} else {
 		_numPlayers = 1;
 		AlgGraphics::drawImage(_background, _playersIcon1, 0xCE, 0x95);
+		AlgGraphics::drawImage(_background, _textBlackBarIcon, 0x50, 0xBE);
 		AlgGraphics::drawImage(_background, _textScoreIcon, 0x78, 0xBF);
 		AlgGraphics::drawImage(_background, _textMenuIcon, 0x0C, 0xBF);
-		AlgGraphics::drawImage(_background, _textBlackBarIcon, 0x50, 0xBE);
 	}
 	playSound(_skullSound);
-	_screen->copyRectToSurface(_background->getBasePtr(_videoPosX, _videoPosY), _background->pitch, _videoPosX, _videoPosY, _videoDecoder->getWidth(), _videoDecoder->getHeight());
 }
 
 void GameBountyHunter::rectHitIconJug(Rect *rect) {
-	// TODO fix
-	// Icon.funcs[1](param);
-	// PlaySound(4);
-	// Icon.hitCount++;
+	iconHitGeneric(1);
+	playSound(_skullSound);
 }
 
 void GameBountyHunter::rectHitIconLantern(Rect *rect) {
-	// TODO fix
-	// Icon.funcs[3](param);
-	// PlaySound(4);
-	// Icon.hitCount++;
+	iconHitGeneric(3);
+	playSound(_skullSound);
 }
 
 void GameBountyHunter::rectHitIconSkull(Rect *rect) {
-	// TODO fix
-	// Icon.funcs[0](param);
-	// PlaySound(4);
-	// Icon.hitCount++;
+	iconHitGeneric(0);
+	playSound(_skullSound);
 }
 
 void GameBountyHunter::rectHitIconWheel(Rect *rect) {
-	// TODO fix
-	// Icon.funcs[2](param);
-	// PlaySound(4);
-	// Icon.hitCount++;
+	iconHitGeneric(2);
+	playSound(_skullSound);
 }
 
 void GameBountyHunter::rectHitSelectHarry(Rect *rect) {
@@ -1013,12 +1169,10 @@ void GameBountyHunter::rectHitGiveShotgun(Rect *rect) {
 }
 
 void GameBountyHunter::rectHitKill3(Rect *rect) {
-	_count++;
-	if (_count == 3) {
-		_count = 0;
+	_kill3Count++;
+	if (_kill3Count == 3) {
+		_kill3Count = 0;
 		rectNewScene(rect);
-		// TODO verify
-		// _RHONewScene(param1, param2);
 	}
 }
 
@@ -1072,12 +1226,11 @@ void GameBountyHunter::sceneIsoShootout(Scene *scene) {
 
 void GameBountyHunter::sceneIsoGivemoney(Scene *scene) {
 	const int moneyFrames[] = {0x1E8F, 0x3BB4, 0x7814, 0xA287};
-	const int woundBits[] = {2, 4, 8, 0x10};
+	const int woundBits[] = {2, 4, 8, 16};
 	for (int i = 0; i < _numPlayers; i++) {
 		if (_currentLevel <= 3) {
 			uint32 moneyFrame = moneyFrames[_currentLevel];
-			// TODO investigate
-			if (moneyFrame == _currentFrame && !_given) {
+			if (moneyFrame == _currentFrame && !_moneyGiven) {
 				if (_wounded) {
 					_mainWounds |= woundBits[_currentLevel];
 					int bonus = (2 ^ _numLevelsDone) * 200;
@@ -1087,9 +1240,9 @@ void GameBountyHunter::sceneIsoGivemoney(Scene *scene) {
 					_playerScore[i] += bonus;
 				}
 				_wounded = false;
-				_given = true;
+				_moneyGiven = true;
 			} else if (moneyFrame != _currentFrame) {
-				_given = false;
+				_moneyGiven = false;
 			}
 		}
 		displayScores(i);
@@ -1099,19 +1252,21 @@ void GameBountyHunter::sceneIsoGivemoney(Scene *scene) {
 // Script functions: Scene NxtScn
 void GameBountyHunter::sceneNxtscnLoseALife(Scene *scene) {
 	uint16 picked = 0;
-	int deadPlayerCount = 0;
+	uint8 deadCount = 0;
 	(void)scene;
-	for (uint i = 0; i < _numPlayers; i++) {
-		_playerLives[i]--;
+	for (int i = 0; i < _numPlayers; i++) {
+		if (!_debug_godMode) {
+			_playerLives[i]--;
+		}
 		displayLivesLeft(i);
 		if (_playerLives[i] <= 0) {
 			_playerScore[i] = (_playerScore[i] * 6) / 10;
-			deadPlayerCount++;
+			deadCount++;
 		}
 	}
-	if (deadPlayerCount == 1 && _numPlayers == 2) {
+	if (deadCount == 1 && _numPlayers == 2) {
 		picked = _onePlayerOfTwoDead[_numSubLevelsDone & 1];
-	} else if (deadPlayerCount > 0) {
+	} else if (deadCount > 0) {
 		picked = _allPlayersDead;
 	} else {
 		picked = pickDeathScene();
@@ -1175,7 +1330,7 @@ void GameBountyHunter::sceneNxtscnGotoLevelSelect(Scene *scene) {
 }
 
 void GameBountyHunter::sceneNxtscnContinueRandom(Scene *scene) {
-	uint16 picked = pickRandomScene(0, 0);
+	uint16 picked = pickRandomScene(nullptr, 0);
 	if (picked == 0) {
 		sceneNxtscnNextSubLevel(scene);
 	} else {
@@ -1235,21 +1390,19 @@ void GameBountyHunter::sceneNxtscnInitRandomKid2(Scene *scene) {
 void GameBountyHunter::sceneNxtscnNextSubLevel(Scene *scene) {
 	iconReset();
 	_numSubLevelsDone++;
-	int index = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
-	uint8 subLevel = _subLevelOrder[index];
+	int subLevelIndex = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
+	uint8 subLevel = _subLevelOrder[subLevelIndex];
 	uint16 sceneIndex = (_currentLevel * 5) + subLevel;
 	uint16 picked = _subLevelSceneIds[sceneIndex];
 	_currentSubLevelSceneId = picked;
 	uint16 gunfightScene = timeForGunfight();
 	if (gunfightScene != 0) {
-		setNextScene(gunfightScene);
+		picked = gunfightScene;
 	}
-	if (subLevel == 2) {
+	else if (subLevel != 2) {
 		if (_currentLevel == 0) {
-			setNextScene(picked);
-			return;
+			picked = _clueLevels[_currentLevel];
 		}
-		picked = _clueLevels[_currentLevel];
 	}
 	setNextScene(picked);
 }
@@ -1343,7 +1496,9 @@ void GameBountyHunter::sceneNxtscnDiedRefed(Scene *scene) {
 	uint8 deadCount = 0;
 	(void)scene;
 	for (uint i = 0; i < _numPlayers; i++) {
-		_playerLives[i]--;
+		if (!_debug_godMode) {
+			_playerLives[i]--;
+		}
 		displayLivesLeft(i);
 		if (_playerLives[i] <= 0) {
 			deadCount++;
@@ -1388,10 +1543,12 @@ void GameBountyHunter::sceneDefaultWepdwn(Scene *scene) {
 
 // Script functions: ScnScr
 void GameBountyHunter::sceneDefaultScore(Scene *scene) {
-	if (scene->_scnscrParam > 0) {
-		_score[0] += scene->_scnscrParam;
+	uint16 score = scene->_scnscrParam + (_difficulty * 4);
+	if (score > 0) {
+		for (uint8 i = 0; i < _numPlayers; i++) {
+			_playerScore[i] += score;
+		}
 	}
-	// TODO verify, nothing for player2?
 }
 
 // Debug methods

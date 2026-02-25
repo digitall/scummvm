@@ -79,6 +79,7 @@ public:
 	Common::Rect _dest;
 	void center(int16 cx, int16 cy, int16 w, int16 h);
 	Common::Rect getInterpolatedRect(uint32 startFrame, uint32 endFrame, uint32 currentFrame);
+	Rect *clone();
 };
 
 class Zone {

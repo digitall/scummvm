@@ -85,6 +85,8 @@ private:
 	Graphics::Surface *_liveIcon3;
 	Graphics::Surface *_difficultyIcon;
 	Graphics::Surface *_bulletholeIcon;
+	Common::Array<Graphics::Surface *> *_gun;
+	Common::Array<Graphics::Surface *> *_numbers;
 
 	// sounds
 	Audio::SeekableAudioStream *_saveSound = nullptr;

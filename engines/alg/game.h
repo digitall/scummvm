@@ -59,8 +59,6 @@ protected:
 
 	Graphics::Surface *_background;
 	Graphics::Surface *_screen;
-	Common::Array<Graphics::Surface *> *_gun;
-	Common::Array<Graphics::Surface *> *_numbers;
 
 	Audio::SoundHandle _sfxAudioHandle;
 
@@ -80,13 +78,13 @@ protected:
 	Audio::SeekableAudioStream *loadSoundFile(const Common::Path &path);
 	void playSound(Audio::SeekableAudioStream *stream);
 	bool loadScene(Scene *scene);
-	void updateScreen();
+	virtual void updateScreen();
 	uint32 getMsTime();
 	bool fired(Common::Point *point);
 	Rect *checkZone(Zone *zone, Common::Point *point);
 	uint32 getFrame(Scene *scene);
 	int8 skipToNewScene(Scene *scene);
-	void debug_drawZoneRects();
+	virtual void debug_drawZoneRects();
 
 	// Script functions: Zone
 	void zoneGlobalHit(Common::Point *point);

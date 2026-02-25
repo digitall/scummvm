@@ -248,37 +248,49 @@ void SceneInfo::parseZone(const Common::String &zoneName, uint32 startFrame, uin
 void SceneInfo::addZonesToScenes() {
 	for (auto &scene : _scenes) {
 		if (!scene->_zonesStart.empty()) {
-			Zone *zone = nullptr;
-			do {
-				Zone *found = findZone(scene->_zonesStart);
+			Zone *zone = findZone(scene->_zonesStart);
+			while (true) {
 				if (zone) {
-					zone = found->clone();
+					zone = zone->clone();
 					zone->_difficulty = 0;
 					scene->_zones.push_back(zone);
 				}
-			} while (zone && !zone->_next.empty());
+				if (zone->_next.empty()) {
+					break;
+				} else {
+					zone = findZone(zone->_next);
+				}
+			}
 		}
-		if (!scene->_zonesStart2.empty() && scene->_zonesStart2 != scene->_zonesStart) {
-			Zone *zone = nullptr;
-			do {
-				Zone *found = findZone(scene->_zonesStart);
+		if (!scene->_zonesStart2.empty()) {
+			Zone *zone = findZone(scene->_zonesStart);
+			while (true) {
 				if (zone) {
-					zone = found->clone();
+					zone = zone->clone();
 					zone->_difficulty = 1;
 					scene->_zones.push_back(zone);
 				}
-			} while (zone && !zone->_next.empty());
+				if (zone->_next.empty()) {
+					break;
+				} else {
+					zone = findZone(zone->_next);
+				}
+			}
 		}
-		if (!scene->_zonesStart3.empty() && scene->_zonesStart3 != scene->_zonesStart2) {
-			Zone *zone = nullptr;
-			do {
-				Zone *found = findZone(scene->_zonesStart);
+		if (!scene->_zonesStart3.empty()) {
+			Zone *zone = findZone(scene->_zonesStart);
+			while (true) {
 				if (zone) {
-					zone = found->clone();
+					zone = zone->clone();
 					zone->_difficulty = 2;
 					scene->_zones.push_back(zone);
 				}
-			} while (zone && !zone->_next.empty());
+				if (zone->_next.empty()) {
+					break;
+				} else {
+					zone = findZone(zone->_next);
+				}
+			}
 		}
 	}
 }
@@ -359,6 +371,7 @@ Scene::~Scene() {
 	for (auto zone : _zones) {
 		delete zone;
 	}
+	_zones.clear();
 }
 
 Zone::Zone(const Common::String &name, const Common::String &ptrfb) {
@@ -376,6 +389,7 @@ Zone::~Zone() {
 	for (auto rect : _rects) {
 		delete rect;
 	}
+	_rects.clear();
 }
 
 void Zone::addRect(int16 left, int16 top, int16 right, int16 bottom, const Common::String scene, uint32 score, const Common::String rectHit, const Common::String unknown) {
@@ -395,7 +409,10 @@ Zone *Zone::clone() {
 	Zone *clone = new Zone(_name, _startFrame, _endFrame);
 	clone->_ptrfb = _ptrfb;
 	clone->_next = _next;
-	clone->_rects = _rects;
+	for (auto rect : _rects) {
+		Rect *cloneRect = rect->clone();
+		clone->_rects.push_back(cloneRect);
+	}
 	return clone;
 }
 
@@ -432,6 +449,21 @@ Common::Rect Rect::getInterpolatedRect(uint32 startFrame, uint32 endFrame, uint3
 		normal.right = right;
 		return normal;
 	}
+}
+
+Rect *Rect::clone() {
+	Rect *clone = new Rect();
+	clone->top = top;
+	clone->left = left;
+	clone->bottom = bottom;
+	clone->right = right;
+	clone->_scene = _scene;
+	clone->_score = _score;
+	clone->_rectHit = _rectHit;
+	clone->_unknown = _unknown;
+	clone->_isMoving = _isMoving;
+	clone->_dest = _dest;
+	return clone;
 }
 
 } // End of namespace Alg
