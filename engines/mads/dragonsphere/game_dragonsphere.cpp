@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "common/config-manager.h"
 #include "mads/mads.h"
 #include "mads/game.h"
@@ -32,7 +30,6 @@
 #include "mads/dragonsphere/dragonsphere_scenes.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 GameDragonsphere::GameDragonsphere(MADSEngine *vm)
@@ -159,7 +156,4 @@ void GameDragonsphere::synchronize(Common::Serializer &s, bool phase1) {
 }
 
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif

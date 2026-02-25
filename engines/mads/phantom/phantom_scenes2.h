@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_PHANTOM_SCENES2_H
 #define MADS_PHANTOM_SCENES2_H
 
@@ -28,7 +26,6 @@
 #include "mads/phantom/phantom_scenes.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 class Scene2xx : public PhantomScene {
@@ -301,7 +298,5 @@ public:
 
 } // End of namespace Phantom
 } // End of namespace MADS
-
-#endif /* MADS_PHANTOM_SCENES2_H */
 
 #endif

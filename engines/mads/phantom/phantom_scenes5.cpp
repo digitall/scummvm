@@ -19,15 +19,12 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "mads/mads.h"
 #include "mads/conversations.h"
 #include "mads/phantom/phantom_scenes.h"
 #include "mads/phantom/phantom_scenes5.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 void Scene5xx::setAAName() {
@@ -4317,5 +4314,3 @@ void Scene506::preActions() {
 
 } // End of namespace Phantom
 } // End of namespace MADS
-
-#endif

@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GLOBALS_DRAGONSPHERE_H
 #define MADS_GLOBALS_DRAGONSPHERE_H
 
@@ -28,7 +26,6 @@
 #include "mads/resources.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 enum GlobalId {
@@ -177,9 +174,6 @@ public:
 };
 
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif /* MADS_GLOBALS_DRAGONSPHERE_H */
 
 #endif

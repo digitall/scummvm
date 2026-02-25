@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_PHANTOM_SCENES_H
 #define MADS_PHANTOM_SCENES_H
 
@@ -28,9 +26,7 @@
 #include "mads/phantom/game_phantom.h"
 //#include "mads/phantom/globals_phantom.h"
 
-
 namespace MADS {
-
 namespace Phantom {
 
 enum Verb {
@@ -485,7 +481,5 @@ protected:
 
 } // End of namespace Phantom
 } // End of namespace MADS
-
-#endif /* MADS_PHANTOM_SCENES_H */
 
 #endif

@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GAME_DRAGONSPHERE_H
 #define MADS_GAME_DRAGONSPHERE_H
 
@@ -29,7 +27,6 @@
 #include "mads/dragonsphere/globals_dragonsphere.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 // TODO: Adapt for Dragonsphere's difficulty setting
@@ -136,9 +133,6 @@ typedef Section1Handler Section7Handler;
 typedef Section1Handler Section8Handler;
 
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif /* MADS_GAME_DRAGONSPHERE_H */
 
 #endif

@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GAME_FOREST_H
 #define MADS_GAME_FOREST_H
 
@@ -29,7 +27,6 @@
 #include "mads/forest/globals_forest.h"
 
 namespace MADS {
-
 namespace Forest {
 
 // TODO: Adapt for Forest's difficulty setting
@@ -103,9 +100,6 @@ typedef Section1Handler Section7Handler;
 typedef Section1Handler Section8Handler;
 
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif /* MADS_GAME_FOREST_H */
 
 #endif

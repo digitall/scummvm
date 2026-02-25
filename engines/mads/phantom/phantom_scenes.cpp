@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "common/config-manager.h"
 #include "mads/mads.h"
 #include "mads/compression.h"
@@ -35,7 +33,6 @@
 #include "mads/phantom/phantom_scenes5.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 SceneLogic *SceneFactory::createScene(MADSEngine *vm) {
@@ -209,7 +206,4 @@ void SceneInfoPhantom::loadCodes(BaseSurface &depthSurface, Common::SeekableRead
 }
 
 } // End of namespace Phantom
-
 } // End of namespace MADS
-
-#endif

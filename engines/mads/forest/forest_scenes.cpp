@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "common/config-manager.h"
 #include "mads/mads.h"
 #include "mads/compression.h"
@@ -30,7 +28,6 @@
 #include "mads/forest/forest_scenes.h"
 
 namespace MADS {
-
 namespace Forest {
 
 SceneLogic *SceneFactory::createScene(MADSEngine *vm) {
@@ -175,7 +172,4 @@ void SceneInfoForest::loadCodes(BaseSurface &depthSurface, Common::SeekableReadS
 }
 
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif

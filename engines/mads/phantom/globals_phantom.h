@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GLOBALS_PHANTOM_H
 #define MADS_GLOBALS_PHANTOM_H
 
@@ -28,7 +26,6 @@
 #include "mads/resources.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 enum GlobalId {
@@ -148,9 +145,6 @@ public:
 };
 
 } // End of namespace Phantom
-
 } // End of namespace MADS
-
-#endif /* MADS_GLOBALS_PHANTOM_H */
 
 #endif

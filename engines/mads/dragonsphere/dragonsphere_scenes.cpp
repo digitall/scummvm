@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "common/config-manager.h"
 #include "mads/mads.h"
 #include "mads/compression.h"
@@ -31,7 +29,6 @@
 #include "mads/dragonsphere/dragonsphere_scenes1.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 SceneLogic *SceneFactory::createScene(MADSEngine *vm) {
@@ -236,7 +233,4 @@ void SceneInfoDragonsphere::loadCodes(BaseSurface &depthSurface, Common::Seekabl
 }
 
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif

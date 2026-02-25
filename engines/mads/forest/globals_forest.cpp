@@ -19,12 +19,9 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "mads/forest/globals_forest.h"
 
 namespace MADS {
-
 namespace Forest {
 
 ForestGlobals::ForestGlobals()
@@ -44,9 +41,5 @@ void ForestGlobals::synchronize(Common::Serializer &s) {
 	_animationIndexes.synchronize(s);
 }
 
-
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif

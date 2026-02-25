@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "common/config-manager.h"
 #include "mads/mads.h"
 #include "mads/game.h"
@@ -32,7 +30,6 @@
 //#include "mads/forest/forest_scenes.h"
 
 namespace MADS {
-
 namespace Forest {
 
 GameForest::GameForest(MADSEngine *vm)
@@ -159,7 +156,4 @@ void GameForest::synchronize(Common::Serializer &s, bool phase1) {
 }
 
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif

@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_FOREST_SCENES_H
 #define MADS_FOREST_SCENES_H
 
@@ -29,7 +27,6 @@
 #include "mads/forest/globals_forest.h"
 
 namespace MADS {
-
 namespace Forest {
 
 enum Verb {
@@ -233,9 +230,6 @@ public:
 };
 
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif /* MADS_FOREST_SCENES_H */
 
 #endif

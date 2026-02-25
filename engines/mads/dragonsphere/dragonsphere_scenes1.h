@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_DRAGON_SCENES1_H
 #define MADS_DRAGON_SCENES1_H
 
@@ -28,7 +26,6 @@
 #include "mads/dragonsphere/dragonsphere_scenes.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 class Scene1xx : public DragonsphereScene {
@@ -182,7 +179,5 @@ public:
 
 } // End of namespace Dragonsphere
 } // End of namespace MADS
-
-#endif /* MADS_DRAGON_SCENES1_H */
 
 #endif

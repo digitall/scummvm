@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GLOBALS_FOREST_H
 #define MADS_GLOBALS_FOREST_H
 
@@ -28,7 +26,6 @@
 #include "mads/resources.h"
 
 namespace MADS {
-
 namespace Forest {
 
 enum GlobalId {
@@ -56,9 +53,6 @@ public:
 };
 
 } // End of namespace Forest
-
 } // End of namespace MADS
-
-#endif /* MADS_GLOBALS_FOREST_H */
 
 #endif

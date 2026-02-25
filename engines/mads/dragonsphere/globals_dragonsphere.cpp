@@ -19,12 +19,9 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "mads/dragonsphere/globals_dragonsphere.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 DragonsphereGlobals::DragonsphereGlobals()
@@ -44,9 +41,5 @@ void DragonsphereGlobals::synchronize(Common::Serializer &s) {
 	_animationIndexes.synchronize(s);
 }
 
-
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif

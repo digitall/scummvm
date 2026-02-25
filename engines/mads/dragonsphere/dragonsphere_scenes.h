@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_DRAGONSPHERE_SCENES_H
 #define MADS_DRAGONSPHERE_SCENES_H
 
@@ -29,7 +27,6 @@
 //#include "mads/dragonsphere/globals_dragonsphere.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 enum Verb {
@@ -669,9 +666,6 @@ public:
 };
 
 } // End of namespace Dragonsphere
-
 } // End of namespace MADS
-
-#endif /* MADS_DRAGONSPHERE_SCENES_H */
 
 #endif

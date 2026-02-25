@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #ifndef MADS_GAME_PHANTOM_H
 #define MADS_GAME_PHANTOM_H
 
@@ -29,7 +27,6 @@
 #include "mads/phantom/globals_phantom.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 enum Difficulty {
@@ -148,9 +145,6 @@ typedef Section1Handler Section4Handler;
 typedef Section1Handler Section5Handler;
 
 } // End of namespace Nebular
-
 } // End of namespace MADS
-
-#endif /* MADS_GAME_PHANTOM_H */
 
 #endif

@@ -19,12 +19,9 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "mads/phantom/globals_phantom.h"
 
 namespace MADS {
-
 namespace Phantom {
 
 PhantomGlobals::PhantomGlobals() : Globals() {
@@ -45,7 +42,4 @@ void PhantomGlobals::synchronize(Common::Serializer &s) {
 
 
 } // End of namespace Phantom
-
 } // End of namespace MADS
-
-#endif

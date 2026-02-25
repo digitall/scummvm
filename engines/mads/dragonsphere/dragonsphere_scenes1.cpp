@@ -19,8 +19,6 @@
  *
  */
 
-#ifdef ENABLE_MADSV2
-
 #include "mads/mads.h"
 #include "mads/conversations.h"
 #include "mads/scene.h"
@@ -28,7 +26,6 @@
 #include "mads/dragonsphere/dragonsphere_scenes1.h"
 
 namespace MADS {
-
 namespace Dragonsphere {
 
 void Scene1xx::setAAName() {
@@ -3691,5 +3688,3 @@ void Scene105::handleConversation() {
 
 } // End of namespace Dragonsphere
 } // End of namespace MADS
-
-#endif
