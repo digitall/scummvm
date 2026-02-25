@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-25 17:10+0000\n"
+"POT-Creation-Date: 2026-02-25 19:00+0000\n"
 "PO-Revision-Date: 2026-02-20 15:48+0000\n"
 "Last-Translator: Antoniou Athanasios <a.antoniou79@gmail.com>\n"
 "Language-Team: Greek <https://translations.scummvm.org/projects/scummvm/"
@@ -6676,7 +6676,7 @@ msgid "Climb"
 msgstr "Σκαρφάλωσε"
 
 #: engines/access/metaengine.cpp:337 engines/bbvs/metaengine.cpp:142
-#: engines/freescape/games/castle/castle.cpp:396
+#: engines/freescape/games/castle/castle.cpp:397
 #: engines/petka/metaengine.cpp:137 engines/scumm/help.cpp:225
 #: engines/tsage/metaengine.cpp:201
 msgid "Walk"
@@ -7438,7 +7438,7 @@ msgid "Whether textures should be linearly filtered"
 msgstr "Eφαρμογή γραμμικού φίλτρου στις υφές"
 
 #: engines/alcachofa/metaengine.cpp:98 engines/cine/metaengine.cpp:347
-#: engines/freescape/games/castle/castle.cpp:413
+#: engines/freescape/games/castle/castle.cpp:414
 msgid "Activate"
 msgstr "Ενεργοποίησε"
 
@@ -7902,7 +7902,7 @@ msgstr "Εναλλαγή ιδιωτικότητας ευρημάτων"
 #: engines/cge/metaengine.cpp:221 engines/cge2/metaengine.cpp:235
 #: engines/dgds/metaengine.cpp:75 engines/dm/metaengine.cpp:174
 #: engines/drascula/metaengine.cpp:285 engines/efh/metaengine.cpp:272
-#: engines/freescape/games/castle/castle.cpp:358
+#: engines/freescape/games/castle/castle.cpp:359
 #: engines/freescape/games/dark/dark.cpp:188
 #: engines/freescape/games/driller/driller.cpp:120
 #: engines/freescape/games/eclipse/eclipse.cpp:236
@@ -7930,7 +7930,7 @@ msgstr "Αποθήκευση παιχνιδιού"
 #: engines/cge/metaengine.cpp:227 engines/cge2/metaengine.cpp:241
 #: engines/dgds/metaengine.cpp:74 engines/drascula/metaengine.cpp:260
 #: engines/efh/metaengine.cpp:279 engines/efh/metaengine.cpp:613
-#: engines/freescape/games/castle/castle.cpp:363
+#: engines/freescape/games/castle/castle.cpp:364
 #: engines/freescape/games/dark/dark.cpp:193
 #: engines/freescape/games/driller/driller.cpp:125
 #: engines/freescape/games/eclipse/eclipse.cpp:241
@@ -7980,7 +7980,7 @@ msgstr "Βάση δεδομένων στοιχείων έρευνας"
 #: engines/bladerunner/metaengine.cpp:375 engines/cruise/metaengine.cpp:229
 #: engines/darkseed/metaengine.cpp:60 engines/dragons/metaengine.cpp:223
 #: engines/efh/metaengine.cpp:373 engines/efh/metaengine.cpp:619
-#: engines/freescape/games/castle/castle.cpp:371
+#: engines/freescape/games/castle/castle.cpp:372
 #: engines/freescape/games/dark/dark.cpp:198
 #: engines/freescape/games/driller/driller.cpp:130
 #: engines/freescape/games/eclipse/eclipse.cpp:246
@@ -9058,7 +9058,7 @@ msgstr ""
 
 #. I18N: Run is a movement type
 #. I18N: Action in In Cold Blood
-#: engines/efh/metaengine.cpp:530 engines/freescape/games/castle/castle.cpp:391
+#: engines/efh/metaengine.cpp:530 engines/freescape/games/castle/castle.cpp:392
 #: engines/grim/grim.cpp:501 engines/grim/grim.cpp:596
 #: engines/hpl1/metaengine.cpp:82 engines/icb/icb.cpp:131
 #: engines/icb/icb.cpp:197 engines/ultima/ultima8/metaengine.cpp:56
@@ -9290,19 +9290,19 @@ msgstr "Αλλαγή λειτουργίας"
 msgid "Info menu"
 msgstr "Μενού Πληροφοριών"
 
-#: engines/freescape/games/castle/castle.cpp:348
+#: engines/freescape/games/castle/castle.cpp:349
 #, fuzzy
 #| msgid "Select Prince"
 msgid "Select prince"
 msgstr "Επιλέξτε Πρίγκιπα"
 
-#: engines/freescape/games/castle/castle.cpp:353
+#: engines/freescape/games/castle/castle.cpp:354
 #, fuzzy
 #| msgid "Select Princess"
 msgid "Select princess"
 msgstr "Επιλέξτε Πριγκίπισσα"
 
-#: engines/freescape/games/castle/castle.cpp:376
+#: engines/freescape/games/castle/castle.cpp:377
 #: engines/freescape/games/dark/dark.cpp:208
 #: engines/freescape/games/driller/driller.cpp:138
 #: engines/freescape/games/eclipse/eclipse.cpp:254
@@ -9310,7 +9310,7 @@ msgstr "Επιλέξτε Πριγκίπισσα"
 msgid "Toggle sound"
 msgstr "Εναλλαγή ήχου"
 
-#: engines/freescape/games/castle/castle.cpp:381
+#: engines/freescape/games/castle/castle.cpp:382
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
 #: engines/freescape/games/eclipse/eclipse.cpp:259
@@ -9319,7 +9319,7 @@ msgstr "Εναλλαγή ήχου"
 msgid "Rotate left"
 msgstr "Περιστροφή Αριστερά"
 
-#: engines/freescape/games/castle/castle.cpp:386
+#: engines/freescape/games/castle/castle.cpp:387
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
 #: engines/freescape/games/eclipse/eclipse.cpp:264
@@ -9328,11 +9328,11 @@ msgstr "Περιστροφή Αριστερά"
 msgid "Rotate right"
 msgstr "Περιστροφή Δεξιά"
 
-#: engines/freescape/games/castle/castle.cpp:402
+#: engines/freescape/games/castle/castle.cpp:403
 msgid "Crawl"
 msgstr "Σύρσου"
 
-#: engines/freescape/games/castle/castle.cpp:408
+#: engines/freescape/games/castle/castle.cpp:409
 #: engines/freescape/games/eclipse/eclipse.cpp:293
 #, fuzzy
 #| msgid "Face Forward"
