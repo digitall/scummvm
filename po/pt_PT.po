@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-23 14:24+0000\n"
+"POT-Creation-Date: 2026-02-25 09:11+0000\n"
 "PO-Revision-Date: 2022-06-05 14:09+0000\n"
 "Last-Translator: Daniel <supsuper@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translations.scummvm.org/"
@@ -344,7 +344,7 @@ msgstr "Outro armazenamento está ocupado. Deseja interrompê-lo?"
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:152 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
-#: gui/launcher.cpp:530 gui/launcher.cpp:1908 gui/options.cpp:3485
+#: gui/launcher.cpp:530 gui/launcher.cpp:1909 gui/options.cpp:3485
 #: gui/options.cpp:3859 base/main.cpp:594
 #: backends/events/default/default-events.cpp:193 engines/buried/buried.cpp:598
 #: engines/chamber/metaengine.cpp:91 engines/director/events.cpp:102
@@ -363,7 +363,7 @@ msgstr "Sim"
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:153 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
-#: gui/launcher.cpp:530 gui/launcher.cpp:1909 gui/options.cpp:3485
+#: gui/launcher.cpp:530 gui/launcher.cpp:1910 gui/options.cpp:3485
 #: gui/options.cpp:3859 engines/buried/buried.cpp:598
 #: engines/chamber/metaengine.cpp:97 engines/director/events.cpp:102
 #: engines/director/lingo/xlibs/j/jitdraw3.cpp:139
@@ -1646,7 +1646,7 @@ msgstr "Todos"
 msgid "Icons per row:"
 msgstr ""
 
-#: gui/launcher.cpp:1836
+#: gui/launcher.cpp:1837
 #, fuzzy, c-format
 #| msgid "Do you really want to remove this game configuration?"
 msgid ""
@@ -2823,7 +2823,7 @@ msgstr "Gravar"
 msgid "Playback"
 msgstr "Reproduzir"
 
-#: gui/recorderdialog.cpp:77 gui/widgets/grid.cpp:336
+#: gui/recorderdialog.cpp:77 gui/widgets/grid.cpp:340
 msgid "Edit"
 msgstr "Editar"
 
@@ -3020,11 +3020,11 @@ msgstr ""
 msgid "Clear value"
 msgstr "Apagar valor"
 
-#: gui/widgets/grid.cpp:330
+#: gui/widgets/grid.cpp:334
 msgid "Play"
 msgstr "Jogar"
 
-#: gui/widgets/grid.cpp:333
+#: gui/widgets/grid.cpp:337
 msgid "Saves"
 msgstr "Jogos Guardados"
 
