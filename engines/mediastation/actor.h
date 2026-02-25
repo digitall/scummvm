@@ -174,7 +174,7 @@ enum MouseEventFlag {
 
 // For a range of valid argument counts (min to max).
 #define ARGCOUNTRANGE(min, max) \
-	if (args.size() < (size_t)(min) || args.size() > (max)) { \
+	if (((min) > 0 && args.size() < (size_t)(min)) || args.size() > (max)) { \
 		warning("%s: Expected %d to %d arguments, got %d", builtInMethodToStr(methodId), (min), (max), args.size()); \
 	}
 
