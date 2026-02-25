@@ -26,7 +26,7 @@
 #include "common/keyboard.h"
 
 #include "mediastation/datafile.h"
-#include "mediastation/mediascript/eventhandler.h"
+#include "mediastation/mediascript/scriptresponse.h"
 #include "mediastation/mediascript/scriptconstants.h"
 #include "mediastation/mediascript/scriptvalue.h"
 
@@ -69,7 +69,7 @@ const char *actorTypeToStr(ActorType type);
 
 enum ActorHeaderSectionType {
 	kActorHeaderEmptySection = 0x0000,
-	kActorHeaderEventHandler = 0x0017,
+	kActorHeaderScriptResponse = 0x0017,
 	kActorHeaderChildActorId = 0x0019,
 	kActorHeaderActorId = 0x001a,
 	kActorHeaderChannelIdent = 0x001b,
@@ -189,7 +189,7 @@ public:
 	Actor(ActorType type) : _type(type) {};
 	virtual ~Actor();
 
-	// Does any needed frame drawing, audio playing, event handlers, etc.
+	// Does any needed frame drawing, audio playing, script responses, etc.
 	virtual void process() { return; }
 
 	// Runs built-in bytecode methods.
@@ -201,9 +201,9 @@ public:
 	virtual void readParameter(Chunk &chunk, ActorHeaderSectionType paramType);
 	virtual void loadIsComplete();
 
-	void processTimeEventHandlers();
-	void runEventHandlerIfExists(EventType eventType, const ScriptValue &arg);
-	void runEventHandlerIfExists(EventType eventType);
+	void processTimeScriptResponses();
+	void runScriptResponseIfExists(EventType eventType, const ScriptValue &arg);
+	void runScriptResponseIfExists(EventType eventType);
 
 	ActorType type() const { return _type; }
 	uint id() const { return _id; }
@@ -223,7 +223,7 @@ protected:
 	uint _startTime = 0;
 	uint _lastProcessedTime = 0;
 	uint _duration = 0;
-	Common::HashMap<uint, Common::Array<EventHandler *> > _eventHandlers;
+	Common::HashMap<uint, Common::Array<ScriptResponse *> > _scriptResponses;
 };
 
 class SpatialEntity : public Actor {

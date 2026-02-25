@@ -324,7 +324,7 @@ void SpriteMovieActor::setCurrentFrameToFinal() {
 
 void SpriteMovieActor::process() {
 	updateFrameState();
-	// Sprites don't have time event handlers, separate timers do time handling.
+	// Sprites don't have time script responses, separate timers do time handling.
 }
 
 void SpriteMovieActor::readChunk(Chunk &chunk) {
@@ -420,7 +420,7 @@ void SpriteMovieActor::postMovieEndEventIfNecessary() {
 
 	ScriptValue value;
 	value.setToParamToken(_activeClip.id);
-	runEventHandlerIfExists(kSpriteMovieEndEvent, value);
+	runScriptResponseIfExists(kSpriteMovieEndEvent, value);
 }
 
 void SpriteMovieActor::draw(DisplayContext &displayContext) {

@@ -363,10 +363,10 @@ void TextActor::keyboardEvent(const Common::Event &event) {
 	warning("STUB: %s", __func__);
 }
 
-bool TextActor::hasEventHandler(EventType eventType, const ScriptValue &arg) const {
-	const Common::Array<EventHandler *> &eventHandlers = _eventHandlers.getValOrDefault(eventType);
-	for (const EventHandler *eventHandler : eventHandlers) {
-		const ScriptValue &argToCheck = eventHandler->_argumentValue;
+bool TextActor::hasScriptResponse(EventType eventType, const ScriptValue &arg) const {
+	const Common::Array<ScriptResponse *> &scriptResponses = _scriptResponses.getValOrDefault(eventType);
+	for (const ScriptResponse *scriptResponse : scriptResponses) {
+		const ScriptValue &argToCheck = scriptResponse->_argumentValue;
 
 		if (arg.getType() != argToCheck.getType()) {
 			continue;

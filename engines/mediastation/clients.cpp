@@ -125,7 +125,7 @@ void Document::startContextLoad(uint contextId) {
 			Actor *currentScreen = g_engine->getActorById(_currentScreenActorId);
 			ScriptValue arg;
 			arg.setToActorId(contextId);
-			currentScreen->runEventHandlerIfExists(kContextLoadCompleteEvent2, arg);
+			currentScreen->runScriptResponseIfExists(kContextLoadCompleteEvent2, arg);
 		}
 
 		if (_loadingContextId == 0) {
@@ -210,7 +210,7 @@ void Document::contextLoadDidComplete() {
 		arg.setToActorId(_loadingContextId);
 		Actor *currentScreen = g_engine->getActorById(_currentScreenActorId);
 		if (currentScreen != nullptr) {
-			currentScreen->runEventHandlerIfExists(kContextLoadCompleteEvent, arg);
+			currentScreen->runScriptResponseIfExists(kContextLoadCompleteEvent, arg);
 		}
 	}
 	_loadingContextId = 0;
@@ -219,7 +219,7 @@ void Document::contextLoadDidComplete() {
 void Document::screenLoadDidComplete() {
 	_currentScreenActorId = _loadingScreenActorId;
 	Actor *currentScreen = g_engine->getActorById(_loadingScreenActorId);
-	currentScreen->runEventHandlerIfExists(kScreenEntryEvent);
+	currentScreen->runScriptResponseIfExists(kScreenEntryEvent);
 	_loadingScreenActorId = 0;
 }
 
@@ -241,7 +241,7 @@ void Document::blowAwayCurrentScreen() {
 		uint contextId = contextIdForScreenActorId(_currentScreenActorId);
 		if (contextId != 0) {
 			Actor *currentScreen = g_engine->getActorById(_currentScreenActorId);
-			currentScreen->runEventHandlerIfExists(kScreenExitEvent);
+			currentScreen->runScriptResponseIfExists(kScreenExitEvent);
 			g_engine->destroyContext(contextId);
 		}
 	}

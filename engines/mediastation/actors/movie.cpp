@@ -349,7 +349,7 @@ void StreamMovieActor::timePlay() {
 	_isPlaying = true;
 	_startTime = g_system->getMillis();
 	_lastProcessedTime = 0;
-	runEventHandlerIfExists(kMovieBeginEvent);
+	runScriptResponseIfExists(kMovieBeginEvent);
 	process();
 }
 
@@ -370,13 +370,13 @@ void StreamMovieActor::timeStop() {
 	_startTime = 0;
 	_lastProcessedTime = 0;
 	_isPlaying = false;
-	runEventHandlerIfExists(kMovieStoppedEvent);
+	runScriptResponseIfExists(kMovieStoppedEvent);
 }
 
 void StreamMovieActor::process() {
 	if (_isVisible) {
 		if (_isPlaying) {
-			processTimeEventHandlers();
+			processTimeScriptResponses();
 		}
 		updateFrameState();
 	}
@@ -437,7 +437,7 @@ void StreamMovieActor::updateFrameState() {
 					_framesNotYetShown = _streamFrames->_frames;
 					updateFrameState();
 				}
-				runEventHandlerIfExists(kMovieEndEvent);
+				runScriptResponseIfExists(kMovieEndEvent);
 				break;
 			}
 		} else {

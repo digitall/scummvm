@@ -82,11 +82,11 @@ void SoundActor::process() {
 		return;
 	}
 
-	processTimeEventHandlers();
+	processTimeScriptResponses();
 	if (!_sequence.isActive()) {
 		_playState = kSoundStopped;
 		_sequence.stop();
-		runEventHandlerIfExists(kSoundEndEvent);
+		runScriptResponseIfExists(kSoundEndEvent);
 	}
 }
 void SoundActor::readChunk(Chunk &chunk) {
@@ -156,7 +156,7 @@ void SoundActor::start() {
 		_startTime = g_system->getMillis();
 		_lastProcessedTime = 0;
 		_sequence.play();
-		runEventHandlerIfExists(kSoundBeginEvent);
+		runScriptResponseIfExists(kSoundBeginEvent);
 	} else {
 		warning("[%s] %s: Attempted to play sound before it was loaded", debugName(), __func__);
 	}
@@ -166,7 +166,7 @@ void SoundActor::stop() {
 	if (_playState == kSoundPlaying || _playState == kSoundPaused) {
 		_playState = kSoundStopped;
 		_sequence.stop();
-		runEventHandlerIfExists(kSoundStoppedEvent);
+		runScriptResponseIfExists(kSoundStoppedEvent);
 	}
 }
 

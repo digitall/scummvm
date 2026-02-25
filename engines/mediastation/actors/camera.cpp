@@ -504,7 +504,7 @@ void CameraActor::timerEvent() {
 					// Common::Rect advanceRect = getAdvanceRect();
 					// _parentStage->preload(advanceRect);
 				} else {
-					runEventHandlerIfExists(kCameraPanAbortEvent);
+					runScriptResponseIfExists(kCameraPanAbortEvent);
 					stopPan();
 				}
 			} else {
@@ -515,7 +515,7 @@ void CameraActor::timerEvent() {
 					success = processViewportMove();
 				}
 				if (success) {
-					runEventHandlerIfExists(kCameraPanEndEvent);
+					runScriptResponseIfExists(kCameraPanEndEvent);
 					stopPan();
 				} else {
 					Common::Rect currentBounds = getBbox();
@@ -550,13 +550,13 @@ bool CameraActor::processViewportMove() {
 void CameraActor::processNextPanStep() {
 	// If pan type includes per-step updates (4-arg pan in original engine),
 	// advance the pan step counter. Then compute the new viewport origin
-	// and notify any script handlers registered for the pan-step event.
+	// and notify any script responses registered for the pan-step event.
 	if (_panState == kCameraPanByStepCount) {
 		_currentPanStep += 1;
 	}
 
 	calcNewViewportOrigin();
-	runEventHandlerIfExists(kCameraPanStepEvent);
+	runScriptResponseIfExists(kCameraPanStepEvent);
 
 	uint stepDurationInMilliseconds = 20; // Visually smooth.
 	_nextPanStepTime += stepDurationInMilliseconds;

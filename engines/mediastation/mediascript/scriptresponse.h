@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef MEDIASTATION_MEDIASCRIPT_EVENTHANDLER_H
-#define MEDIASTATION_MEDIASCRIPT_EVENTHANDLER_H
+#ifndef MEDIASTATION_MEDIASCRIPT_SCRIPTRESPONSE_H
+#define MEDIASTATION_MEDIASCRIPT_SCRIPTRESPONSE_H
 
 #include "common/str.h"
 
@@ -30,10 +30,11 @@
 
 namespace MediaStation {
 
-class EventHandler {
+// These handle events specifically for scripts.
+class ScriptResponse {
 public:
-	EventHandler(Chunk &chunk);
-	~EventHandler();
+	ScriptResponse(Chunk &chunk);
+	~ScriptResponse();
 
 	ScriptValue execute(uint actorId);
 	EventType _type;

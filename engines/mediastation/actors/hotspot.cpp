@@ -213,7 +213,7 @@ void HotspotActor::mouseDownEvent(const Common::Event &event) {
 	}
 
 	g_engine->setMouseDownHotspot(this);
-	runEventHandlerIfExists(kMouseDownEvent);
+	runScriptResponseIfExists(kMouseDownEvent);
 }
 
 void HotspotActor::mouseUpEvent(const Common::Event &event) {
@@ -223,7 +223,7 @@ void HotspotActor::mouseUpEvent(const Common::Event &event) {
 	}
 
 	g_engine->setMouseDownHotspot(nullptr);
-	runEventHandlerIfExists(kMouseUpEvent);
+	runScriptResponseIfExists(kMouseUpEvent);
 }
 
 void HotspotActor::mouseEnteredEvent(const Common::Event &event) {
@@ -241,7 +241,7 @@ void HotspotActor::mouseEnteredEvent(const Common::Event &event) {
 		g_engine->getCursorManager()->unsetTemporary();
 	}
 
-	runEventHandlerIfExists(kMouseEnteredEvent);
+	runScriptResponseIfExists(kMouseEnteredEvent);
 }
 
 void HotspotActor::mouseMovedEvent(const Common::Event &event) {
@@ -250,7 +250,7 @@ void HotspotActor::mouseMovedEvent(const Common::Event &event) {
 		return;
 	}
 
-	runEventHandlerIfExists(kMouseMovedEvent);
+	runScriptResponseIfExists(kMouseMovedEvent);
 }
 
 void HotspotActor::mouseExitedEvent(const Common::Event &event) {
@@ -260,7 +260,7 @@ void HotspotActor::mouseExitedEvent(const Common::Event &event) {
 	}
 
 	g_engine->setMouseInsideHotspot(nullptr);
-	runEventHandlerIfExists(kMouseExitedEvent);
+	runScriptResponseIfExists(kMouseExitedEvent);
 }
 
 } // End of namespace MediaStation

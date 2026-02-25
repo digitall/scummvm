@@ -175,13 +175,13 @@ void PathActor::startPath() {
 	_nextPathStepTime = _startTime + _stepDurationInMilliseconds;
 	_currentStep = 0;
 
-	// There is no path start event handler.
+	// There is no path start script response.
 }
 
 void PathActor::stopPath() {
 	if (_playState == kPathPlaying || _playState == kPathPaused) {
 		_playState = kPathStopped;
-		runEventHandlerIfExists(kPathStoppedEvent);
+		runScriptResponseIfExists(kPathStoppedEvent);
 	}
 }
 
@@ -236,7 +236,7 @@ bool PathActor::step() {
 			_endPoint.x, _endPoint.y, _startPoint.x, _startPoint.y, _currentPoint.x, _currentPoint.y);
 
 		// We don't run a step event for the last step.
-		runEventHandlerIfExists(kPathStepEvent);
+		runScriptResponseIfExists(kPathStepEvent);
 		return false;
 	}
 	return true;
@@ -257,7 +257,7 @@ void PathActor::timerEvent() {
 		_nextPathStepTime = 0;
 		_currentStep = 0;
 		_stepDurationInMilliseconds = 0;
-		runEventHandlerIfExists(kPathEndEvent);
+		runScriptResponseIfExists(kPathEndEvent);
 	}
 }
 

@@ -103,14 +103,14 @@ const char *Actor::debugName() const {
 }
 
 Actor::~Actor() {
-	for (auto it = _eventHandlers.begin(); it != _eventHandlers.end(); ++it) {
-		Common::Array<EventHandler *> &handlersForType = it->_value;
-		for (EventHandler *handler : handlersForType) {
-			delete handler;
+	for (auto it = _scriptResponses.begin(); it != _scriptResponses.end(); ++it) {
+		Common::Array<ScriptResponse *> &responsesForType = it->_value;
+		for (ScriptResponse *response : responsesForType) {
+			delete response;
 		}
-		handlersForType.clear();
+		responsesForType.clear();
 	}
-	_eventHandlers.clear();
+	_scriptResponses.clear();
 }
 
 void Actor::initFromParameterStream(Chunk &chunk) {
@@ -127,18 +127,18 @@ void Actor::initFromParameterStream(Chunk &chunk) {
 
 void Actor::readParameter(Chunk &chunk, ActorHeaderSectionType paramType) {
 	switch (paramType) {
-	case kActorHeaderEventHandler: {
-		EventHandler *eventHandler = new EventHandler(chunk);
-		Common::Array<EventHandler *> &eventHandlersForType = _eventHandlers.getOrCreateVal(eventHandler->_type);
+	case kActorHeaderScriptResponse: {
+		ScriptResponse *scriptResponse = new ScriptResponse(chunk);
+		Common::Array<ScriptResponse *> &scriptResponsesForType = _scriptResponses.getOrCreateVal(scriptResponse->_type);
 
 		// This is not a hashmap because we don't want to have to hash ScriptValues.
-		for (EventHandler *existingEventHandler : eventHandlersForType) {
-			if (existingEventHandler->_argumentValue == eventHandler->_argumentValue) {
-				error("[%s] %s: Event handler for %s (%s) already exists", debugName(), __func__,
-					eventTypeToStr(eventHandler->_type), eventHandler->_argumentValue.getDebugString().c_str());
+		for (ScriptResponse *existingScriptResponse : scriptResponsesForType) {
+			if (existingScriptResponse->_argumentValue == scriptResponse->_argumentValue) {
+				error("[%s] %s: Script response for %s (%s) already exists", debugName(), __func__,
+					eventTypeToStr(scriptResponse->_type), scriptResponse->_argumentValue.getDebugString().c_str());
 			}
 		}
-		eventHandlersForType.push_back(eventHandler);
+		scriptResponsesForType.push_back(scriptResponse);
 		break;
 	}
 
@@ -160,18 +160,18 @@ ScriptValue Actor::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue>
 	return ScriptValue();
 }
 
-void Actor::processTimeEventHandlers() {
+void Actor::processTimeScriptResponses() {
 	// TODO: Replace with a queue.
 	uint currentTime = g_system->getMillis();
-	const Common::Array<EventHandler *> &_timeHandlers = _eventHandlers.getValOrDefault(kTimerEvent);
-	for (EventHandler *timeEvent : _timeHandlers) {
+	const Common::Array<ScriptResponse *> &_timeResponses = _scriptResponses.getValOrDefault(kTimerEvent);
+	for (ScriptResponse *timeEvent : _timeResponses) {
 		// Indeed float, not time.
 		double timeEventInFractionalSeconds = timeEvent->_argumentValue.asFloat();
 		uint timeEventInMilliseconds = timeEventInFractionalSeconds * 1000;
 		bool timeEventAlreadyProcessed = timeEventInMilliseconds < _lastProcessedTime;
 		bool timeEventNeedsToBeProcessed = timeEventInMilliseconds < currentTime - _startTime;
 		if (!timeEventAlreadyProcessed && timeEventNeedsToBeProcessed) {
-			debugC(5, kDebugScript, "%s: Running On Time handler for time %d ms (lastProcessedTime: %d, currentTime: %d)",
+			debugC(5, kDebugScript, "%s: Running On Time response for time %d ms (lastProcessedTime: %d, currentTime: %d)",
 				__func__, timeEventInMilliseconds, _lastProcessedTime, currentTime);
 			timeEvent->execute(_id);
 		}
@@ -179,30 +179,30 @@ void Actor::processTimeEventHandlers() {
 	_lastProcessedTime = currentTime - _startTime;
 }
 
-void Actor::runEventHandlerIfExists(EventType eventType, const ScriptValue &arg) {
-	const Common::Array<EventHandler *> &eventHandlers = _eventHandlers.getValOrDefault(eventType);
-	for (EventHandler *eventHandler : eventHandlers) {
-		const ScriptValue &argToCheck = eventHandler->_argumentValue;
+void Actor::runScriptResponseIfExists(EventType eventType, const ScriptValue &arg) {
+	const Common::Array<ScriptResponse *> &scriptResponses = _scriptResponses.getValOrDefault(eventType);
+	for (ScriptResponse *scriptResponse : scriptResponses) {
+		const ScriptValue &argToCheck = scriptResponse->_argumentValue;
 
 		if (arg.getType() != argToCheck.getType()) {
-			warning("[%s] %s: Got event handler arg type %s, expected %s", debugName(), __func__,
+			warning("[%s] %s: Got script response arg type %s, expected %s", debugName(), __func__,
 				scriptValueTypeToStr(arg.getType()), scriptValueTypeToStr(argToCheck.getType()));
 			continue;
 		}
 
 		if (arg == argToCheck) {
-			debugC(5, kDebugScript, "[%s] %s: Executing handler for event type %s", debugName(), __func__, eventTypeToStr(eventType));
-			eventHandler->execute(_id);
+			debugC(5, kDebugScript, "[%s] %s: Executing response for event type %s", debugName(), __func__, eventTypeToStr(eventType));
+			scriptResponse->execute(_id);
 			return;
 		}
 	}
 
-	debugC(5, kDebugScript, "[%s] %s: No event handler for event type %s", debugName(), __func__, eventTypeToStr(eventType));
+	debugC(5, kDebugScript, "[%s] %s: No script response for event type %s", debugName(), __func__, eventTypeToStr(eventType));
 }
 
-void Actor::runEventHandlerIfExists(EventType eventType) {
+void Actor::runScriptResponseIfExists(EventType eventType) {
 	ScriptValue scriptValue;
-	runEventHandlerIfExists(eventType, scriptValue);
+	runScriptResponseIfExists(eventType, scriptValue);
 }
 
 SpatialEntity::~SpatialEntity() {

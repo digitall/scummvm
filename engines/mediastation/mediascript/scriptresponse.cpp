@@ -19,13 +19,13 @@
  *
  */
 
-#include "mediastation/mediascript/eventhandler.h"
+#include "mediastation/mediascript/scriptresponse.h"
 #include "mediastation/debugchannels.h"
 #include "mediastation/mediastation.h"
 
 namespace MediaStation {
 
-EventHandler::EventHandler(Chunk &chunk) {
+ScriptResponse::ScriptResponse(Chunk &chunk) {
 	_type = static_cast<EventType>(chunk.readTypedUint16());
 	debugC(5, kDebugLoading, "%s: %s (%d)", __func__, eventTypeToStr(_type), static_cast<uint>(_type));
 
@@ -33,23 +33,22 @@ EventHandler::EventHandler(Chunk &chunk) {
 	_code = new CodeChunk(chunk);
 }
 
-ScriptValue EventHandler::execute(uint actorId) {
+ScriptValue ScriptResponse::execute(uint actorId) {
 	// TODO: The actorId is only passed in for debug visibility, there should be
 	// a better way to handle that.
 	Common::String actorName = g_engine->formatActorName(actorId, true);
 	Common::String actorAndType = Common::String::format("%s (%s)", actorName.c_str(), eventTypeToStr(_type));
 	Common::String argValue = Common::String::format("(%s)", _argumentValue.getDebugString().c_str());
-	debugC(5, kDebugScript, "\n********** EVENT HANDLER %s %s **********", actorAndType.c_str(), argValue.c_str());
+	debugC(5, kDebugScript, "\n********** SCRIPT RESPONSE %s %s **********", actorAndType.c_str(), argValue.c_str());
 
-	// The only argument that can be provided to an
-	// event handler is the _argumentValue.
+	// The only argument that can be provided to a script response is the argument value.
 	ScriptValue returnValue = _code->execute();
 
-	debugC(5, kDebugScript, "********** END EVENT HANDLER %s %s **********", actorAndType.c_str(), argValue.c_str());
+	debugC(5, kDebugScript, "********** END SCRIPT RESPONSE %s %s **********", actorAndType.c_str(), argValue.c_str());
 	return returnValue;
 }
 
-EventHandler::~EventHandler() {
+ScriptResponse::~ScriptResponse() {
 	delete _code;
 	_code = nullptr;
 }

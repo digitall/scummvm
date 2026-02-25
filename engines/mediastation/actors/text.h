@@ -72,7 +72,7 @@ private:
 
 	void setText();
 	void addAcceptedChars(uint firstCharCode, uint lastCharCode, uint charCodeOffset = 0);
-	bool hasEventHandler(EventType eventType, const ScriptValue &arg) const;
+	bool hasScriptResponse(EventType eventType, const ScriptValue &arg) const;
 
 	int16 calcStartingXPosition();
 	int16 calcBaseline();

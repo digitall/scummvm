@@ -61,10 +61,10 @@ void TimerActor::timePlay() {
 
 	// Get the duration of the timer.
 	// TODO: Is there a better way to find out what the max time is? Do we have to look
-	// through each of the timer event handlers to figure it out?
+	// through each of the timer script responses to figure it out?
 	_duration = 0;
-	const Common::Array<EventHandler *> &timeHandlers = _eventHandlers.getValOrDefault(kTimerEvent);
-	for (EventHandler *timeEvent : timeHandlers) {
+	const Common::Array<ScriptResponse *> &timeResponses = _scriptResponses.getValOrDefault(kTimerEvent);
+	for (ScriptResponse *timeEvent : timeResponses) {
 		// Indeed float, not time.
 		double timeEventInFractionalSeconds = timeEvent->_argumentValue.asFloat();
 		uint timeEventInMilliseconds = timeEventInFractionalSeconds * 1000;
@@ -88,7 +88,7 @@ void TimerActor::timeStop() {
 
 void TimerActor::process() {
 	if (_isPlaying) {
-		processTimeEventHandlers();
+		processTimeScriptResponses();
 	}
 }
 
