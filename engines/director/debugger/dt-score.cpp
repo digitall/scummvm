@@ -34,22 +34,58 @@
 #include "director/sprite.h"
 #include "director/window.h"
 
+
 namespace Director {
 namespace DT {
 
-enum { kModeMember, kModeBehavior, kModeLocation, kModeInk, kModeBlend, kModeExtended,
-		kChTempo, kChPalette, kChTransition, kChSound1, kChSound2, kChScript };
+enum { kModeMember, kModeBehavior, kModeLocation, kModeInk, kModeBlend, kModeExtended};
+enum { kChTempo, kChPalette, kChTransition, kChSound1, kChSound2, kChScript };
 const char *modes[] = { "Member", "Behavior", "Location", "Ink", "Blend", "Extended" };
 const char *modes2[] = {
 	ICON_MS_TIMER, "Tempo",					// timer
 	ICON_MS_PALETTE, "Palette",				// palette
 	ICON_MS_TRANSITION_FADE, "Transition",	// transition_fade
 	ICON_MS_VOLUME_UP,"Sound 1",			// volume_up
-	ICON_MS_VOLUME_DOWN,"Sound 2",			// volume_up
+	ICON_MS_VOLUME_DOWN,"Sound 2",			// volume_down
 	ICON_MS_FORMS_APPS_SCRIPT, "Script",	// forms_apps_script
 };
 
-#define FRAME_PAGE_SIZE 100
+struct ScoreLayout {
+	ImVec2 sidebar1Pos;
+	ImVec2 mainChannelGridPos;
+	ImVec2 modeSelectorPos;
+	ImVec2 rulerPos;
+	ImVec2 sidebar2Pos;
+	ImVec2 gridPos;
+	ImVec2 sliderPos;
+	ImVec2 sliderYPos;
+};
+
+static ScoreLayout computeLayout(ImVec2 origin, const ImGuiState::ScoreConfig &cfg) {
+	ScoreLayout l;
+	l.sidebar1Pos = ImVec2(origin.x, origin.y);
+	l.mainChannelGridPos = ImVec2(origin.x + cfg._sidebarWidth, origin.y);
+	l.modeSelectorPos = ImVec2(origin.x, origin.y + cfg._sidebar1Height);
+	l.rulerPos = ImVec2(origin.x + cfg._sidebarWidth, origin.y + cfg._sidebar1Height);
+	l.sidebar2Pos = ImVec2(origin.x, origin.y + cfg._sidebar1Height + cfg._rulerHeight);
+	l.gridPos = ImVec2(origin.x + cfg._sidebarWidth, origin.y + cfg._sidebar1Height + cfg._rulerHeight);
+	l.sliderPos = ImVec2(origin.x + cfg._sidebarWidth, origin.y + cfg._sidebar1Height + cfg._rulerHeight + cfg._tableHeight + 8.0f);
+	l.sliderYPos = ImVec2(origin.x + cfg._sidebarWidth + cfg._tableWidth + 8.0f, origin.y + cfg._sidebar1Height + cfg._rulerHeight);
+	return l;
+}
+
+// helper to convert color for drawlist
+static inline ImU32 U32(const ImVec4 &c) {
+	return ImGui::GetColorU32(c);
+}
+
+// helper to draw thin rectangles for table grid
+static void addThinRect(ImDrawList *dl, ImVec2 min, ImVec2 max, ImU32 col, float thickness = 0.1f) {
+	dl->AddLine(ImVec2(min.x, min.y), ImVec2(max.x, min.y), col, thickness); // top
+	dl->AddLine(ImVec2(max.x, min.y), ImVec2(max.x, max.y), col, thickness); // right
+	dl->AddLine(ImVec2(max.x, max.y), ImVec2(min.x, max.y), col, thickness); // bottom
+	dl->AddLine(ImVec2(min.x, max.y), ImVec2(min.x, min.y), col, thickness); // left
+}
 
 static void buildContinuationData(Window *window) {
 	if (_state->_loadedContinuationData == window->getCurrentMovie()->getMacName()) {
@@ -93,8 +129,8 @@ static void buildContinuationData(Window *window) {
 					prevSprite->_spriteType == sprite._spriteType,
 					prevSprite->_castId == sprite._castId,
 					prevSprite->_startPoint == sprite._startPoint,
-					prevSprite->_width == sprite._width,
-					prevSprite->_height == sprite._height,
+					prevSprite->Width == sprite.Width,
+					prevSprite->Height == sprite.Height,
 					prevSprite->_ink == sprite._ink,
 					prevSprite->_foreColor == sprite._foreColor,
 					prevSprite->_backColor == sprite._backColor,
@@ -128,244 +164,719 @@ static void buildContinuationData(Window *window) {
 	_state->_loadedContinuationData = window->getCurrentMovie()->getMacName();
 }
 
-static void displayScoreChannel(int ch, int mode, int modeSel, Window *window) {
-	Score *score = window->getCurrentMovie()->getScore();
-	uint numFrames = score->_scoreCache.size();
 
-	const uint currentFrameNum = score->getCurrentFrameNum();
-	const ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.7f, 0.7f, 0.0f, 0.65f));
+static void drawSliderY(ImVec2 pos, int numChannels) {
+	auto &cfg = _state->_scoreCfg;
+	ImGui::SetCursorScreenPos(pos);
+	ImGui::SetNextItemWidth(16.0f);
+	int visibleChannels = (_state->_scoreMode == kModeExtended) ? (int)(cfg._tableHeight / cfg._cellHeightExtended) : cfg._visibleChannels;
+	int maxScroll = MAX(1, numChannels - visibleChannels);
+	ImGui::VSliderInt("##channelSlider", ImVec2(16.0f, cfg._tableHeight), &_state->_scoreState.channelScrollOffset, maxScroll, 1);
+}
 
-	ImGui::TableNextRow();
+static void drawSidebar1(ImDrawList *dl, ImVec2 startPos, Score *score) {
+	float toggleColWidth = 20.0f;
+	float labelColWidth = 40.0f;
+	float totalWidth = toggleColWidth + labelColWidth;
+	auto &cfg = _state->_scoreCfg;
 
-	ImGui::PushFont(_state->_tinyFont);
+	for (int ch = 1; ch <= 6; ch++) {
+		float y = startPos.y + (ch - 1) * cfg._cellHeight;
+		ImVec2 rowMin = ImVec2(startPos.x, y);
+		ImVec2 rowMax = ImVec2(startPos.x + totalWidth, y + cfg._cellHeight);
 
-	if (modeSel == kModeExtended && mode == kModeExtended)
-		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiCol_TableRowBgAlt));
+		dl->AddRectFilled(rowMin, rowMax, cfg._tableDarkColor);
+		addThinRect(dl, rowMin, rowMax, cfg._borderColor);
 
-	{ // Playback toggle
-		ImGui::TableNextColumn();
+		float radius = 5.0f;
+		float pad  = cfg._cellHeight * 0.12f; // inner padding
 
-		ImGui::PushID(ch + 20000 - mode);
-		ImDrawList *dl = ImGui::GetWindowDrawList();
-		const ImVec2 pos = ImGui::GetCursorScreenPos();
-		const ImVec2 mid(pos.x + 7, pos.y + 7);
+		ImVec2 center(rowMin.x + pad + radius, rowMax.y - pad - radius);
 
-		ImGui::InvisibleButton("Line", ImVec2(16, ImGui::GetFontSize()));
-		ImGui::SetItemTooltip("Playback toggle");
+		dl->AddCircleFilled(center, radius, U32(_state->_colors._channel_toggle));
 
-		if (ImGui::IsItemClicked(0)) {
-			if (mode == kModeMember) {
-				score->_channels[ch]->_visible = !score->_channels[ch]->_visible;
+		// channel number centered in the right column
+		ImFont *iconFont = ImGui::GetIO().FontDefault;
+		const char *icon = modes2[(ch - 1) * 2];
+		float textlen = ImGui::CalcTextSize(icon).x;
+		float textX = startPos.x + toggleColWidth + (labelColWidth - textlen) / 2.0f;
+		float textY = y + (cfg._cellHeight - ImGui::GetTextLineHeight()) / 2.0f;
+		dl->AddText(iconFont, 0.0f, ImVec2(textX, textY), U32(_state->_colors._type_color), icon);
 
-				window->render(true);
+		// invisible button covering the row for interaction
+		ImGui::SetCursorScreenPos(rowMin);
+		ImGui::InvisibleButton(Common::String::format("##s1row%d", ch).c_str(), ImVec2(totalWidth, cfg._cellHeight));
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("%s", modes2[(ch - 1) * 2 + 1]);
+
+	}
+}
+
+static void drawSidebar2(ImDrawList *dl, ImVec2 startPos, Score *score) {
+	float toggleColWidth = 20.0f;
+	float labelColWidth  = 40.0f;
+	float totalWidth = toggleColWidth + labelColWidth;
+	auto &cfg = _state->_scoreCfg;
+	float cellH = (_state->_scoreMode == kModeExtended) ? cfg._cellHeightExtended : cfg._cellHeight; // using this only for cell height, as only cell height changes in extended mode
+	int visibleChannels = (_state->_scoreMode == kModeExtended) ? (int)(cfg._tableHeight / cfg._cellHeightExtended) : cfg._visibleChannels;
+
+
+	for (int i = 0; i < visibleChannels; i++) {
+		int ch = i + _state->_scoreState.channelScrollOffset;
+		float y = startPos.y + i * cellH;
+		ImVec2 rowMin = ImVec2(startPos.x, y);
+		ImVec2 rowMax = ImVec2(startPos.x + totalWidth, y + cellH);
+
+		if (ch >= (int)score->_channels.size()) break;
+
+
+		dl->AddRectFilled(rowMin, rowMax, cfg._tableDarkColor);
+		addThinRect(dl, rowMin, rowMax, cfg._borderColor);
+
+		// toggle circle
+		// small square at bottom-left of the cell (size relative to cell)
+		float radius = 5.0f;   // square size
+		float pad  = cfg._cellHeight * 0.12f;   // inner padding
+
+		ImVec2 center(rowMin.x + pad + radius, rowMax.y - pad - radius);
+
+		if (score->_channels[ch]->_visible)
+			dl->AddCircleFilled(center, radius, U32(_state->_colors._channel_toggle));
+		else
+			dl->AddCircle(center, radius, U32(_state->_colors._channel_toggle));
+
+		ImGui::SetCursorScreenPos(rowMin);
+		ImGui::InvisibleButton(Common::String::format("##s2toggle%d", ch).c_str(), ImVec2(toggleColWidth, cellH));
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Playback toggle");
+		if (ImGui::IsItemClicked()) { // determines what happens on toggle of the button
+			score->_channels[ch]->_visible = !score->_channels[ch]->_visible;
+		}
+
+		// channel num and extra stuff if extended mode
+		char buf[8];
+		snprintf(buf, sizeof(buf), "%d", ch);
+		float textX  = startPos.x + toggleColWidth;
+
+		if (_state->_scoreMode != kModeExtended) {
+			float textY = y + (cellH - ImGui::GetTextLineHeight()) / 2.0f;
+			dl->AddText(ImVec2(textX, textY), U32(_state->_colors._keyword_color), buf);
+		} else { // draw channel number and labels
+			dl->AddText(ImVec2(textX, y + 2.0f), U32(_state->_colors._keyword_color), buf);
+			const char *subLabels[] = { "Member", "Behavior", "Ink", "Blend", "Location" };
+			float lineH = ImGui::GetTextLineHeight();
+			for (int s = 0; s < 5; s++) {
+				float subX = textX - 17.0f;
+				float subY = y + lineH + 2.0f + s * lineH; // offset below channel number
+				dl->AddText(ImVec2(subX, subY), U32(_state->_colors._type_color), subLabels[s]);
 			}
 		}
-
-		if (mode != kModeMember || score->_channels[ch]->_visible)
-			dl->AddCircleFilled(mid, 4.0f, ImColor(_state->_colors._channel_toggle));
-		else
-			dl->AddCircle(mid, 4.0f, ImColor(_state->_colors._channel_toggle));
-
-		ImGui::PopID();
 	}
+}
 
-	{	// Channel name / number
-		ImGui::TableNextColumn();
+static void drawRuler(ImDrawList *dl, ImVec2 startPos) {
+	auto &cfg = _state->_scoreCfg;
+	int start = _state->_scoreState.xSliderValue;
+	ImVec2 p1 = startPos;
+	ImVec2 p2 = {p1.x + cfg._rulerWidth, p1.y + cfg._rulerHeight};
 
-		float indentSize = 17.0f;
+	dl->AddRectFilled(p1, p2, cfg._tableDarkColor);
+	addThinRect(dl, p1, p2, cfg._borderColor);
 
-		if (mode < kChTempo && modeSel == kModeExtended)
-			indentSize = 10.0f;
+	float bigTickLen = cfg._rulerHeight * 0.4f;
+	float smallTickLen = cfg._rulerHeight * 0.3f;
 
-		if (modeSel == kModeExtended && mode == kModeExtended)
-			indentSize = 0.1f;
+	// i is the real frame number (1-indexed), rulerX is its pixel position
+	for (int i = start; i < start + cfg._visibleFrames; i++) {
+		float rulerX = p1.x + (i - start) * cfg._cellWidth + cfg._cellWidth / 2.0f;
+		float len = smallTickLen;
+		float thickness = 1.0f;
 
-		ImGui::Indent(indentSize);
-
-		if (mode >= kChTempo) {
-			ImGui::PushFont(ImGui::GetIO().FontDefault);
-
-			ImGui::Text(modes2[(mode - kChTempo) * 2]);
-			ImGui::SetItemTooltip(modes2[(mode - kChTempo) * 2 + 1]);
-
-			ImGui::PopFont();
-		} else if (modeSel != kModeExtended || mode == kModeExtended) {
-			ImGui::Text("%3d", ch);
-		} else {
-			ImGui::Text(modes[mode]);
+		if (i % 5 == 0) {
+			len = bigTickLen;
+			thickness = 1.5f;
+			char buf[16];
+			snprintf(buf, sizeof(buf), "%d", i);
+			float textlen = ImGui::CalcTextSize(buf).x;
+			dl->AddText(ImVec2(rulerX - textlen / 2, p1.y + 4.0), U32(_state->_colors._type_color), buf);
 		}
 
-		if (ch == _state->_selectedScoreCast.channel)
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImGui::GetColorU32(ImVec4(0.5f, 0.5f, 0.5f, 0.6f)));
-		else
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImGui::GetColorU32(ImGuiCol_TableHeaderBg));
-
-		ImGui::Unindent(indentSize);
+		dl->AddLine(ImVec2(rulerX, p2.y), ImVec2(rulerX, p2.y - len), U32(_state->_colors._line_color), thickness);
 	}
+}
 
-	numFrames -= _state->_scoreFrameOffset - 1;
-	numFrames = MIN<uint>(numFrames, kMaxColumnsInTable - 2);
+static void drawModeSelector(ImVec2 startPos) {
+	auto &cfg = _state->_scoreCfg;
+	ImGui::SetNextItemWidth(cfg._sidebarWidth);
+	ImGui::SetCursorScreenPos(startPos);
+	if (ImGui::BeginCombo("##mode", modes[_state->_scoreMode])) {
+		for (int i = 0; i < IM_ARRAYSIZE(modes); i++) {
+			bool isSelected = (_state->_scoreMode == i);
+			if (ImGui::Selectable(modes[i], isSelected))
+				_state->_scoreMode = i;
+			if (isSelected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+}
 
-	for (int f = 0; f < (int)numFrames; f++) {
-		int rf = f + _state->_scoreFrameOffset - 1;
-		Frame &frame = *score->_scoreCache[rf];
-		Sprite &sprite = *frame._sprites[ch];
+static void drawSpriteInspector(Score *score, Cast *cast, uint numFrames) {
 
-		_state->_colors._contColorIndex = frame._sprites[ch]->_colorcode & 0x07;
-		if (_state->_colors._contColorIndex > 5)
-			_state->_colors._contColorIndex = 0;
+	if (_state->_scoreFrameOffset >= (int)numFrames)
+		_state->_scoreFrameOffset = 1;
 
-		ImGui::TableNextColumn();
+	{ // Render sprite details
+		Sprite *sprite = nullptr;
+		CastMember *castMember = nullptr;
+		bool shape = false;
 
-		int startCont = _state->_continuationData[ch][rf].first;
-		int endCont = _state->_continuationData[ch][rf].second;
+		if (_state->_selectedScoreCast.frame != -1)
+			sprite = score->_scoreCache[_state->_selectedScoreCast.frame]->_sprites[_state->_selectedScoreCast.channel];
 
-		if (!(startCont == endCont) && (sprite._castId.member || sprite.isQDShape())) {
-			if (_state->_selectedScoreCast.frame + _state->_scoreFrameOffset - 1 >= startCont &&
-				_state->_selectedScoreCast.frame + _state->_scoreFrameOffset - 1 <= endCont &&
-				ch == _state->_selectedScoreCast.channel &&
-				mode <= kModeExtended) {
-				ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, _state->_colors._channel_selected_col);
-			} else if (_state->_hoveredScoreCast.frame >= startCont &&
-				_state->_hoveredScoreCast.frame <= endCont &&
-				ch == _state->_hoveredScoreCast.channel) {
-				ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, _state->_colors._channel_hovered_col);
-			} else {
-				if (mode == modeSel)
-					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, _state->_colors._contColors[_state->_colors._contColorIndex]);
-				else
-					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, brightenColor(_state->_colors._contColors[_state->_colors._contColorIndex], 1.5));
-			}
+		if (sprite) {
+			castMember = cast->getCastMember(sprite->_castId.member, true);
+
+			shape = sprite->isQDShape();
 		}
 
-		if (rf + 1 == (int)currentFrameNum)
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Image", ImVec2(200.0f, 70.0f));
 
-		if (f == _state->_selectedScoreCast.frame + _state->_scoreFrameOffset - 1 &&
-		  ch == _state->_selectedScoreCast.channel && mode <= kModeExtended)
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImGui::GetColorU32(ImVec4(1.0f, 0.3f, 0.3f, 0.6f)));
+		if (castMember || shape) {
+			ImGuiImage imgID = {};
 
-		int mode1 = mode;
+			if (castMember) {
+				switch (castMember->_type) {
+				case kCastBitmap:
+					imgID = getImageID(castMember);
+					break;
+				case kCastShape:
+					imgID = getShapeID(castMember);
+					break;
+				case kCastText:
+				case kCastButton:
+				case kCastRichText:
+					imgID = getTextID(castMember);
+					break;
 
-		ImGui::PushID((ch * 20 + mode) * 10000 + f);
-
-		// If the frame is not the start, then don't render any text
-		if (mode == kModeMember) {
-			if (rf != startCont || !(sprite._castId.member || sprite.isQDShape())) {
-				if (rf == endCont && sprite._castId.member && mode == _state->_scoreMode) {
-					ImGui::PushFont(ImGui::GetIO().FontDefault);
-					ImGui::TextUnformatted("\uf819");
-					ImGui::PopFont();
-				} else {
-					if (sprite._castId.member) {
-						ImGui::Selectable("─");
-					} else {
-						ImGui::Selectable("  ");
-					}
+				default:
+					break;
 				}
-				mode1 = -1; // Skip cell data rendering
 			}
-		}
 
-		switch (mode1) {
-		case -1:
-			break;
-
-		case kModeMember:
-			if (sprite._castId.member)
-				ImGui::Selectable(Common::String::format("%d", sprite._castId.member).c_str());
-			else if (sprite.isQDShape())
-				ImGui::Selectable("Q");
-			else
-				ImGui::Selectable("  ");
-			break;
-
-		case kModeInk:
-			ImGui::Selectable(Common::String::format("%s", inkType2str(sprite._ink)).c_str());
-			break;
-
-		case kModeLocation:
-			ImGui::Selectable(Common::String::format("%d, %d", sprite._startPoint.x, sprite._startPoint.y).c_str());
-			break;
-
-		case kModeBlend:
-			ImGui::Selectable(Common::String::format("%d", sprite._blendAmount).c_str());
-			break;
-
-		case kModeBehavior:
-			displayScriptRef(sprite._scriptId);
-			break;
-
-		case kChTempo:
-			if (frame._mainChannels.tempo)
-				ImGui::Selectable(Common::String::format("%d", frame._mainChannels.tempo).c_str());
-			break;
-
-		case kChPalette:
-			if (frame._mainChannels.palette.paletteId.member)
-				ImGui::Selectable(Common::String::format("%d", frame._mainChannels.palette.paletteId.member).c_str());
-			break;
-
-		case kChTransition:
-			if (frame._mainChannels.transType)
-				ImGui::Selectable(Common::String::format("%d", frame._mainChannels.transType).c_str());
-			break;
-
-		case kChSound1:
-			if (frame._mainChannels.sound1.member)
-				ImGui::Selectable(Common::String::format("%d", frame._mainChannels.sound1.member).c_str());
-			break;
-
-		case kChSound2:
-			if (frame._mainChannels.sound2.member)
-				ImGui::Selectable(Common::String::format("%d", frame._mainChannels.sound2.member).c_str());
-			break;
-
-		case kChScript:
-			displayScriptRef(frame._mainChannels.actionId);
-			break;
-
-		case kModeExtended: // Render empty row
-		default:
-			ImGui::Selectable("  ");
-		}
-
-		ImGui::PopID();
-
-		if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-			_state->_selectedScoreCast.frame = f + _state->_scoreFrameOffset - 1;
-			_state->_selectedScoreCast.channel = ch;
-
-			if (f + _state->_scoreFrameOffset == (int)currentFrameNum) {
-				if (_state->_selectedChannel == ch)
-					_state->_selectedChannel = -1;
-				else
-					_state->_selectedChannel = ch;
-
-				window->render(true);
+			if (castMember && imgID.id) {
+				Common::String name(getDisplayName(castMember));
+				showImage(imgID, name.c_str(), 32.f);
+			} else {
+				ImGui::InvisibleButton("##canvas", ImVec2(32.f, 32.f));
 			}
+			ImGui::SameLine();
+			ImGui::Text("%s", sprite->_castId.asString().c_str());
+			ImGui::Text("%s", spriteType2str(sprite->_spriteType));
 		}
 
-		if (ImGui::IsItemHovered()) {
-			_state->_hoveredScoreCast.frame = f;
-			_state->_hoveredScoreCast.channel = ch;
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+		ImGui::BeginChild("Details", ImVec2(500.0f, 70.0f));
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Ink", ImVec2(150.0f, 20.0f));
+
+		if (castMember || shape) {
+			ImGui::Text("%s", inkType2str(sprite->_ink));
+			ImGui::SameLine(70);
+			ImGui::SetItemTooltip("Ink");
+			ImGui::Text("|");
+			ImGui::SameLine();
+			ImGui::Text("%d", sprite->_blendAmount);
+			ImGui::SameLine();
+			ImGui::SetItemTooltip("Blend");
 		}
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Range", ImVec2(100.0f, 20.0f));
+
+		if (castMember || shape) {
+			ImGui::TextUnformatted("\uf816"); ImGui::SameLine();	// line_start_circle
+			// the continuation data is 0-indexed but the frames are 1-indexed
+			ImGui::Text("%4d", _state->_continuationData[_state->_selectedScoreCast.channel][_state->_selectedScoreCast.frame].first + 1); ImGui::SameLine(50);
+			ImGui::SetItemTooltip("Start Frame");
+			ImGui::TextUnformatted("\uf819"); ImGui::SameLine();	// line_end_square
+			// the continuation data is 0-indexed but the frames are 1-indexed
+			ImGui::Text("%4d", _state->_continuationData[_state->_selectedScoreCast.channel][_state->_selectedScoreCast.frame].second + 1); ImGui::SameLine();
+			ImGui::SetItemTooltip("End Frame");
+		}
+
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Flags", ImVec2(200.0f, 20.0f));
+
+		if (castMember || shape) {
+			ImGui::Checkbox(ICON_MS_LOCK, &sprite->_enabled); ImGui::SameLine();
+			ImGui::SetItemTooltip("enabled");
+			ImGui::Checkbox(ICON_MS_EDIT_NOTE, &sprite->_editable); ImGui::SameLine();
+			ImGui::SetItemTooltip("editable");
+			ImGui::Checkbox(ICON_MS_MOVE_SELECTION_RIGHT, &sprite->_moveable); ImGui::SameLine();
+			ImGui::SetItemTooltip("moveable");
+			ImGui::Checkbox(ICON_MS_DYNAMIC_FEED, &sprite->_trails);
+			ImGui::SetItemTooltip("trails");
+		}
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Colors", ImVec2(150.0f, 50.0f));
+
+		if (castMember || shape) {
+			ImVec4 fg = convertColor(sprite->_foreColor);
+
+			ImGui::ColorButton("foreColor", fg);
+			ImGui::SameLine();
+			ImGui::Text("#%02x%02x%02x", (int)(fg.x * 255), (int)(fg.y * 255), (int)(fg.z * 255));
+			ImGui::SetItemTooltip("Foreground Color");
+			ImVec4 bg = convertColor(sprite->_backColor);
+			ImGui::ColorButton("backColor", bg);
+			ImGui::SameLine();
+			ImGui::Text("#%02x%02x%02x", (int)(bg.x * 255), (int)(bg.y * 255), (int)(bg.z * 255));
+			ImGui::SameLine();
+			ImGui::SetItemTooltip("Background Color");
+		}
+
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Coordinates", ImVec2(150.0f, 50.0f));
+
+		if (castMember || shape) {
+			ImGui::Text("X:"); ImGui::SameLine();
+			ImGui::Text("%d", sprite->_startPoint.x); ImGui::SameLine(75);
+			ImGui::SetItemTooltip("Reg Point Horizontal");
+			ImGui::Text("W:"); ImGui::SameLine();
+			ImGui::Text("%d", sprite->getWidth());
+			ImGui::SetItemTooltip("Width");
+
+			ImGui::Text("Y:"); ImGui::SameLine();
+			ImGui::Text("%d", sprite->_startPoint.y); ImGui::SameLine(75);
+			ImGui::SetItemTooltip("Reg Point Vertical");
+			ImGui::Text("H:"); ImGui::SameLine();
+			ImGui::Text("%d", sprite->getHeight()); ImGui::SameLine();
+			ImGui::SetItemTooltip("Height");
+		}
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		ImGui::BeginChild("Bbox", ImVec2(150.0f, 50.0f));
+
+		if (castMember || shape) {
+			const Common::Rect &box = sprite->getBbox(true);
+
+			ImGui::Text("l:"); ImGui::SameLine();
+			ImGui::Text("%d", box.left); ImGui::SameLine(75);
+			ImGui::SetItemTooltip("Left");
+			ImGui::Text("r:"); ImGui::SameLine();
+			ImGui::Text("%d", box.right);
+			ImGui::SetItemTooltip("Right");
+
+			ImGui::Text("t:"); ImGui::SameLine();
+			ImGui::Text("%d", box.top); ImGui::SameLine(75);
+			ImGui::SetItemTooltip("Top");
+			ImGui::Text("b:"); ImGui::SameLine();
+			ImGui::Text("%d", box.bottom);
+			ImGui::SetItemTooltip("Bottom");
+		}
+		ImGui::PopStyleColor();
+		ImGui::EndChild();
+
+		ImGui::EndChild();
 	}
 
-	ImGui::PopFont();
+}
+
+static void drawSpriteGrid(ImDrawList *dl, ImVec2 startPos, Score *score, Cast *cast, Window *window) {
+	int total_frames = (int)score->_scoreCache.size();
+
+	auto &cfg = _state->_scoreCfg;
+	float cellH = (_state->_scoreMode == kModeExtended) ? cfg._cellHeightExtended : cfg._cellHeight;
+	int visibleChannels = (_state->_scoreMode == kModeExtended) ? (int)(cfg._tableHeight / cfg._cellHeightExtended) : cfg._visibleChannels;
+	int startFrame = MAX(0, _state->_scoreState.xSliderValue - 1);
+	int numChannels = MIN<int>(score->_scoreCache[0]->_sprites.size(), score->_maxChannelsUsed + 10);
+
+	ImVec2 gridMin = startPos;
+	ImVec2 gridMax = ImVec2(startPos.x + cfg._tableWidth, startPos.y + cfg._tableHeight);
+	dl->PushClipRect(gridMin, gridMax, false);
+
+	for (int i = 0; i < visibleChannels; i++) {
+		int ch = i + _state->_scoreState.channelScrollOffset;
+		if (ch >= numChannels) break;
+		float y = startPos.y + i * cellH;
+
+		// pass 1: draw cell backgrounds
+		for (int f = 0; f < cfg._visibleFrames; f++) {
+			int rf = startFrame + f;
+			float x = startPos.x + f * cfg._cellWidth;
+			ImVec2 cellMin = ImVec2(x, y);
+			ImVec2 cellMax = ImVec2(x + cfg._cellWidth, y + cellH);
+			ImU32 col = ((rf + 1) % 5 == 0) ? cfg._tableDarkColor : cfg._tableLightColor;
+			dl->AddRectFilled(cellMin, cellMax, col);
+			addThinRect(dl, cellMin, cellMax, cfg._borderColor);
+		}
+
+		// pass 2: draw sprite span bars on top of cells
+		for (int f = 0; f < cfg._visibleFrames; f++) {
+			int rf = startFrame + f;
+			if (rf >= total_frames) break;
+			Frame &frame = *score->_scoreCache[rf];
+			Sprite &sprite = *frame._sprites[ch];
+
+			if (!sprite._castId.member && !sprite.isQDShape()) continue; // empty cell
+			if (ch >= (int)_state->_continuationData.size()) continue;
+			if (rf >= (int)_state->_continuationData[ch].size()) break;
+
+			int spanStart = _state->_continuationData[ch][rf].first;
+			int spanEnd = _state->_continuationData[ch][rf].second;
+
+			if (rf != spanStart && f != 0) continue;
+			float x1 = startPos.x + MAX<float>(spanStart - startFrame, 0) * cfg._cellWidth;
+			float x2 = MIN<float>(startPos.x + (spanEnd - startFrame + 1) * cfg._cellWidth, startPos.x + cfg._tableWidth);
+
+			if (ch >= (int)_state->_continuationData.size()) continue;
+			if (rf >= (int)_state->_continuationData[ch].size()) break;
+
+			bool startVisible = spanStart >= startFrame;
+			bool endVisible = spanEnd < startFrame + cfg._visibleFrames;
+
+			// clamp x1 to grid left edge, x2 to right
+			float cy  = y + cellH * ( (_state->_scoreMode == kModeExtended) ? 0.1 : 0.2);
+			float pad = 0.0f; // vertical padding so bar doesnt touch cell borders
+
+			// color selection based on if the sprite is selected or not
+			ImU32 color;
+			bool isSelected = (_state->_selectedScoreCast.channel == ch &&
+							   _state->_selectedScoreCast.frame >= spanStart &&
+							   _state->_selectedScoreCast.frame <= spanEnd);
+			bool isHovered  = (_state->_hoveredScoreCast.channel == ch &&
+							   _state->_hoveredScoreCast.frame >= spanStart &&
+							   _state->_hoveredScoreCast.frame <= spanEnd);
+
+			if (isSelected)
+				color = U32(_state->_colors._channelSelectedCol);
+			else if (isHovered)
+				color = U32(_state->_colors._channelHoveredCol);
+			else {
+				int colorIdx = sprite._colorcode & 0x07;
+				if (colorIdx > 5) colorIdx = 0;
+				color = U32(_state->_colors._contColors[colorIdx]);
+			}
+
+			float rounding = 0.0f;
+			dl->AddRectFilled(ImVec2(x1, y + pad), ImVec2(x2 - 1.0f, y + cellH - pad), color, rounding);
+			// horizontal line through the middle, offset from x1 if circle is present
+			dl->AddLine(ImVec2(x1 + (startVisible ? 6.0f : 0.0f), cy), ImVec2(x2 - 6.0f, cy), U32(_state->_colors._line_color), 1.0f);
+
+			if (startVisible)
+				dl->AddCircle(ImVec2(x1 + 4.0f, cy), 3.0f, U32(_state->_colors._line_color), 0, 1.5f);
+
+			if (endVisible)
+				dl->AddRect(ImVec2(x2 - 7.0f, cy - 3.0f), ImVec2(x2 - 1.0f, cy + 3.0f), U32(_state->_colors._line_color), 0.0f, 0, 1.5f);
+
+
+			if (_state->_scoreMode == kModeExtended && startVisible && (sprite._castId.member || sprite.isQDShape())) {
+				float lineH = ImGui::GetTextLineHeight();
+				float textX = x1 + 4.0f;
+				float baseY = y + 15.0f;
+				CastMember *cm = cast->getCastMember(sprite._castId.member, true);
+				// Member name
+				char buf[64] = "";
+				if (cm)
+					snprintf(buf, sizeof(buf), "%s", getDisplayName(cm).c_str());
+				else if (sprite.isQDShape())
+					snprintf(buf, sizeof(buf), "Q");
+				dl->AddText(ImVec2(textX, baseY), U32(_state->_colors._line_color), buf);
+
+				// Behavior
+				buf[0] = '\0';
+				if (sprite._scriptId.member) {
+					CastMember *sc = cast->getCastMember(sprite._scriptId.member, true);
+					if (sc) snprintf(buf, sizeof(buf), "%s", getDisplayName(sc).c_str());
+				}
+				dl->AddText(ImVec2(textX, baseY + lineH), U32(_state->_colors._line_color), buf);
+
+				// Ink
+				dl->AddText(ImVec2(textX, baseY + lineH * 2), U32(_state->_colors._line_color), inkType2str(sprite._ink));
+
+				// Blend
+				snprintf(buf, sizeof(buf), "%d", sprite._blendAmount);
+				dl->AddText(ImVec2(textX, baseY + lineH * 3), U32(_state->_colors._line_color), buf);
+
+				// Location
+				snprintf(buf, sizeof(buf), "%d,%d", sprite._startPoint.x, sprite._startPoint.y);
+				dl->AddText(ImVec2(textX, baseY + lineH *4), U32(_state->_colors._line_color), buf);
+			}
+
+			if (startVisible && _state->_scoreMode != kModeExtended) {
+				char label[64] = "";
+				CastMember *cm = cast->getCastMember(sprite._castId.member, true);
+				switch (_state->_scoreMode) {
+				case kModeMember:
+					if (cm)
+						snprintf(label, sizeof(label), "%s", getDisplayName(cm).c_str());
+					else if (sprite.isQDShape())
+						snprintf(label, sizeof(label), "Q");
+					break;
+				case kModeBehavior:
+					if (sprite._scriptId.member) {
+						CastMember *script = cast->getCastMember(sprite._scriptId.member, true);
+						if (script)
+							snprintf(label, sizeof(label), "%s", getDisplayName(script).c_str());
+					}
+					break;
+				case kModeInk:
+					snprintf(label, sizeof(label), "%s", inkType2str(sprite._ink));
+					break;
+				case kModeLocation:
+					snprintf(label, sizeof(label), "%d,%d", sprite._startPoint.x, sprite._startPoint.y);
+					break;
+				case kModeBlend:
+					snprintf(label, sizeof(label), "%d", sprite._blendAmount);
+					break;
+				default:
+					break;
+				}
+				if (label[0])
+					dl->AddText(ImVec2(x1 + 4.0f, y + (cellH - ImGui::GetTextLineHeight()) / 2.0f), U32(_state->_colors._line_color), label);
+
+			}
+
+		}
+
+		// pass 3, for clickable rects, add invisible buttosn
+		for (int f = 0; f < cfg._visibleFrames; f++) {
+			int rf = startFrame + f;
+			if (rf >= total_frames) break;
+			float x = startPos.x + f * cfg._cellWidth;
+			ImGui::SetCursorScreenPos(ImVec2(x, y));
+			ImGui::InvisibleButton(Common::String::format("##cell_%d_%d", ch, f).c_str(), ImVec2(cfg._cellWidth, cellH));
+			if (ImGui::IsItemClicked()) {
+				_state->_selectedScoreCast.frame = rf;
+				_state->_selectedScoreCast.channel = ch;
+				_state->_selectedScoreCast.isMainChannel = false;
+			}
+
+			if (ImGui::IsItemHovered()) {
+				_state->_hoveredScoreCast.frame = rf;
+				_state->_hoveredScoreCast.channel = ch;
+			}
+		}
+	}
+	dl->PopClipRect();
+}
+
+static void drawSliderX(ImVec2 pos, Score *score) {
+	auto &cfg = _state->_scoreCfg;
+	ImGui::SetCursorScreenPos(pos);
+	ImGui::SetNextItemWidth(cfg._rulerWidth);
+	int totalFrames = (int)score->_scoreCache.size();
+	int sliderMin = 1;
+	int sliderMax = MAX(totalFrames - cfg._visibleFrames + 1, 1);
+	ImGui::SliderInt("##frameSlider", &_state->_scoreState.xSliderValue, sliderMin, sliderMax);
+}
+
+static void drawMainChannelGrid(ImDrawList *dl, ImVec2 startPos, Score *score) {
+	auto &cfg = _state->_scoreCfg;
+	int startFrame = MAX(0, _state->_scoreState.xSliderValue - 1);
+	int total_frames = (int)score->_scoreCache.size();
+
+	for (int ch = kChTempo; ch <= kChScript; ch++) {
+		float y = startPos.y + ch * cfg._cellHeight;
+
+		// pass 1, backgrounds
+		for (int f = 0; f <= cfg._visibleFrames; f++) {
+			int rf = startFrame + f;
+			float x = startPos.x + f * cfg._cellWidth;
+			ImVec2 cellMin = ImVec2(x, y);
+			ImVec2 cellMax = ImVec2(x + cfg._cellWidth, y + cfg._cellHeight);
+			ImU32 col = ((rf + 1) % 5 == 0) ? cfg._tableDarkColor : cfg._tableLightColor;
+			dl->AddRectFilled(cellMin, cellMax, col);
+			addThinRect(dl, cellMin, cellMax, cfg._borderColor);
+		}
+
+		// pass 2, span bars
+		int f = 0;
+		while (f < cfg._visibleFrames) {
+			int rf = startFrame + f;
+			if (rf >= total_frames) break;
+
+			// get label for this frame
+			Frame &frame = *score->_scoreCache[rf];
+			auto &mc = frame._mainChannels;
+			Common::String label;
+			switch (ch) {
+			case kChTempo: if (mc.tempo) label = Common::String::format("%d", mc.tempo); break;
+			case kChPalette: if (mc.palette.paletteId.member) label = Common::String::format("%d", mc.palette.paletteId.member); break;
+			case kChTransition: if (mc.transType) label = Common::String::format("%d", mc.transType); break;
+			case kChSound1: if (mc.sound1.member) label = Common::String::format("%d", mc.sound1.member); break;
+			case kChSound2: if (mc.sound2.member) label = Common::String::format("%d", mc.sound2.member); break;
+			case kChScript: if (mc.actionId.member) label = Common::String::format("%d", mc.actionId.member); break;
+			}
+
+			if (label.empty()) { f++; continue; }
+
+			// find run end (same value)
+			int runStart = rf, runEnd = rf;
+			for (int nf = rf + 1; nf < total_frames && (nf - startFrame) < cfg._visibleFrames; nf++) {
+				Common::String nextLabel;
+				Frame &nframe = *score->_scoreCache[nf];
+				auto &nmc = nframe._mainChannels;
+				switch (ch) {
+				case kChTempo: if (nmc.tempo) nextLabel = Common::String::format("%d", nmc.tempo); break;
+				case kChPalette: if (nmc.palette.paletteId.member) nextLabel = Common::String::format("%d", nmc.palette.paletteId.member); break;
+				case kChTransition: if (nmc.transType) nextLabel = Common::String::format("%d", nmc.transType); break;
+				case kChSound1: if (nmc.sound1.member) nextLabel = Common::String::format("%d", nmc.sound1.member); break;
+				case kChSound2: if (nmc.sound2.member) nextLabel = Common::String::format("%d", nmc.sound2.member); break;
+				case kChScript: if (nmc.actionId.member) nextLabel = Common::String::format("%d", nmc.actionId.member); break;
+				}
+				if (label == nextLabel) runEnd = nf;
+				else break;
+			}
+
+			bool startVisible = (runStart >= startFrame);
+			bool endVisible = (runEnd < startFrame + cfg._visibleFrames);
+			float x1 = startPos.x + MAX<float>(runStart - startFrame, 0) * cfg._cellWidth;
+			float x2 = MIN<float>(startPos.x + (runEnd - startFrame + 1) * cfg._cellWidth, startPos.x + cfg._tableWidth);
+			float cy = y + cfg._cellHeight * 0.2;
+			float pad = 0.0f;
+
+			dl->AddRectFilled(ImVec2(x1, y + pad), ImVec2(x2 - 1.0f, y + cfg._cellHeight - pad), U32(_state->_colors._contColors[ch % 6]), 0.0f);
+			dl->AddLine(ImVec2(x1 + (startVisible ? 6.0f : 0.0f), cy), ImVec2(x2 - 6.0f, cy), U32(_state->_colors._line_color), 1.0f);
+			if (startVisible)
+				dl->AddCircle(ImVec2(x1 + 4.0f, cy), 3.0f,  U32(_state->_colors._line_color), 0, 1.5f);
+			if (endVisible)
+				dl->AddRect(ImVec2(x2 - 7.0f, cy - 3.0f), ImVec2(x2 - 1.0f, cy + 3.0f), U32(_state->_colors._line_color), 0.0f, 0, 1.5f);
+			f = (runEnd - startFrame) + 1; // skip to after the run
+		}
+
+		// pass 3: invisible buttons for interaction
+		for (f = 0; f < cfg._visibleFrames; f++) {
+			int rf = startFrame + f;
+			if (rf >= total_frames) break;
+			float x = startPos.x + f * cfg._cellWidth;
+			ImGui::SetCursorScreenPos(ImVec2(x, y));
+			ImGui::InvisibleButton(
+				Common::String::format("##maincell_%d_%d", ch, f).c_str(),
+				ImVec2(cfg._cellWidth, cfg._cellHeight)
+			);
+
+			if (ImGui::IsItemClicked()) {
+				_state->_selectedScoreCast.frame = rf;
+				_state->_selectedScoreCast.channel = ch;
+				_state->_selectedScoreCast.isMainChannel = true;
+				Frame &clickedFrame = *score->_scoreCache[rf];
+				auto &mc = clickedFrame._mainChannels;
+				switch (ch) {
+				case kChTempo:
+					break;
+				case kChPalette: // open cast window focused on palette member
+					if (mc.palette.paletteId.member) {
+						_state->_w.cast = true;
+						// select it in the cast so showCast() highlights it
+						for (auto &scriptCast : _state->_scriptCasts) {
+							if (scriptCast == mc.palette.paletteId) {
+								break;
+							}
+						}
+					}
+					break;
+				case kChTransition:
+					break;
+				case kChSound1: // open cast window
+					if (mc.sound1.member)
+						_state->_w.cast = true;
+					break;
+				case kChSound2:
+					if (mc.sound2.member)
+						_state->_w.cast = true;
+					break;
+				case kChScript: // open script in script editor
+					if (mc.actionId.member) {
+						ImGuiScript script = toImGuiScript(kScoreScript, mc.actionId, "");
+						setScriptToDisplay(script);
+						_state->_w.funcList = true;
+					}
+					break;
+				}
+			}
+
+			if (ImGui::IsItemHovered()) {
+				Common::String label;
+				Frame &frame = *score->_scoreCache[rf];
+				auto &mc = frame._mainChannels;
+				switch (ch) {
+				case kChTempo: if (mc.tempo) label = Common::String::format("%d", mc.tempo); break;
+				case kChPalette: if (mc.palette.paletteId.member) label = Common::String::format("%d", mc.palette.paletteId.member); break;
+				case kChTransition: if (mc.transType) label = Common::String::format("%d", mc.transType); break;
+				case kChSound1: if (mc.sound1.member) label = Common::String::format("%d", mc.sound1.member); break;
+				case kChSound2: if (mc.sound2.member) label = Common::String::format("%d", mc.sound2.member); break;
+				case kChScript: if (mc.actionId.member) label = Common::String::format("%d", mc.actionId.member); break;
+				}
+				if (!label.empty())
+					ImGui::SetTooltip("%s: %s", modes2[(ch) * 2 + 1], label.c_str());
+			}
+		}
+	}
+}
+
+static void drawPlayhead(ImDrawList *dl, ImVec2 rulerPos, ImVec2 mainChannelGridPos, ImVec2 gridPos, Score *score) {
+	auto &cfg = _state->_scoreCfg;
+	int start = _state->_scoreState.xSliderValue;
+	uint currentFrameNum = score->getCurrentFrameNum();
+
+	if ((int)currentFrameNum < start || (int)currentFrameNum >= start + cfg._visibleFrames)
+		return;
+
+	float px = rulerPos.x + (currentFrameNum - start) * cfg._cellWidth;
+	float top = mainChannelGridPos.y; // top of main channel grid
+	float bottom = gridPos.y + cfg._tableHeight; // bottom of sprite grid
+	ImU32 RED = IM_COL32(200, 50, 0, 255);
+
+	dl->AddLine(ImVec2(px, top), ImVec2(px, bottom), RED, 2.0f);
+
+	// triangle marker in the ruler
+	dl->AddTriangleFilled(
+		ImVec2(px - 5.0f, rulerPos.y),
+		ImVec2(px + 5.0f, rulerPos.y),
+		ImVec2(px, rulerPos.y + 8.0f),
+		RED
+	);
 }
 
 void showScore() {
 	if (!_state->_w.score)
 		return;
 
-	ImVec2 pos(40, 40);
+	ImVec2 pos(20, 20);
 	ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
 
-	ImVec2 windowSize = ImGui::GetMainViewport()->Size - pos - pos;
+	ImVec2 windowSize = ImGui::GetMainViewport()->Size * 1.5f;
 	ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
 
-	if (ImGui::Begin("Score", &_state->_w.score)) {
+	if (ImGui::Begin("Score", &_state->_w.score, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
 		Window *selectedWindow = windowListCombo(&_state->_scoreWindow);
 
 		buildContinuationData(selectedWindow);
@@ -377,7 +888,6 @@ void showScore() {
 		if (!numFrames) {
 			ImGui::Text("No frames");
 			ImGui::End();
-
 			return;
 		}
 
@@ -387,336 +897,21 @@ void showScore() {
 		if (!numFrames || _state->_selectedScoreCast.channel >= (int)score->_scoreCache[0]->_sprites.size())
 			_state->_selectedScoreCast.channel = 0;
 
-		if (_state->_scoreFrameOffset >= (int)numFrames)
-			_state->_scoreFrameOffset = 1;
-
-		{ // Render sprite details
-			Sprite *sprite = nullptr;
-			CastMember *castMember = nullptr;
-			bool shape = false;
-
-			if (_state->_selectedScoreCast.frame != -1)
-				sprite = score->_scoreCache[_state->_selectedScoreCast.frame]->_sprites[_state->_selectedScoreCast.channel];
-
-			if (sprite) {
-				castMember = cast->getCastMember(sprite->_castId.member, true);
-
-				shape = sprite->isQDShape();
-			}
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Image", ImVec2(200.0f, 70.0f));
-
-			if (castMember || shape) {
-				ImGuiImage imgID = {};
-
-				if (castMember) {
-					switch (castMember->_type) {
-					case kCastBitmap:
-						imgID = getImageID(castMember);
-						break;
-					case kCastShape:
-						imgID = getShapeID(castMember);
-						break;
-					case kCastText:
-					case kCastButton:
-					case kCastRichText:
-						imgID = getTextID(castMember);
-						break;
-
-					default:
-						break;
-					}
-				}
-
-				if (castMember && imgID.id) {
-					Common::String name(getDisplayName(castMember));
-					showImage(imgID, name.c_str(), 32.f);
-				} else {
-					ImGui::InvisibleButton("##canvas", ImVec2(32.f, 32.f));
-				}
-				ImGui::SameLine();
-				ImGui::Text("%s", sprite->_castId.asString().c_str());
-				ImGui::Text("%s", spriteType2str(sprite->_spriteType));
-			}
-
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::SameLine();
-			ImGui::BeginChild("Details", ImVec2(500.0f, 70.0f));
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Ink", ImVec2(150.0f, 20.0f));
-
-			if (castMember || shape) {
-				ImGui::Text("%s", inkType2str(sprite->_ink));
-				ImGui::SameLine(70);
-				ImGui::SetItemTooltip("Ink");
-				ImGui::Text("|");
-				ImGui::SameLine();
-				ImGui::Text("%d", sprite->_blendAmount);
-				ImGui::SameLine();
-				ImGui::SetItemTooltip("Blend");
-			}
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::SameLine();
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Range", ImVec2(100.0f, 20.0f));
-
-			if (castMember || shape) {
-				ImGui::TextUnformatted("\uf816"); ImGui::SameLine();	// line_start_circle
-				// the continuation data is 0-indexed but the frames are 1-indexed
-				ImGui::Text("%4d", _state->_continuationData[_state->_selectedScoreCast.channel][_state->_selectedScoreCast.frame].first + 1); ImGui::SameLine(50);
-				ImGui::SetItemTooltip("Start Frame");
-				ImGui::TextUnformatted("\uf819"); ImGui::SameLine();	// line_end_square
-				// the continuation data is 0-indexed but the frames are 1-indexed
-				ImGui::Text("%4d", _state->_continuationData[_state->_selectedScoreCast.channel][_state->_selectedScoreCast.frame].second + 1); ImGui::SameLine();
-				ImGui::SetItemTooltip("End Frame");
-			}
-
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::SameLine();
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Flags", ImVec2(200.0f, 20.0f));
-
-			if (castMember || shape) {
-				ImGui::Checkbox(ICON_MS_LOCK, &sprite->_enabled); ImGui::SameLine();
-				ImGui::SetItemTooltip("enabled");
-				ImGui::Checkbox(ICON_MS_EDIT_NOTE, &sprite->_editable); ImGui::SameLine();
-				ImGui::SetItemTooltip("editable");
-				ImGui::Checkbox(ICON_MS_MOVE_SELECTION_RIGHT, &sprite->_moveable); ImGui::SameLine();
-				ImGui::SetItemTooltip("moveable");
-				ImGui::Checkbox(ICON_MS_DYNAMIC_FEED, &sprite->_trails);
-				ImGui::SetItemTooltip("trails");
-			}
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Colors", ImVec2(150.0f, 50.0f));
-
-			if (castMember || shape) {
-				ImVec4 fg = convertColor(sprite->_foreColor);
-
-				ImGui::ColorButton("foreColor", fg);
-				ImGui::SameLine();
-				ImGui::Text("#%02x%02x%02x", (int)(fg.x * 255), (int)(fg.y * 255), (int)(fg.z * 255));
-				ImGui::SetItemTooltip("Foreground Color");
-				ImVec4 bg = convertColor(sprite->_backColor);
-				ImGui::ColorButton("backColor", bg);
-				ImGui::SameLine();
-				ImGui::Text("#%02x%02x%02x", (int)(bg.x * 255), (int)(bg.y * 255), (int)(bg.z * 255));
-				ImGui::SameLine();
-				ImGui::SetItemTooltip("Background Color");
-			}
-
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::SameLine();
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Coordinates", ImVec2(150.0f, 50.0f));
-
-			if (castMember || shape) {
-				ImGui::Text("X:"); ImGui::SameLine();
-				ImGui::Text("%d", sprite->_startPoint.x); ImGui::SameLine(75);
-				ImGui::SetItemTooltip("Reg Point Horizontal");
-				ImGui::Text("W:"); ImGui::SameLine();
-				ImGui::Text("%d", sprite->getWidth());
-				ImGui::SetItemTooltip("Width");
-
-				ImGui::Text("Y:"); ImGui::SameLine();
-				ImGui::Text("%d", sprite->_startPoint.y); ImGui::SameLine(75);
-				ImGui::SetItemTooltip("Reg Point Vertical");
-				ImGui::Text("H:"); ImGui::SameLine();
-				ImGui::Text("%d", sprite->getHeight()); ImGui::SameLine();
-				ImGui::SetItemTooltip("Height");
-			}
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::SameLine();
-
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-			ImGui::BeginChild("Bbox", ImVec2(150.0f, 50.0f));
-
-			if (castMember || shape) {
-				const Common::Rect &box = sprite->getBbox(true);
-
-				ImGui::Text("l:"); ImGui::SameLine();
-				ImGui::Text("%d", box.left); ImGui::SameLine(75);
-				ImGui::SetItemTooltip("Left");
-				ImGui::Text("r:"); ImGui::SameLine();
-				ImGui::Text("%d", box.right);
-				ImGui::SetItemTooltip("Right");
-
-				ImGui::Text("t:"); ImGui::SameLine();
-				ImGui::Text("%d", box.top); ImGui::SameLine(75);
-				ImGui::SetItemTooltip("Top");
-				ImGui::Text("b:"); ImGui::SameLine();
-				ImGui::Text("%d", box.bottom);
-				ImGui::SetItemTooltip("Bottom");
-			}
-			ImGui::PopStyleColor();
-			ImGui::EndChild();
-
-			ImGui::EndChild();
-		}
-
-		uint numChannels = MIN<int>(score->_scoreCache[0]->_sprites.size(), score->_maxChannelsUsed + 10);
-		uint tableColumns = MAX(numFrames + 5, 25U); // Set minimal table width to 25
-
-		if (tableColumns > kMaxColumnsInTable - 3) // Current restriction of ImGui
-			tableColumns = kMaxColumnsInTable - 3;
-
-		ImGuiTableFlags addonFlags = _state->_scoreMode == kModeExtended ? 0 : ImGuiTableFlags_RowBg;
-
-		ImGui::BeginChild("Score table", ImVec2(0, -20));
-
-		if (ImGui::BeginTable("Score", tableColumns + 2,
-					ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY |
-					addonFlags)) {
-			ImGuiTableFlags flags = ImGuiTableColumnFlags_WidthFixed;
-
-			ImGui::TableSetupScrollFreeze(2, 2);
-
-			ImGui::PushFont(_state->_tinyFont);
-
-			ImGui::TableSetupColumn("##disable", flags); // disable button
-
-			ImGui::TableSetupColumn("##", flags);   // Number
-			for (uint i = 0; i < tableColumns; i++) {
-				Common::String label = Common::String::format("%-2d", i + _state->_scoreFrameOffset);
-				label += Common::String::format("##l%d", i);
-
-				ImGui::TableSetupColumn(label.c_str(), flags);
-			}
-
-			ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
-			ImGui::TableNextRow(0);
-
-			ImGui::TableSetColumnIndex(0);
-			ImGui::SetNextItemWidth(20);
-
-			ImGui::TableSetColumnIndex(1);
-			ImGui::PushID(0);
-
-			ImGui::SetNextItemWidth(50);
-
-			const char *selMode = modes[_state->_scoreMode];
-
-			if (ImGui::BeginCombo("##mode", selMode)) {
-				for (int n = 0; n < ARRAYSIZE(modes); n++) {
-					const bool selected = (_state->_scoreMode == n);
-					if (ImGui::Selectable(Common::String::format("%s##%d", modes[n], n).c_str(), selected))
-						_state->_scoreMode = n;
-
-					if (selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-
-				ImGui::TableHeader("##");
-			}
-			ImGui::PopID();
-
-			for (uint i = 0; i < tableColumns; i++) {
-				ImGui::TableSetColumnIndex(i + 2);
-				const char *column_name = ImGui::TableGetColumnName(i + 2);
-
-				ImGui::SetNextItemWidth(20);
-				ImGui::TableHeader(column_name);
-			}
-
-			ImGui::TableNextRow();
-
-			ImGui::TableNextColumn(); // Enable/Disable switch
-
-			ImGui::TableNextColumn(); // Label column
-
-			float indentSize = 10.0;
-			ImGui::Indent(indentSize);
-			ImGui::Text("Labels");
-			ImGui::Unindent(indentSize);
-
-			ImGui::PopFont();
-
-			if (score->_labels && score->_labels->size()) {
-				auto labels = *score->_labels;
-				auto it = labels.begin();
-
-				for (uint f = 0; f < tableColumns; f++) {
-					ImGui::TableNextColumn();
-
-					while (it != labels.end() && (*it)->number < f + _state->_scoreFrameOffset)
-						it++;
-
-					if (it == labels.end())
-						continue;
-
-					if ((*it)->number == f + _state->_scoreFrameOffset) {
-						ImGui::Text(ICON_MS_BEENHERE);
-						ImGui::SetItemTooltip((*it)->name.c_str());
-					}
-				}
-			}
-
-			{
-				displayScoreChannel(0, kChTempo, 0, selectedWindow);
-				displayScoreChannel(0, kChPalette, 0, selectedWindow);
-				displayScoreChannel(0, kChTransition, 0, selectedWindow);
-				displayScoreChannel(0, kChSound1, 0, selectedWindow);
-				displayScoreChannel(0, kChSound2, 0, selectedWindow);
-				displayScoreChannel(0, kChScript, 0, selectedWindow);
-			}
-			ImGui::TableNextRow();
-
-			int mode = _state->_scoreMode;
-
-			for (int ch = 0; ch < (int)numChannels - 1; ch++) {
-				if (mode == kModeExtended) // This will render empty row
-					displayScoreChannel(ch + 1, kModeExtended, _state->_scoreMode, selectedWindow);
-
-				if (mode == kModeMember || mode == kModeExtended)
-					displayScoreChannel(ch + 1, kModeMember, _state->_scoreMode, selectedWindow);
-
-				if (mode == kModeBehavior || mode == kModeExtended)
-					displayScoreChannel(ch + 1, kModeBehavior, _state->_scoreMode, selectedWindow);
-
-				if (mode == kModeInk || mode == kModeExtended)
-					displayScoreChannel(ch + 1, kModeInk, _state->_scoreMode, selectedWindow);
-
-				if (mode == kModeBlend || mode == kModeExtended)
-					displayScoreChannel(ch + 1, kModeBlend, _state->_scoreMode, selectedWindow);
-
-				if (mode == kModeLocation || mode == kModeExtended)
-					displayScoreChannel(ch + 1, kModeLocation, _state->_scoreMode, selectedWindow);
-			}
-			ImGui::EndTable();
-		}
-
-		ImGui::EndChild();
-
-		{  // Render pagination
-			ImGui::BeginDisabled(numFrames <= FRAME_PAGE_SIZE);
-			ImGui::Text("   Jump to frame:");
-			ImGui::SameLine();
-			ImGui::SliderInt("##scorepage", &_state->_scorePageSlider, 0, numFrames / FRAME_PAGE_SIZE, "%d00");
-			_state->_scoreFrameOffset = _state->_scorePageSlider * FRAME_PAGE_SIZE + 1;
-			ImGui::EndDisabled();
-
-			ImGui::SameLine();
-			ImGui::Button(ICON_MS_ALIGN_JUSTIFY_CENTER, ImVec2(20, 20));
-			ImGui::SetItemTooltip("Center View");
-		}
+		drawSpriteInspector(score, cast, numFrames);
+		ImDrawList *dl	= ImGui::GetWindowDrawList();
+		ImVec2	 origin = ImGui::GetCursorScreenPos();
+		ScoreLayout layout = computeLayout(origin, _state->_scoreCfg);
+		int numChannels = MIN<int>(score->_scoreCache[0]->_sprites.size(), score->_maxChannelsUsed + 10);
+
+		drawSidebar1(dl, layout.sidebar1Pos, score);
+		drawMainChannelGrid(dl, layout.mainChannelGridPos, score);
+		drawModeSelector(layout.modeSelectorPos);
+		drawRuler(dl, layout.rulerPos);
+		drawSidebar2(dl, layout.sidebar2Pos, score);
+		drawSpriteGrid(dl, layout.gridPos, score, cast, selectedWindow);
+		drawPlayhead(dl, layout.rulerPos, layout.mainChannelGridPos, layout.gridPos, score);
+		drawSliderX(layout.sliderPos, score);
+		drawSliderY(layout.sliderYPos, numChannels);
 
 	}
 	ImGui::End();
@@ -742,12 +937,12 @@ void showChannels() {
 		ImGui::Text("TMPO:   tempo: %d, skipFrameFlag: %d, blend: %d, currentFPS: %d",
 			frame._mainChannels.tempo, frame._mainChannels.skipFrameFlag, frame._mainChannels.blend, score->_currentFrameRate);
 		if (!frame._mainChannels.palette.paletteId.isNull()) {
-			ImGui::Text("PAL:    paletteId: %s, firstColor: %d, lastColor: %d, flags: %d, cycleCount: %d, speed: %d, frameCount: %d, fade: %d, delay: %d, style: %d, currentId: %s, defaultId: %s",
+			ImGui::Text("PAL:	paletteId: %s, firstColor: %d, lastColor: %d, flags: %d, cycleCount: %d, speed: %d, frameCount: %d, fade: %d, delay: %d, style: %d, currentId: %s, defaultId: %s",
 				frame._mainChannels.palette.paletteId.asString().c_str(), frame._mainChannels.palette.firstColor, frame._mainChannels.palette.lastColor, frame._mainChannels.palette.flags,
 				frame._mainChannels.palette.cycleCount, frame._mainChannels.palette.speed, frame._mainChannels.palette.frameCount,
 				frame._mainChannels.palette.fade, frame._mainChannels.palette.delay, frame._mainChannels.palette.style, g_director->_lastPalette.asString().c_str(), defaultPalette.asString().c_str());
 		} else {
-			ImGui::Text("PAL:    paletteId: 000, currentId: %s, defaultId: %s\n", g_director->_lastPalette.asString().c_str(), defaultPalette.asString().c_str());
+			ImGui::Text("PAL:	paletteId: 000, currentId: %s, defaultId: %s\n", g_director->_lastPalette.asString().c_str(), defaultPalette.asString().c_str());
 		}
 		ImGui::Text("TRAN:   transType: %d, transDuration: %d, transChunkSize: %d",
 			frame._mainChannels.transType, frame._mainChannels.transDuration, frame._mainChannels.transChunkSize);
@@ -818,9 +1013,9 @@ void showChannels() {
 					}
 
 					if (score->_channels[i]->_visible)
-						dl->AddCircleFilled(mid, 4.0f, ImColor(_state->_colors._channel_toggle));
+						dl->AddCircleFilled(mid, 4.0f, U32(_state->_colors._channel_toggle));
 					else
-						dl->AddCircle(mid, 4.0f, ImColor(_state->_colors._channel_toggle));
+						dl->AddCircle(mid, 4.0f, U32(_state->_colors._channel_toggle));
 
 					ImGui::PopID();
 				}

@@ -110,6 +110,29 @@ typedef struct WindowFlag {
 } WindowFlag;
 
 typedef struct ImGuiState {
+
+	struct ScoreConfig {
+		float _sidebarWidth = 60.0f;
+		float _cellWidth = 16.0f;
+		float _cellHeight = 20.0f;
+		int _visibleFrames = 60;
+		int _visibleChannels = 25;
+		float _tableWidth = _cellWidth * _visibleFrames;
+		float _tableHeight = _cellHeight * _visibleChannels;
+		float _rulerHeight = 30.0f;
+		float _rulerWidth = _cellWidth * _visibleFrames;
+		float _sidebar1Height = _cellHeight * 6;
+		float _cellHeightExtended = 5 * _cellHeight;
+		ImU32 _tableLightColor = IM_COL32(51,  51,  51,  255);
+		ImU32 _tableDarkColor = IM_COL32(38, 38, 38, 255);
+		ImU32 _borderColor = IM_COL32(102, 102, 102, 100);
+	} _scoreCfg;
+
+	struct ScoreState {
+		int xSliderValue = 1; // first visible frame, 1 indexed
+		int channelScrollOffset = 1; // first visible channel, 1 indexed
+	} _scoreState;
+
 	struct {
 		Common::HashMap<CastMember *, ImGuiImage> _textures;
 		bool _listView = true;
@@ -117,6 +140,7 @@ typedef struct ImGuiState {
 		ImGuiTextFilter _nameFilter;
 		int _typeFilter = 0x7FFF;
 	} _cast;
+
 	struct {
 		ImGuiTextFilter _nameFilter;
 		bool _showScriptContexts = true;
@@ -139,13 +163,15 @@ typedef struct ImGuiState {
 		ImVec4 _channel_toggle = ImColor(IM_COL32(0x30, 0x30, 0xFF, 0xFF));
 
 		ImVec4 _current_statement = ImColor(IM_COL32(0xFF, 0xFF, 0x00, 0xFF));
-		ImVec4 _line_color = ImVec4(0.44f, 0.44f, 0.44f, 1.0f);
+		//ImVec4 _line_color = ImVec4(0.44f, 0.44f, 0.44f, 1.0f);
+		ImVec4 _line_color = ImColor(IM_COL32(0x2F, 0x2F, 0x2F, 0xFF)); // added for better contrast
 		ImVec4 _call_color = ImColor(IM_COL32(0xFF, 0xC5, 0x5C, 0xFF));
 		ImVec4 _builtin_color = ImColor(IM_COL32(0x60, 0x7C, 0xFF, 0xFF));
 		ImVec4 _var_color = ImColor(IM_COL32(0x4B, 0xCD, 0x5E, 0xFF));
 		ImVec4 _literal_color = ImColor(IM_COL32(0xFF, 0x9F, 0xDA, 0x9E));
 		ImVec4 _comment_color = ImColor(IM_COL32(0xFF, 0xA5, 0x9D, 0x95));
-		ImVec4 _type_color = ImColor(IM_COL32(0x13, 0xC5, 0xF9, 0xFF));
+		//ImVec4 _type_color = ImColor(IM_COL32(0x13, 0xC5, 0xF9, 0xFF));
+		ImVec4 _type_color = ImColor(IM_COL32(0xB8, 0xB8, 0xB8, 0xC0)); // added this instead because better contrast
 		ImVec4 _keyword_color = ImColor(IM_COL32(0xC1, 0xC1, 0xC1, 0xFF));
 		ImVec4 _the_color = ImColor(IM_COL32(0xFF, 0x49, 0xEF, 0xFF));
 
@@ -165,8 +191,8 @@ typedef struct ImGuiState {
 			ImColor(IM_COL32(0xff, 0xce, 0x9c, 0x80)), // 0xffce9c,
 		};
 
-		ImColor _channel_selected_col = ImColor(IM_COL32(0x94, 0x00, 0xD3, 0xFF));
-		ImColor _channel_hovered_col = ImColor(IM_COL32(0xFF, 0xFF, 0, 0x3C));
+		ImColor _channelSelectedCol = ImColor(IM_COL32(0x94, 0x00, 0xD3, 0xFF));
+		ImColor _channelHoveredCol = ImColor(IM_COL32(0xFF, 0xFF, 0, 0x3C));
 		int _contColorIndex = 0;
 	} _colors;
 
@@ -194,6 +220,7 @@ typedef struct ImGuiState {
 	struct {
 		int frame = -1;
 		int channel = -1;
+		bool isMainChannel = false;
 	} _selectedScoreCast;
 
 	struct {
@@ -247,7 +274,7 @@ ImColor brightenColor(const ImColor &color, float factor);
 Window *windowListCombo(Common::String *target);
 Common::String formatHandlerName(int scriptId, int castId, Common::String handlerName, ScriptType scriptType, bool childScript);
 
-void showCast();        // dt-cast.cpp
+void showCast();		// dt-cast.cpp
 void showControlPanel(); // dt-controlpanel.cpp
 
 // dt-lists.cpp
@@ -260,8 +287,8 @@ void showArchive();
 void showScore();
 void showChannels();
 
-void renderOldScriptAST(ImGuiScript &script, bool showByteCode, bool scrollTo);    // dt-script-d2.cpp
-void renderScriptAST(ImGuiScript &script, bool showByteCode, bool scrollTo);       // dt-script-d4.cpp
+void renderOldScriptAST(ImGuiScript &script, bool showByteCode, bool scrollTo);	// dt-script-d2.cpp
+void renderScriptAST(ImGuiScript &script, bool showByteCode, bool scrollTo);	   // dt-script-d4.cpp
 
 // dt-scripts.cpp
 void showFuncList();
