@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-26 08:39+0000\n"
-"PO-Revision-Date: 2026-02-24 22:26+0000\n"
+"PO-Revision-Date: 2026-02-26 23:58+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -2814,10 +2814,8 @@ msgid "Save as image"
 msgstr "Сохранить как изображение"
 
 #: gui/printing-dialog.cpp:58
-#, fuzzy
-#| msgid "First page"
 msgid "Fit to page"
-msgstr "Первая страница"
+msgstr "Подогнать под страницу"
 
 #: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
@@ -11203,48 +11201,34 @@ msgstr "Раскладка клавиш титров"
 
 #. I18N: Keymap for various dialogs such as save game dialog.
 #: engines/ngi/metaengine.cpp:120
-#, fuzzy
-#| msgid "Quit panel keymapping"
 msgid "Dialog keymappings"
-msgstr "Раскладка клавиш панели выхода"
+msgstr "Раскладка клавиш диалога"
 
 #: engines/ngi/metaengine.cpp:130
-#, fuzzy
-#| msgid "Select a Theme"
 msgid "Deselect item"
-msgstr "Выберите тему"
+msgstr "Отменить выбор элемента"
 
 #. I18N: Stops all currently playing sounds.
 #: engines/ngi/metaengine.cpp:143
-#, fuzzy
-#| msgid "Preload sounds"
 msgid "Stop sounds"
-msgstr "Предварительная загрузка звуков"
+msgstr "Остановить звук"
 
 #: engines/ngi/metaengine.cpp:155 engines/teenagent/metaengine.cpp:226
-#, fuzzy
-#| msgid "Toggle Inventory/IQ Points display"
 msgid "Toggle inventory"
-msgstr "Переключить показ инвентаря/очков IQ"
+msgstr "Переключить инвентарь"
 
 #: engines/ngi/metaengine.cpp:176
-#, fuzzy
-#| msgid "Show credits"
 msgid "Skip credits"
-msgstr "Показать авторов"
+msgstr "Пропустить титры"
 
 #. I18N: Closes any open dialogs, such as save game dialog.
 #: engines/ngi/metaengine.cpp:183
-#, fuzzy
-#| msgid "Close the Dialogue box"
 msgid "Close dialog"
-msgstr "Закрыть окно диалога"
+msgstr "Закрыть диалог"
 
 #: engines/ngi/metaengine.cpp:197
-#, fuzzy
-#| msgid "Close popup"
 msgid "Close map"
-msgstr "Закрыть выпадающий список"
+msgstr "Закрыть карту"
 
 #: engines/parallaction/saveload.cpp:129
 #, c-format
@@ -11305,38 +11289,28 @@ msgstr ""
 "Пожалуйста, сообщите об этом команде ScummVM."
 
 #: engines/pegasus/pegasus.cpp:2724
-#, fuzzy
-#| msgid "Up/Zoom In/Move Forward/Open Doors"
 msgid "Up / Zoom in / Move forward / Open door"
-msgstr "Вверх/Увел. масштаб/Вперёд/Открыть двери"
+msgstr "Вверх / Увел. масштаб / Вперёд / Открыть двери"
 
 #: engines/pegasus/pegasus.cpp:2732
-#, fuzzy
-#| msgid "Down/Zoom Out"
 msgid "Down / Zoom out"
-msgstr "Вниз/Уменьш. масштаб"
+msgstr "Вниз / Уменьш. масштаб"
 
 #: engines/pegasus/pegasus.cpp:2754
 msgid "Action/Select"
 msgstr "Действие/Выбор"
 
 #: engines/pegasus/pegasus.cpp:2774
-#, fuzzy
-#| msgid "Toggle Inventory/IQ Points display"
 msgid "Toggle inventory tray"
-msgstr "Переключить показ инвентаря/очков IQ"
+msgstr "Переключить панель инвентаря"
 
 #: engines/pegasus/pegasus.cpp:2781
-#, fuzzy
-#| msgid "Toggle Height"
 msgid "Toggle biochip tray"
-msgstr "Переключить высоту"
+msgstr "Переключить панель биочипа"
 
 #: engines/pegasus/pegasus.cpp:2789
-#, fuzzy
-#| msgid "Toggle Center Data Display"
 msgid "Toggle center data display"
-msgstr "Включить показ данных в центре экрана"
+msgstr "Включить показ центрального экрана данных"
 
 #: engines/pegasus/pegasus.cpp:2796
 #, fuzzy
