@@ -4694,8 +4694,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::ES_ESP, Common::kPlatformDOS, ADGF_ADDENGLISH, GUIO_STD16	},
 
-	// Police Quest 3 EGA
-	// Reported by musiclyinspired in bug report #5251
+	// Police Quest 3 EGA - (720k disks)
 	{"pq3", "EGA", {
 		{"resource.map", 0, "1341f7c9643947414a8e238b88f68d82", 5901},
 		{"resource.000", 0, "7659713720d61d9465a59091b7ee63ea", 402208},
@@ -4704,6 +4703,16 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.003", 0, "31c226bf01b69c8182b8ca0e8760b0a7", 527848},
 		{"resource.004", 0, "b96a86ab681769e4cbb439670d967ca6", 449682},
 		{"resource.005", 0, "9e6c53a0e7eef53694d260fade8b1fc7", 724000},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO_STD16	},
+
+	// Police Quest 3 EGA - (1.2M disks)
+	{"pq3", "EGA", {
+		{"resource.map", 0, "aa938c5c3ffd4927bba4edfb9db640df", 5535},
+		{"resource.000", 0, "7659713720d61d9465a59091b7ee63ea", 504069},
+		{"resource.001", 0, "0284ca44341fbc3cb7a047e49d230234", 869158},
+		{"resource.002", 0, "31c226bf01b69c8182b8ca0e8760b0a7", 983665},
+		{"resource.003", 0, "9e6c53a0e7eef53694d260fade8b1fc7", 930048},
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO_STD16	},
 
