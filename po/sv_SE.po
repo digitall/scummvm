@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.5.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-26 08:39+0000\n"
-"PO-Revision-Date: 2026-02-23 14:45+0000\n"
+"PO-Revision-Date: 2026-02-26 11:31+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/sv/>\n"
@@ -2803,10 +2803,8 @@ msgid "Save as image"
 msgstr "Spara som bild"
 
 #: gui/printing-dialog.cpp:58
-#, fuzzy
-#| msgid "First page"
 msgid "Fit to page"
-msgstr "Första sida"
+msgstr "Anpassa till sida"
 
 #: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
@@ -8974,14 +8972,10 @@ msgid "Info menu"
 msgstr "Info-meny"
 
 #: engines/freescape/games/castle/castle.cpp:349
-#, fuzzy
-#| msgid "Select Prince"
 msgid "Select prince"
 msgstr "Välj prins"
 
 #: engines/freescape/games/castle/castle.cpp:354
-#, fuzzy
-#| msgid "Select Princess"
 msgid "Select princess"
 msgstr "Välj prinsessa"
 
@@ -8997,19 +8991,15 @@ msgstr "Växla ljud"
 #: engines/freescape/games/dark/dark.cpp:214
 #: engines/freescape/games/driller/driller.cpp:144
 #: engines/freescape/games/eclipse/eclipse.cpp:259
-#, fuzzy
-#| msgid "Rotate Left"
 msgid "Rotate left"
-msgstr "Rotera vänster"
+msgstr "Rotera åt vänster"
 
 #: engines/freescape/games/castle/castle.cpp:387
 #: engines/freescape/games/dark/dark.cpp:219
 #: engines/freescape/games/driller/driller.cpp:149
 #: engines/freescape/games/eclipse/eclipse.cpp:264
-#, fuzzy
-#| msgid "Rotate Right"
 msgid "Rotate right"
-msgstr "Rotera höger"
+msgstr "Rotera åt höger"
 
 #: engines/freescape/games/castle/castle.cpp:403
 msgid "Crawl"
@@ -9017,8 +9007,6 @@ msgstr "Kryp"
 
 #: engines/freescape/games/castle/castle.cpp:409
 #: engines/freescape/games/eclipse/eclipse.cpp:293
-#, fuzzy
-#| msgid "Face Forward"
 msgid "Face forward"
 msgstr "Vänd framåt"
 
@@ -9037,51 +9025,37 @@ msgstr "Rulla åt höger"
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/dark/dark.cpp:235
 #: engines/freescape/games/driller/driller.cpp:155
-#, fuzzy
-#| msgid "Increase Turn Angle"
 msgid "Increase turn angle"
 msgstr "Öka vändvinkeln"
 
 #: engines/freescape/games/dark/dark.cpp:240
 #: engines/freescape/games/driller/driller.cpp:160
-#, fuzzy
-#| msgid "Decrease Turn Angle"
 msgid "Decrease turn angle"
 msgstr "Minska vändvinkeln"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:246
 #: engines/freescape/games/driller/driller.cpp:166
-#, fuzzy
-#| msgid "Increase Step Size"
 msgid "Increase step size"
 msgstr "Öka stegstorlek"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/dark/dark.cpp:252
 #: engines/freescape/games/driller/driller.cpp:172
-#, fuzzy
-#| msgid "Decrease Step Size"
 msgid "Decrease step size"
 msgstr "Minska stegstorlek"
 
 #: engines/freescape/games/dark/dark.cpp:257
 #: engines/freescape/games/driller/driller.cpp:177
-#, fuzzy
-#| msgid "Rise/Fly up"
 msgid "Rise / Fly up"
 msgstr "Stig/flyg upp"
 
 #: engines/freescape/games/dark/dark.cpp:263
 #: engines/freescape/games/driller/driller.cpp:193
-#, fuzzy
-#| msgid "Lower/Fly down"
 msgid "Lower / Fly down"
 msgstr "Sänk/flyg ner"
 
 #: engines/freescape/games/dark/dark.cpp:269
-#, fuzzy
-#| msgid "Enable/Disable Jetpack"
 msgid "Enable / Disable jetpack"
 msgstr "Aktivera/inaktivera jetpack"
 
@@ -9097,21 +9071,15 @@ msgstr "Hämta borrningsrigg"
 
 #. I18N: Illustrates the angle at which you turn left or right.
 #: engines/freescape/games/eclipse/eclipse.cpp:270
-#, fuzzy
-#| msgid "Change Angle"
 msgid "Change angle"
 msgstr "Ändra vinkel"
 
 #. I18N: STEP SIZE: Measures the size of one movement in the direction you are facing (1-250 standard distance units (SDUs))
 #: engines/freescape/games/eclipse/eclipse.cpp:276
-#, fuzzy
-#| msgid "Change Step Size"
 msgid "Change step size"
 msgstr "Ändra stegstorlek"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:281
-#, fuzzy
-#| msgid "Toggle Height"
 msgid "Toggle height"
 msgstr "Växla höjd"
 
@@ -9124,10 +9092,8 @@ msgid "Rest"
 msgstr "Vila"
 
 #: engines/freescape/games/eclipse/eclipse.cpp:298
-#, fuzzy
-#| msgid "Flashlight"
 msgid "Toggle flashlight"
-msgstr "Ficklampa"
+msgstr "Växla ficklampa"
 
 #: engines/glk/glk_api.cpp:62
 msgid "[ press any key to exit ]"
