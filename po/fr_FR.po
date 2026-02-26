@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-26 08:39+0000\n"
-"PO-Revision-Date: 2026-02-23 19:51+0000\n"
+"PO-Revision-Date: 2026-02-26 20:58+0000\n"
 "Last-Translator: Purple T <ZEONK@hotmail.com>\n"
 "Language-Team: French <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/fr/>\n"
@@ -2848,10 +2848,8 @@ msgid "Save as image"
 msgstr "Enregistrer comme image"
 
 #: gui/printing-dialog.cpp:58
-#, fuzzy
-#| msgid "First page"
 msgid "Fit to page"
-msgstr "Première page"
+msgstr "Ajuster à la page"
 
 #: gui/printing-dialog.cpp:60 backends/graphics/opengl/opengl-graphics.cpp:315
 #: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:127
