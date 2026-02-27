@@ -688,7 +688,7 @@ uint16 GameCrimePatrol::randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude)
 	}
 	uint16 randomNum = 0;
 	// find an unused random number
-	while (1) {
+	while (true) {
 		randomNum = _rnd->getRandomNumber(max - 1);
 		// check if bit is already used
 		uint16 bit = 1 << randomNum;
