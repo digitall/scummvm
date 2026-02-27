@@ -762,14 +762,22 @@ void DirectorPlotData::inkBlitSurface(Common::Rect &srcRect, const Graphics::Sur
 		srcPoint.x = abs(srcRect.left - destRect.left);
 		const byte *msk = mask ? (const byte *)mask->getBasePtr(srcPoint.x, srcPoint.y) : nullptr;
 
-		if (srfMask)
+		if (srfMask) {
+			if (srcPoint.x >= srfMask->w)
+				continue;
+
 			msk = (const byte *)srfMask->getBasePtr(srcPoint.x, srcPoint.y);
+		}
 
 		for (int j = 0; j < destRect.width(); j++, srcPoint.x++) {
 			if (!srfClip.contains(srcPoint)) {
 				failedBoundsCheck = true;
 				continue;
 			}
+
+			// Do not try render beyond the mask bounds
+			if (srfMask && (srcPoint.y >= srfMask->h))
+				continue;
 
 			if (!(mask || srfMask) || (msk && (*msk++))) {
 				if (d->_wm->_pixelformat.bytesPerPixel == 1) {
