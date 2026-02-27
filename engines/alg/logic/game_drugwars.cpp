@@ -688,41 +688,6 @@ uint16 GameDrugWars::pickDeathScene() {
 	return _diedScenesByStage[_stage][_deathPicked];
 }
 
-void GameDrugWars::sceneNxtscnGeneric(uint8 index) {
-	uint16 nextSceneId = 0;
-	_gotTo[index] = 0;
-	if (_gotTo[0] || _gotTo[1] || _gotTo[3] || _gotTo[2]) {
-		nextSceneId = 0x26;
-	} else if (_gotTo[4] || _gotTo[5] || _gotTo[6]) {
-		if (_stage == 1) {
-			nextSceneId = 0x52;
-		} else {
-			_stage = 1;
-			nextSceneId = 0x50;
-		}
-	} else if (_gotTo[7] || _gotTo[8] || _gotTo[9]) {
-		if (_stage == 2) {
-			nextSceneId = 0x9A;
-		} else {
-			_stage = 2;
-			nextSceneId = 0x81;
-		}
-	} else if (_gotTo[10] || _gotTo[11] || _gotTo[12]) {
-		if (_stage == 3) {
-			nextSceneId = 0xDF;
-		} else {
-			_stage = 3;
-			nextSceneId = 0x14B;
-		}
-	} else if (_gotTo[13]) {
-		_stage = 4;
-		nextSceneId = 0x18F;
-	} else {
-		nextSceneId = 0x21;
-	}
-	_curScene = Common::String::format("scene%d", nextSceneId);
-}
-
 void GameDrugWars::rectSelectGeneric(uint8 index) {
 	if (_gotTo[index] > 0) {
 		_curScene = Common::String::format("scene%d", _gotTo[index]);
@@ -1062,8 +1027,19 @@ void GameDrugWars::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameDrugWars::debugWarpTo(int val) {
-	// TODO implement
+void GameDrugWars::debug_warpTo(int val) {
+	if (_vm->isDemo()) {
+		return;
+	}
+	resetParams();
+	if (val > 0 && val <= 14) {
+		for (uint8 i = 0; i < val; i++) {
+			_gotTo[i] = 0;
+			sceneNxtscnFinishScenario(nullptr);
+		}
+	} else if (val == 0) {
+		_curScene = Common::String::format("scene%d", _stageStartScenes[0]);
+	}
 }
 
 // Debugger methods
@@ -1078,11 +1054,11 @@ DebuggerDrugWars::DebuggerDrugWars(GameDrugWars *game) {
 
 bool DebuggerDrugWars::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
 		return false;
 	}
 }

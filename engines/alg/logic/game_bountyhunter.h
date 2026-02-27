@@ -55,7 +55,7 @@ public:
 	GameBountyHunter(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameBountyHunter() override;
 	Common::Error run() override;
-	void debugWarpTo(int val);
+	void debug_warpTo(int val);
 
 private:
 	void init() override;
@@ -133,7 +133,7 @@ private:
 	const uint16 _deathScenarios[9] = {0x0100, 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0x0106, 0x0107, 0};
 	const uint16 _onePlayerOfTwoDead[2] = {0x0109, 0x010A};
 	const uint16 _allPlayersDead = 0x108;
-
+	const uint16 _selectOpponentScreen = 0x017B;
 	// gamestate
 	uint8 _continuesUsed = 0;
 	uint8 _currentLevel = 0;
@@ -193,8 +193,6 @@ private:
 	bool _moneyGiven = false;
 	bool _shotgunGiven = false;
 	bool _bagDropped = false;
-
-	Common::String _subScene;
 
 	// base functions
 	void updateScreen() override;

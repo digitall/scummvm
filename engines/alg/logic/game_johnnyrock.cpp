@@ -339,7 +339,7 @@ Common::Error GameJohnnyRock::run() {
 		_currentFrame = getFrame(scene);
 		while (_currentFrame <= scene->_endFrame && _curScene == oldscene && !_vm->shouldQuit()) {
 			updateMouse();
-			// TODO: call scene->messageFunc
+			callScriptFunctionScene(SHOWMSG, scene->_scnmsg, scene);
 			callScriptFunctionScene(INSOP, scene->_insop, scene);
 			_holster = weaponDown();
 			if (_holster) {
@@ -1852,8 +1852,18 @@ void GameJohnnyRock::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameJohnnyRock::debugWarpTo(int val) {
-	// TODO implement
+void GameJohnnyRock::debug_warpTo(int val) {
+	resetParams();
+	switch (val) {
+	case 0:
+		_curScene = _startScene;
+		break;
+	case 1:
+		_curScene = "scene175";
+		break;
+	default:
+		break;
+	}
 }
 
 // Debugger methods
@@ -1868,11 +1878,11 @@ DebuggerJohnnyRock::DebuggerJohnnyRock(GameJohnnyRock *game) {
 
 bool DebuggerJohnnyRock::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
 		return false;
 	}
 }

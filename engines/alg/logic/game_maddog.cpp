@@ -360,7 +360,7 @@ Common::Error GameMaddog::run() {
 		_currentFrame = getFrame(scene);
 		while (_currentFrame <= scene->_endFrame && _curScene == oldscene && !_vm->shouldQuit()) {
 			updateMouse();
-			// TODO: call scene->messageFunc
+			callScriptFunctionScene(SHOWMSG, scene->_scnmsg, scene);
 			callScriptFunctionScene(INSOP, scene->_insop, scene);
 			_holster = weaponDown();
 			if (_holster) {
@@ -1616,21 +1616,26 @@ void GameMaddog::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameMaddog::debugWarpTo(int val) {
+void GameMaddog::debug_warpTo(int val) {
+	resetParams();
 	switch (val) {
 	case 0:
 		_beenTo = 0;
-		_curScene = "scene28";
+		_curScene = _startScene;
 		break;
 	case 1:
+		_beenTo = 0;
+		_curScene = "scene28";
+		break;
+	case 2:
 		_beenTo = 1;
 		_curScene = pickTown();
 		break;
-	case 2:
+	case 3:
 		_beenTo = 15;
 		_curScene = pickTown();
 		break;
-	case 3:
+	case 4:
 		_beenTo = 575;
 		// always go right
 		_map0 = -1;
@@ -1638,16 +1643,16 @@ void GameMaddog::debugWarpTo(int val) {
 		_map2 = -1;
 		_curScene = pickTown();
 		break;
-	case 4:
+	case 5:
 		_beenTo = 575;
 		_hideOutFront = true; // go to front
 		_curScene = "scene210";
 		break;
-	case 5:
+	case 6:
 		_beenTo = 639;
 		_curScene = "scene227";
 		break;
-	case 6:
+	case 7:
 		_beenTo = 1023;
 		_curScene = "scene250";
 		break;
@@ -1668,11 +1673,19 @@ DebuggerMaddog::DebuggerMaddog(GameMaddog *game) {
 
 bool DebuggerMaddog::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
+		if (val == 4) {
+			debugPrintf("Hint: Always go right\n");
+			return true;
+		}
+		if (val == 5) {
+			debugPrintf("Hint: Go to front of hideout\n");
+			return true;
+		}
 		return false;
 	}
 }

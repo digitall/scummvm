@@ -53,7 +53,7 @@ public:
 	GameDrugWars(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameDrugWars() override;
 	Common::Error run() override;
-	void debugWarpTo(int val);
+	void debug_warpTo(int val);
 
 private:
 	void init() override;
@@ -170,7 +170,6 @@ private:
 	uint16 randomUnusedInt(uint8 max, uint16 *mask, uint16 exclude);
 	uint16 pickRandomScene(uint8 index, uint8 max);
 	uint16 pickDeathScene();
-	void sceneNxtscnGeneric(uint8 index);
 	void rectSelectGeneric(uint8 index);
 
 	// Script functions: RectHit

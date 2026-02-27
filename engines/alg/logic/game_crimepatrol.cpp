@@ -1365,8 +1365,18 @@ void GameCrimePatrol::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameCrimePatrol::debugWarpTo(int val) {
-	// TODO implement
+void GameCrimePatrol::debug_warpTo(int val) {
+	if (_vm->isDemo()) {
+		return;
+	}
+	resetParams();
+	if (val > 0 && val <= 14) {
+		for (uint8 i = 0; i < val; i++) {
+			sceneNxtscnGeneric(i);
+		}
+	} else if (val == 0) {
+		_curScene = Common::String::format("scene%d", _stageStartScenes[0]);
+	}
 }
 
 void GameCrimePatrol::debugDrawPracticeRects() {
@@ -1401,11 +1411,11 @@ DebuggerCrimePatrol::DebuggerCrimePatrol(GameCrimePatrol *game) {
 
 bool DebuggerCrimePatrol::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
 		return false;
 	}
 }

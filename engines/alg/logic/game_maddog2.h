@@ -55,8 +55,8 @@ public:
 	GameMaddog2(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameMaddog2() override;
 	Common::Error run() override;
-	void debugWarpTo(int val);
 	void runCursorTimer();
+	void debug_warpTo(int val);
 
 private:
 	void init() override;

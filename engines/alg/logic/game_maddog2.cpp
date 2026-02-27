@@ -368,7 +368,7 @@ Common::Error GameMaddog2::run() {
 		_currentFrame = getFrame(scene);
 		while (_currentFrame <= scene->_endFrame && _curScene == oldscene && !_vm->shouldQuit()) {
 			updateMouse();
-			// TODO: call scene->messageFunc
+			callScriptFunctionScene(SHOWMSG, scene->_scnmsg, scene);
 			callScriptFunctionScene(INSOP, scene->_insop, scene);
 			_holster = weaponDown();
 			if (_holster) {
@@ -1806,8 +1806,30 @@ void GameMaddog2::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameMaddog2::debugWarpTo(int val) {
-	// TODO implement
+void GameMaddog2::debug_warpTo(int val) {
+	resetParams();
+	switch (val) {
+	case 0:
+		_curScene = _startScene;
+		break;
+	case 1:
+		_curScene = "scene50";
+		break;
+	case 2:
+		_doneGuide = 1;
+		_curScene = "scene50";
+		break;
+	case 3:
+		_doneGuide = 1 | 2;
+		_curScene = "scene50";
+		break;
+	case 4:
+		_doneGuide = 1 | 2 | 4;
+		_curScene = "scene290";
+		break;
+	default:
+		break;
+	}
 }
 
 // Debugger methods
@@ -1822,11 +1844,11 @@ DebuggerMaddog2::DebuggerMaddog2(GameMaddog2 *game) {
 
 bool DebuggerMaddog2::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
 		return false;
 	}
 }

@@ -55,8 +55,8 @@ public:
 	GameJohnnyRock(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameJohnnyRock() override;
 	Common::Error run() override;
-	void debugWarpTo(int val);
 	void runCursorTimer();
+	void debug_warpTo(int val);
 
 private:
 	void init() override;

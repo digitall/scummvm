@@ -117,7 +117,7 @@ void GameBountyHunter::init() {
 		loadLibArchive("bhds.lib");
 	}
 
-	_sceneInfo->loadScnFile("bh.scn");
+	_sceneInfo->loadScnFile(_vm->isDemo() ? "bhdemo.scn" : "bh.scn");
 	_startScene = _sceneInfo->getStartScene();
 
 	registerScriptFunctions();
@@ -218,8 +218,9 @@ void GameBountyHunter::registerScriptFunctions() {
 	PRE_OPS_FUNCTION("L1DSETUP", scenePsoDrawRct);
 	PRE_OPS_FUNCTION("L2ASETUP", scenePsoSetupNdRandom1);
 	PRE_OPS_FUNCTION("L2BSETUP", scenePsoDrawRct);
-	PRE_OPS_FUNCTION("L4A1SETUP", scenePsoDrawRct);
-	PRE_OPS_FUNCTION("L4A2SETUP", scenePsoDrawRct);
+	// i have no clue how the original calls these 2, but apparently not via NXSTSCN
+	PRE_OPS_FUNCTION("L4A1SETUP", sceneNxtscnInitRandomKid1);
+	PRE_OPS_FUNCTION("L4A2SETUP", sceneNxtscnInitRandomKid2);
 	PRE_OPS_FUNCTION("SETUPL3A", scenePsoDrawRct);
 	PRE_OPS_FUNCTION("SET3SHOT", scenePsoDrawRct);
 	PRE_OPS_FUNCTION("L3BSETUP", scenePsoDrawRct);
@@ -439,7 +440,7 @@ Common::Error GameBountyHunter::run() {
 			if (_curScene == oldscene) {
 				callScriptFunctionScene(NXTFRM, scene->_nxtfrm, scene);
 			}
-			for (int i = 0; i < _numPlayers; i++) {
+			for (uint8 i = 0; i < _numPlayers; i++) {
 				if (weaponDown()) {
 					sceneDefaultWepdwn(scene);
 				}
@@ -466,6 +467,9 @@ Common::Error GameBountyHunter::run() {
 			int32 remainingMillis = _nextFrameTime - getMsTime();
 			if (remainingMillis < 10) {
 				if (_videoDecoder->getCurrentFrame() > 0) {
+					if (_videoDecoder->isFinished()) {
+						break;
+					}
 					_videoDecoder->getNextFrame();
 					moveCurrentBag();
 				}
@@ -488,6 +492,9 @@ Common::Error GameBountyHunter::run() {
 		}
 		if (_curScene == oldscene) {
 			_curScene = scene->_next;
+		}
+		if (_curScene == "" && _vm->isDemo()) {
+			setNextScene(387);
 		}
 		if (_curScene == "") {
 			shutdown();
@@ -521,7 +528,7 @@ uint16 GameBountyHunter::startMyGame() {
 		_playerScore[0] = _playerScore[1] = 0;
 		initGameStatus();
 		if (_vm->isDemo()) {
-			startScene = 69; // TODO fix
+			startScene = 387;
 		} else {
 			startScene = 69;
 		}
@@ -541,7 +548,7 @@ void GameBountyHunter::initGameStatus() {
 	_numSubLevelsDone = 0;
 	_difficulty = 0;
 
-	_currentSubLevelSceneId = 0x017B;
+	_currentSubLevelSceneId = _selectOpponentScreen;
 	iconSetup();
 	iconReset(); // not in original!
 }
@@ -662,7 +669,7 @@ void GameBountyHunter::displayShotsLeft(uint8 player) {
 		return;
 	}
 	uint16 posX = player == 0 ? 0xF8 : 0x0C;
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 12; i++) {
 		AlgGraphics::drawImage(_background, _emptyIcon, posX, 0xBF);
 		posX += 5;
 	}
@@ -692,13 +699,12 @@ bool GameBountyHunter::saveState() {
 		warning("GameBountyHunter::saveState(): Can't create file '%s', game not saved", saveFileName.c_str());
 		return false;
 	}
-	uint16 currentSceneNum = atoi(_curScene.c_str());
 	outSaveFile->writeUint32BE(MKTAG('A', 'L', 'G', 'S')); // header
 	outSaveFile->writeByte(0);                             // version, unused for now
 	outSaveFile->writeByte(_currentLevel);
 	outSaveFile->writeUint16LE(_currentSubLevelSceneId);
 	outSaveFile->writeByte(_continuesUsed);
-	outSaveFile->writeUint16LE(currentSceneNum);
+	outSaveFile->writeUint16LE(_restartScene);
 	for (int i = 0; i < 2; i++) {
 		outSaveFile->writeByte(_playerLives[i]);
 		outSaveFile->writeByte(_playerShots[i]);
@@ -707,6 +713,7 @@ bool GameBountyHunter::saveState() {
 	outSaveFile->writeByte(_difficulty);
 	outSaveFile->writeByte(_numPlayers);
 	outSaveFile->finalize();
+	_restartScene = 0;
 	delete outSaveFile;
 	return true;
 }
@@ -737,7 +744,6 @@ bool GameBountyHunter::loadState() {
 	_numPlayers = inSaveFile->readByte();
 	assert(_numPlayers <= 2);
 	delete inSaveFile;
-	_gameInProgress = true;
 	return true;
 }
 
@@ -908,8 +914,8 @@ void GameBountyHunter::moveCurrentBag() {
 uint16 GameBountyHunter::beginLevel(uint8 levelNumber) {
 	_currentLevel = levelNumber;
 	_numSubLevelsDone = 0;
-	int index = (levelNumber * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
-	uint8 subLevel = _subLevelOrder[index];
+	uint8 subLevelIndex = (levelNumber * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
+	uint8 subLevel = _subLevelOrder[subLevelIndex];
 	uint16 sceneIndex = (_currentLevel * 5) + subLevel;
 	uint16 sceneNum = _subLevelSceneIds[sceneIndex];
 	_currentSubLevelSceneId = sceneNum;
@@ -1007,7 +1013,7 @@ uint16 GameBountyHunter::pickDeathScene() {
 
 uint16 GameBountyHunter::timeForGunfight() {
 	if (--_gunfightCount <= 0) {
-		int index = (_difficulty * 5) + (_numLevelsDone);
+		int index = (_difficulty * 5) + (_numLevelsDone * 2);
 		_gunfightCount = _gunfightCountDown[index];
 		return pickGunfightScene();
 	}
@@ -1016,7 +1022,7 @@ uint16 GameBountyHunter::timeForGunfight() {
 
 void GameBountyHunter::waitingForShootout(uint32 drawFrame) {
 	if (drawFrame != 0) {
-		for (uint i = 0; i < _numPlayers; i++) {
+		for (uint8 i = 0; i < _numPlayers; i++) {
 			_firstDrawFrame = drawFrame;
 			_playerShots[i] = 0;
 			_playerGun[i] = 0;
@@ -1056,9 +1062,8 @@ void GameBountyHunter::rectSave(Rect *rect) {
 void GameBountyHunter::rectLoad(Rect *rect) {
 	if (loadState()) {
 		playSound(_loadSound);
+		_restartScene = 0;
 	}
-	setNextScene(_restartScene);
-	_restartScene = 0;
 }
 
 void GameBountyHunter::rectContinue(Rect *rect) {
@@ -1214,7 +1219,7 @@ void GameBountyHunter::scenePsoSetCurrentScene(Scene *scene) {
 	if (sceneId == 0) {
 		uint8 index = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
 		uint8 subLevel = _subLevelOrder[index];
-		uint16 picked = (_currentLevel * 10) + subLevel;
+		uint16 picked = (_currentLevel * 5) + subLevel;
 		_currentSubLevelSceneId = _subLevelSceneIds[picked];
 	}
 }
@@ -1227,7 +1232,7 @@ void GameBountyHunter::sceneIsoShootout(Scene *scene) {
 void GameBountyHunter::sceneIsoGivemoney(Scene *scene) {
 	const int moneyFrames[] = {0x1E8F, 0x3BB4, 0x7814, 0xA287};
 	const int woundBits[] = {2, 4, 8, 16};
-	for (int i = 0; i < _numPlayers; i++) {
+	for (uint8 i = 0; i < _numPlayers; i++) {
 		if (_currentLevel <= 3) {
 			uint32 moneyFrame = moneyFrames[_currentLevel];
 			if (moneyFrame == _currentFrame && !_moneyGiven) {
@@ -1254,8 +1259,8 @@ void GameBountyHunter::sceneNxtscnLoseALife(Scene *scene) {
 	uint16 picked = 0;
 	uint8 deadCount = 0;
 	(void)scene;
-	for (int i = 0; i < _numPlayers; i++) {
-		if (!_debug_godMode) {
+	for (uint8 i = 0; i < _numPlayers; i++) {
+		if (!_debug_godMode && !_vm->isDemo()) {
 			_playerLives[i]--;
 		}
 		displayLivesLeft(i);
@@ -1289,7 +1294,9 @@ void GameBountyHunter::sceneNxtscnDidNotContinue(Scene *scene) {
 
 void GameBountyHunter::sceneNxtscnKillInnocentMan(Scene *scene) {
 	uint16 picked = 0;
-	_playerLives[_player]--;
+	if (!_debug_godMode) {
+		_playerLives[_player]--;
+	}
 	if (_playerLives[_player]) {
 		picked = pickInnocentScene();
 	} else {
@@ -1307,7 +1314,7 @@ void GameBountyHunter::sceneNxtscnKillInnocentWoman(Scene *scene) {
 }
 
 void GameBountyHunter::sceneNxtscnAfterDie(Scene *scene) {
-	for (int i = 0; i < _numPlayers; i++) {
+	for (uint8 i = 0; i < _numPlayers; i++) {
 		if (_playerLives[i] <= 0) {
 			_playerLives[i] = 3;
 			displayLivesLeft(i);
@@ -1320,7 +1327,7 @@ void GameBountyHunter::sceneNxtscnGotoLevelSelect(Scene *scene) {
 	iconReset();
 	uint16 picked = 0;
 	if ((_levelDoneMask & 0x1E) != 0x1E) {
-		picked = 0x17B;
+		picked = _selectOpponentScreen;
 	} else if (!(_levelDoneMask & 0x80)) {
 		picked = 0x66;
 	} else {
@@ -1351,11 +1358,10 @@ void GameBountyHunter::sceneNxtscnInitRandomHarry2(Scene *scene) {
 
 void GameBountyHunter::sceneNxtscnInitRandomDan1(Scene *scene) {
 	uint16 picked = 0;
-	uint8 picks = _randomScenesPicks[2] + _numPlayers;
 	if (_numPlayers == 2) {
-		picked = pickRandomScene(_randomDan1TwoPlayer, picks);
+		picked = pickRandomScene(_randomDan1TwoPlayer, 5);
 	} else {
-		picked = pickRandomScene(_randomScenes[2], picks);
+		picked = pickRandomScene(_randomScenes[2], _randomScenesPicks[2]);
 	}
 	_currentSubLevelSceneId = 0x0174;
 	setNextScene(picked);
@@ -1390,7 +1396,7 @@ void GameBountyHunter::sceneNxtscnInitRandomKid2(Scene *scene) {
 void GameBountyHunter::sceneNxtscnNextSubLevel(Scene *scene) {
 	iconReset();
 	_numSubLevelsDone++;
-	int subLevelIndex = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
+	uint8 subLevelIndex = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
 	uint8 subLevel = _subLevelOrder[subLevelIndex];
 	uint16 sceneIndex = (_currentLevel * 5) + subLevel;
 	uint16 picked = _subLevelSceneIds[sceneIndex];
@@ -1399,8 +1405,8 @@ void GameBountyHunter::sceneNxtscnNextSubLevel(Scene *scene) {
 	if (gunfightScene != 0) {
 		picked = gunfightScene;
 	}
-	else if (subLevel != 2) {
-		if (_currentLevel == 0) {
+	else if (subLevel == 2) {
+		if (_currentLevel != 0) {
 			picked = _clueLevels[_currentLevel];
 		}
 	}
@@ -1409,8 +1415,8 @@ void GameBountyHunter::sceneNxtscnNextSubLevel(Scene *scene) {
 
 void GameBountyHunter::sceneNxtscnGotoBadGuy(Scene *scene) {
 	iconReset();
-	uint8 index = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
-	uint8 subLevel = _subLevelOrder[index];
+	uint8 subLevelIndex = (_currentLevel * 24) + (_numLevelsDone * 6) + _numSubLevelsDone;
+	uint8 subLevel = _subLevelOrder[subLevelIndex];
 	uint16 sceneIndex = (_currentLevel * 5) + subLevel;
 	uint16 picked = _subLevelSceneIds[sceneIndex];
 	setNextScene(picked);
@@ -1429,7 +1435,7 @@ void GameBountyHunter::sceneNxtscnAutoSelectLevel(Scene *scene) {
 }
 
 void GameBountyHunter::sceneNxtscnSelectScenario(Scene *scene) {
-	setNextScene(_currentLevel);
+	// do nothing
 }
 
 void GameBountyHunter::sceneNxtscnFinishScenario(Scene *scene) {
@@ -1443,12 +1449,12 @@ void GameBountyHunter::sceneNxtscnGameWon(Scene *scene) {
 
 void GameBountyHunter::sceneNxtscnKilledMain(Scene *scene) {
 	_wounded = false;
-	_subScene = "scene379";
+	_currentSubLevelSceneId = _selectOpponentScreen;
 }
 
 void GameBountyHunter::sceneNxtscnWoundedMain(Scene *scene) {
 	_wounded = true;
-	_subScene = "scene379";
+	_currentSubLevelSceneId = _selectOpponentScreen;
 }
 
 void GameBountyHunter::sceneNxtscnEndLevel(Scene *scene) {
@@ -1463,7 +1469,7 @@ void GameBountyHunter::sceneNxtscnEndLevel(Scene *scene) {
 		setNextScene(0x66);
 		return;
 	}
-	setNextScene(0x017B);
+	setNextScene(_selectOpponentScreen);
 }
 
 void GameBountyHunter::sceneNxtscnEndGame(Scene *scene) {
@@ -1495,8 +1501,8 @@ void GameBountyHunter::sceneNxtscnDiedRefed(Scene *scene) {
 	uint16 picked = 0;
 	uint8 deadCount = 0;
 	(void)scene;
-	for (uint i = 0; i < _numPlayers; i++) {
-		if (!_debug_godMode) {
+	for (uint8 i = 0; i < _numPlayers; i++) {
+		if (!_debug_godMode && !_vm->isDemo()) {
 			_playerLives[i]--;
 		}
 		displayLivesLeft(i);
@@ -1516,7 +1522,7 @@ void GameBountyHunter::sceneNxtscnDiedRefed(Scene *scene) {
 
 void GameBountyHunter::sceneNxtscnGiveShotgun(Scene *scene) {
 	(void)scene;
-	for (uint i = 0; i < _numPlayers; i++) {
+	for (uint8 i = 0; i < _numPlayers; i++) {
 		_playerShots[i] = 5;
 		_playerGun[i] = 2;
 		displayShotsLeft(i);
@@ -1579,8 +1585,41 @@ void GameBountyHunter::debug_drawZoneRects() {
 	}
 }
 
-void GameBountyHunter::debugWarpTo(int val) {
-	// TODO implement
+void GameBountyHunter::debug_warpTo(int val) {
+	if (_vm->isDemo()) {
+		return;
+	}
+	startMyGame();
+	switch (val) {
+	case 0:
+		setNextScene(69);
+		break;
+	case 1:
+		setNextScene(_selectOpponentScreen);
+		break;
+	case 2:
+		_levelDoneMask = 2;
+		_numLevelsDone = 1;
+		setNextScene(_selectOpponentScreen);
+		break;
+	case 3:
+		_levelDoneMask = 2 | 4;
+		_numLevelsDone = 2;
+		setNextScene(_selectOpponentScreen);
+		break;
+	case 4:
+		_levelDoneMask = 2 | 4 | 8;
+		_numLevelsDone = 3;
+		setNextScene(_selectOpponentScreen);
+		break;
+	case 5:
+		_levelDoneMask = 2 | 4 | 8 | 0x10;
+		_numLevelsDone = 4;
+		setNextScene(0x66);
+		break;
+	default:
+		break;
+	}
 }
 
 // Debugger methods
@@ -1595,11 +1634,11 @@ DebuggerBountyHunter::DebuggerBountyHunter(GameBountyHunter *game) {
 
 bool DebuggerBountyHunter::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
 		return false;
 	}
 }

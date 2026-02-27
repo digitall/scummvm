@@ -425,6 +425,9 @@ Common::Error GameSpacePirates::run() {
 			int32 remainingMillis = _nextFrameTime - getMsTime();
 			if (remainingMillis < 10) {
 				if (_videoDecoder->getCurrentFrame() > 0) {
+					if (_videoDecoder->isFinished()) {
+						break;
+					}
 					_videoDecoder->getNextFrame();
 				}
 				remainingMillis = _nextFrameTime - getMsTime();
@@ -1267,6 +1270,7 @@ void GameSpacePirates::rectShotBlueCrystal(Rect *rect) {
 }
 
 void GameSpacePirates::rectShotGreenCrystal(Rect *rect) {
+	debug("rectShotGreenCrystal");
 	uint16 picked = 0;
 	displayShotFiredImage();
 	playSound(_shotSound);
@@ -1296,6 +1300,7 @@ void GameSpacePirates::rectShotGreenCrystal(Rect *rect) {
 		}
 	}
 	_nextSceneFound = true;
+	debug("rectShotGreenCrystal picked: %d", picked);
 	_curScene = Common::String::format("scene%d", picked);
 }
 
@@ -1336,8 +1341,6 @@ void GameSpacePirates::rectSkipScene(Rect *rect) {
 	displayShotFiredImage();
 	playSound(_shotSound);
 	_nextSceneFound = true;
-	Scene *scene = _sceneInfo->findScene(_curScene);
-	_curScene = scene->_next;
 }
 
 void GameSpacePirates::rectHitPirateShip(Rect *rect) {
@@ -1989,8 +1992,56 @@ void GameSpacePirates::sceneDefaultScore(Scene *scene) {
 }
 
 // Debug methods
-void GameSpacePirates::debugWarpTo(int val) {
-	// TODO implement
+void GameSpacePirates::debug_warpTo(int val) {
+	if (_vm->isDemo()) {
+		return;
+	}
+	resetParams();
+	switch (val) {
+	case 0:
+		_curScene = "scene187";
+		break;
+	case 1:
+		_curScene = "scene110";
+		_pickedStartSplitter = 0x6A;
+		break;
+	case 2:
+		_worldDone[0] = true;
+		_pickedStartSplitter = 0x6A;
+		_curScene = "scene110";
+		break;
+	case 3:
+		_worldDone[0] = true;
+		_worldDone[1] = true;
+		_pickedStartSplitter = 0x6A;
+		_curScene = "scene110";
+		break;
+	case 4:
+		_worldDone[0] = true;
+		_worldDone[1] = true;
+		_worldDone[2] = true;
+		_pickedStartSplitter = 0x6A;
+		_curScene = "scene110";
+		break;
+	case 5:
+		_worldDone[0] = true;
+		_worldDone[1] = true;
+		_worldDone[2] = true;
+		_worldDone[3] = true;
+		_pickedStartSplitter = 0x6A;
+		_curScene = "scene192";
+		break;
+	case 6:
+		_worldDone[0] = true;
+		_worldDone[1] = true;
+		_worldDone[2] = true;
+		_worldDone[3] = true;
+		_pickedStartSplitter = 0x6A;
+		_curScene = "scene334";
+		break;
+	default:
+		break;
+	}
 }
 
 // Debugger methods
@@ -2005,11 +2056,15 @@ DebuggerSpacePirates::DebuggerSpacePirates(GameSpacePirates *game) {
 
 bool DebuggerSpacePirates::cmdWarpTo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Usage: warp <int>");
+		debugPrintf("Usage: warp <int>\n");
 		return true;
 	} else {
 		int val = atoi(argv[1]);
-		_game->debugWarpTo(val);
+		_game->debug_warpTo(val);
+		if (val >= 1 && val <= 5) {
+			debugPrintf("Hint: Crystal shoot order: red, green, blue\n");
+			return true;
+		}
 		return false;
 	}
 }

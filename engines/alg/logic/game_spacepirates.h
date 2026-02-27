@@ -54,7 +54,7 @@ public:
 	GameSpacePirates(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameSpacePirates() override;
 	Common::Error run() override;
-	void debugWarpTo(int val);
+	void debug_warpTo(int val);
 
 private:
 	void init() override;

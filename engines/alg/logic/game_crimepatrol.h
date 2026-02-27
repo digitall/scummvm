@@ -53,7 +53,7 @@ public:
 	GameCrimePatrol(AlgEngine *vm, const AlgGameDescription *gd);
 	~GameCrimePatrol() override;
 	void init() override;
-	void debugWarpTo(int val);
+	void debug_warpTo(int val);
 
 private:
 	Common::Error run() override;
