@@ -23,8 +23,8 @@
 #include "mads/game.h"
 #include "mads/screen.h"
 #include "mads/msurface.h"
+#include "mads/menu_views.h"
 #include "mads/phantom/game_phantom.h"
-//#include "mads/nebular/dialogs_nebular.h"
 #include "mads/phantom/globals_phantom.h"
 #include "mads/phantom/phantom_scenes.h"
 
@@ -139,6 +139,47 @@ GamePhantom::GamePhantom(MADSEngine *vm) : Game(vm) {
 }
 
 void GamePhantom::startGame() {
+	// First handle any ending credits from a just finished game session.
+	// Note that, with the exception of the decompression ending, which doesn't
+	// use animations, the remaining animations will automatically launch their
+	// own text view credits when the animation is completed
+	switch (_winStatus) {
+	case 1:
+		// No shields failure ending
+		AnimationView::execute(_vm, "rexend1");
+		break;
+	case 2:
+		// Shields, but no targeting failure ending
+		AnimationView::execute(_vm, "rexend2");
+		break;
+	case 3:
+		AnimationView::execute(_vm, "rexend3");
+		break;
+	case 4:
+		// Decompression ending
+		TextView::execute(_vm, "ending4");
+		break;
+	default:
+		break;
+	}
+
+	do {
+		checkShowDialog();
+		_winStatus = 0;
+
+		_sectionNumber = 1;
+		initSection(_sectionNumber);
+		_vm->_events->setCursor(CURSOR_ARROW);
+		_statusFlag = true;
+
+		// Show the main menu
+		_vm->_dialogs->_pendingDialog = DIALOG_MAIN_MENU;
+		_vm->_dialogs->showDialog();
+	} while (!_vm->shouldQuit() && _vm->_dialogs->_pendingDialog != DIALOG_NONE);
+
+	if (_vm->shouldQuit())
+		return;
+
 	_scene._priorSceneId = 0;
 	_scene._currentSceneId = -1;
 	_scene._nextSceneId = 101;

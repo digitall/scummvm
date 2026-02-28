@@ -144,7 +144,7 @@ typedef Section1Handler Section3Handler;
 typedef Section1Handler Section4Handler;
 typedef Section1Handler Section5Handler;
 
-} // End of namespace Nebular
+} // End of namespace Phantom
 } // End of namespace MADS
 
 #endif
