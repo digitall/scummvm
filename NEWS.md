@@ -8,6 +8,7 @@ For a more comprehensive changelog of the latest experimental code, see:
    - Implemented multiselect in the GUI launcher games list.
    - Updated ImGui library to 1.92.6-docker.
    - Fixed Smart Search in the Icons Grid view in the launcher.
+   - Simulate MT-32 display for on-screen messages.
 
  Bagel:
    - Fix Enter/Escape keys in The Guessing Game guess dialog.
