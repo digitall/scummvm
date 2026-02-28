@@ -89,7 +89,7 @@ void Darts::playDarts(GameType gameType) {
 	_gameType = gameType;
 
 	screen.setFont(7);
-	_spacing = screen.fontHeight() + 2;
+	_spacing = screen.fontHeight() - 3;
 
 	// Load dart graphics and initialize values
 	loadDarts();
