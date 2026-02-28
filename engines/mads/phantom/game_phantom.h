@@ -79,10 +79,10 @@ enum MazeEvent {
 };
 
 struct Catacombs {
-	int _sceneNum;
-	int _exit[4];
-	int _fromDirection[4];
-	int _flags;
+	uint16 _sceneNum;
+	int8 _exit[4];
+	int8 _fromDirection[4];
+	uint16 _flags;
 };
 
 class GamePhantom : public Game {
@@ -93,7 +93,7 @@ private:
 	void stopWalker();
 	void stopWalkerBasic();
 
-	Catacombs *_catacombs;
+	const Catacombs *_catacombs;
 	int _catacombSize;
 
 protected:

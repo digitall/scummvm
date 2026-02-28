@@ -242,6 +242,9 @@ public:
 	static void preloadSequences(const Common::String &prefix, int level) {
 		// No implementation in ScummVM
 	}
+	static void himem_preload_series(const Common::String &prefix, int level) {
+		// No implementation in ScummVM
+	}
 
 	void removePlayerSprites();
 
