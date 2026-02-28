@@ -537,6 +537,8 @@ void VideoPlayer::liveVideosLoop() {
 	if (timeKey - _lastLiveVideosLoopCall < 2)
 		return;
 
+	_vm->_draw->updateAnimatedCursor();
+
 	_lastLiveVideosLoopCall = timeKey;
 
 	for (int slot = 0; slot < kLiveVideoSlotCount; slot++) {
