@@ -48,7 +48,7 @@ OSDMessageQueue::OSDQueueEntry::~OSDQueueEntry() {
 	}
 }
 
-OSDMessageQueue::OSDMessageQueue() : _lastUpdate(0) {
+OSDMessageQueue::OSDMessageQueue() : _lastUpdate(0), _iconWasShown(false) {
 }
 
 OSDMessageQueue::~OSDMessageQueue() {
@@ -79,19 +79,29 @@ void OSDMessageQueue::addImage(const Graphics::Surface *surface) {
 
 bool OSDMessageQueue::pollEvent(Common::Event &event) {
 	_mutex.lock();
+
+	uint t = g_system->getMillis(true);
+
 	if (!_messages.empty()) {
-		uint t = g_system->getMillis(true);
 		if (t - _lastUpdate >= kMinimumDelay) {
 			_lastUpdate = t;
 
 			OSDQueueEntry *entry = _messages.pop();
 
-			if (entry->_image)
+			if (entry->_image) {
 				g_system->displayActivityIconOnOSD(entry->_image);
-			else if (entry->_text)
+				_iconWasShown = true;
+			} else if (entry->_text) {
 				g_system->displayMessageOnOSD(*(entry->_text));
+			}
 
 			delete entry;
+		}
+	} else if (t - _lastUpdate >= kIconCleanupDelay) {
+		// If there are no messages, but the last message was an icon that was shown, clear it after a delay
+		if (_iconWasShown) {
+			g_system->displayActivityIconOnOSD(nullptr);
+			_iconWasShown = false;
 		}
 	}
 	_mutex.unlock();

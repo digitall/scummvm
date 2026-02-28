@@ -54,7 +54,8 @@ public:
 	void registerEventSource();
 
 	enum {
-		kMinimumDelay = 1000 /** < Minimum delay between two OSD messages (in milliseconds) */
+		kMinimumDelay = 1000, /** < Minimum delay between two OSD messages (in milliseconds) */
+		kIconCleanupDelay = 2 * 1000, /** < Delay after which an OSD icon is removed if it hasn't been shown (in milliseconds) */
 	};
 
 	/**
@@ -91,6 +92,7 @@ private:
 	Mutex _mutex;
 	Queue<OSDQueueEntry *> _messages;
 	uint32 _lastUpdate;
+	bool _iconWasShown;
 };
 
 /** @} */
