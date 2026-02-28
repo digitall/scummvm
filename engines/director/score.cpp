@@ -224,6 +224,9 @@ Common::String *Score::getLabelList() {
 }
 
 Common::String *Score::getFrameLabel(uint id) {
+	if (!_labels)
+		return new Common::String;
+
 	for (auto &i : *_labels) {
 		if (i->number == id) {
 			return new Common::String(i->name);
