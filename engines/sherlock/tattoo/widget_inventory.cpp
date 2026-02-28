@@ -54,7 +54,7 @@ void WidgetInventoryTooltip::setText(const Common::String &str) {
 	Common::String line1 = str, line2;
 
 	// See if we need to split it into two lines
-	if (width > 150) {
+	if (width > kMaxTooltipWidth) {
 		// Yes, we do
 		const char *s = str.c_str();
 		const char *space = nullptr;
