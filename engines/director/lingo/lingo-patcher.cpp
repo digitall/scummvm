@@ -321,6 +321,29 @@ end \r\
 ";
 
 /*
+ * The Virtual Nightclub codebase is a large mass of spaghetti.
+ * All VNC/VNC.EXE is meant to do is play the Thumb Candy logo,
+ * then kick over to VNC2/_VNC.DXR which boots the game.
+ *
+ * However, VNC/VNC.EXE contains an internal copy of the SHARED.DXR similar
+ * to the main game in VNC2/SHARED.DXR. The game handles pretty much
+ * everything with an event loop in "idle", which (amongst other things)
+ * assumes if certain stuff hasn't been initialised, the game has been
+ * restarted and it should try and init -some- things (but not call init(),
+ * which inits everything).
+ *
+ * This doesn't really work, as several of the subsystems don't have checks for
+ * e.g. "mmxobj", a global object used for controlling the custom movie player.
+ * As such, running the game in strict mode will crash on startup.
+ * Instead of divining the exact order of operations which narrowly avoids a crash,
+ * we can say "idle" isn't needed for the intro and nop it out.
+ */
+const char *const vncFixIntro = " \
+on idle \r\
+end \r\
+";
+
+/*
  * Virtual Nightclub will try and list all the files from all 26 drive letters
  * to determine which has the CD. This works, but takes forever.
  */
@@ -515,6 +538,7 @@ struct ScriptHandlerPatch {
 	{"kyoto", nullptr, kPlatformWindows, "ck_data\\rokudou\\shared.dxr", kMovieScript, 846, DEFAULT_CAST_LIB, &kyotoTextEntryFix},
 	{"vnc", nullptr, kPlatformWindows, "VNC\\VNC.EXE", kMovieScript, 57, DEFAULT_CAST_LIB, &vncSkipDetection},
 	{"vnc", nullptr, kPlatformWindows, "VNC2\\SHARED.DXR", kMovieScript, 1248, DEFAULT_CAST_LIB, &vncEnableCheats},
+	{"vnc", nullptr, kPlatformWindows, "VNC\\Shared.DXR", kMovieScript, 1562, DEFAULT_CAST_LIB, &vncFixIntro},
 	{"amber", nullptr, kPlatformWindows, "AMBER_F\\AMBER_JB.EXE", kMovieScript, 7, DEFAULT_CAST_LIB, &amberDriveDetectionFix},
 	{"frankenstein", nullptr, kPlatformWindows, "FRANKIE.EXE", kScoreScript, 21, DEFAULT_CAST_LIB, &frankensteinSwapFix},
 	{"gadgetpaf", nullptr, kPlatformWindows, "GADGET\\DISKCNG.DIR", kScoreScript, 2, DEFAULT_CAST_LIB, &gadgetPafDetectionFixAlert},
