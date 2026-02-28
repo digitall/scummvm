@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-26 08:39+0000\n"
+"POT-Creation-Date: 2026-02-28 22:58+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Timo Mikkolainen <tmikkola@gmail.com>\n"
 "Language-Team: Finnish <https://translations.scummvm.org/projects/scummvm/"
@@ -4219,11 +4219,11 @@ msgstr "PC-98 Ääni"
 msgid "SegaCD Audio"
 msgstr "SegaCD Ääni"
 
-#: audio/softsynth/mt32.cpp:168
+#: audio/softsynth/mt32.cpp:289
 msgid "Initializing MT-32 Emulator"
 msgstr "Alustetaan MT-32 emulaattoria"
 
-#: audio/softsynth/mt32.cpp:441
+#: audio/softsynth/mt32.cpp:562
 msgid "MT-32 emulator"
 msgstr "MT-32 emulaattori"
 

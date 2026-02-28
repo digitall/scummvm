@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-26 08:39+0000\n"
+"POT-Creation-Date: 2026-02-28 22:58+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Einar Johan Trøan Sømåen <einarjohants@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://translations.scummvm.org/projects/"
@@ -4237,11 +4237,11 @@ msgstr "PC-98 Lyd"
 msgid "SegaCD Audio"
 msgstr "SegaCD-lyd"
 
-#: audio/softsynth/mt32.cpp:168
+#: audio/softsynth/mt32.cpp:289
 msgid "Initializing MT-32 Emulator"
 msgstr "Initialiserer MT-32-Emulator"
 
-#: audio/softsynth/mt32.cpp:441
+#: audio/softsynth/mt32.cpp:562
 msgid "MT-32 emulator"
 msgstr "MT-32-emulator"
 
