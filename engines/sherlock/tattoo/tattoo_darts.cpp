@@ -478,9 +478,8 @@ bool Darts::dartHit() {
 
 	// Keyboard check
 	if (events.kbHit() || events.actionHit()) {
-		if (events.getAction() == kActionTattooSkipDarts)
+		if (events.actionHit() && events.getAction() == kActionTattooSkipDarts)
 			_escapePressed = true;
-
 		events.clearEvents();
 		return true;
 	}
