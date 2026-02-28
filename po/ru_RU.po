@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-28 22:58+0000\n"
-"PO-Revision-Date: 2026-02-26 23:58+0000\n"
+"PO-Revision-Date: 2026-02-28 23:16+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -11313,52 +11313,38 @@ msgid "Toggle center data display"
 msgstr "Включить показ центрального экрана данных"
 
 #: engines/pegasus/pegasus.cpp:2796
-#, fuzzy
-#| msgid "Toggle fullscreen"
 msgid "Toggle info screen"
-msgstr "Переключение на весь экран"
+msgstr "Переключить инфо-экран"
 
 #: engines/pegasus/pegasus.cpp:2803
-#, fuzzy
-#| msgid "Toggle fast mode"
 msgid "Toggle pause menu"
-msgstr "Переключить быстрый режим"
+msgstr "Переключить мкею паузы"
 
 #: engines/pegasus/pegasus.cpp:2810
 msgid "Toggle Chatty AI"
 msgstr "Переключить болтающий ИИ"
 
 #: engines/petka/metaengine.cpp:117
-#, fuzzy
-#| msgid "Go to next dialogue"
 msgid "Interact / Skip dialog"
-msgstr "Перейти к следующему диалогу"
+msgstr "Взаимодействовать / Пропустить диалог"
 
 #. I18N: (Game Name: Red Comrades 1: Save the Galaxy) The game has multiple actions that you can perform(take, use, etc.), the action menu allows you to select one of them.
 #: engines/petka/metaengine.cpp:124
-#, fuzzy
-#| msgid "Open action menu / Close menu"
 msgid "Open action menu / Close current interface"
-msgstr "Открыть меню действий / Закрыть меню"
+msgstr "Открыть меню действий / Закрыть текущий интерфейс"
 
 #. I18N: (Game Name: Red Comrades 1: Save the Galaxy) The game features two characters, but all actions are normally performed by Petka. This action allows you to "use" an object specifically with Chapayev instead.
 #: engines/petka/metaengine.cpp:166
-#, fuzzy
-#| msgid "Chapayev's action"
 msgid "Chapayev use object"
-msgstr "Действие Чапаева"
+msgstr "Чапаев использовать объект"
 
 #: engines/petka/metaengine.cpp:186
-#, fuzzy
-#| msgid "Show / Hide console"
 msgid "Show / Hide options screen"
-msgstr "Показать / убрать консоль"
+msgstr "Показать / Убрать экран настроек"
 
 #: engines/petka/metaengine.cpp:192
-#, fuzzy
-#| msgid "Easy mouse interface"
 msgid "Close current interface"
-msgstr "Простой интерфейс мыши"
+msgstr "Закрыть текущий интерфейс"
 
 #: engines/phoenixvr/metaengine.cpp:107
 #: engines/wintermute/keymapper_tables.h:239
@@ -11394,24 +11380,18 @@ msgid "This menu item is not yet implemented"
 msgstr "Этот пункт меню ещё не реализован"
 
 #: engines/pink/metaengine.cpp:128
-#, fuzzy
-#| msgid "Move left"
 msgid "Interact / Select"
-msgstr "Идти влево"
+msgstr "Взаимодействовать / Выбрать"
 
 #. I18N: (Game Name: Pink Panther) The player normally clicks on a target (character/object) to move toward it and interact (talk,use etc.) with it. This action makes the player still walk to the target but not start interacting when they arrive.
 #: engines/pink/metaengine.cpp:136
-#, fuzzy
-#| msgid "Change game options"
 msgid "Cancel interaction"
-msgstr "Изменить настройки игры"
+msgstr "Отменить действие"
 
 #. I18N: (Game Name: Pink Panther) The player normally clicks on a target (character/object) to move toward it and interact (talk,use etc.) with it. This action skips the walking animation and immediately start interacting.
 #: engines/pink/metaengine.cpp:144
-#, fuzzy
-#| msgid "Skip dialogue"
 msgid "Skip walk"
-msgstr "Пропустить диалог"
+msgstr "Пропустить ходьбу"
 
 #. I18N: (Game Name: Pink Panther) The player normally clicks on a target (character/object) to move toward it and interact (talk,use etc.) with it. This action skips the walking animation and also prevents the interaction, instead instantly placing the player next to the target.
 #: engines/pink/metaengine.cpp:151
@@ -11420,30 +11400,22 @@ msgstr ""
 
 #. I18N: (Game Name: Pink Panther) This action fully skips the current running sequence (cutscene, dialog, interaction, etc).
 #: engines/pink/metaengine.cpp:158
-#, fuzzy
-#| msgid "Skip cutscene"
 msgid "Skip sequence"
-msgstr "Пропустить заставку"
+msgstr "Пропустить весь ролик"
 
 #. I18N: (Game Name: Pink Panther) This action skips part of the current running sequence (cutscene, dialog, interaction, etc).
 #: engines/pink/metaengine.cpp:165
-#, fuzzy
-#| msgid "Skip cutscene"
 msgid "Skip sub-sequence"
-msgstr "Пропустить заставку"
+msgstr "Пропустить часть ролика"
 
 #. I18N: (Game Name: Pink Panther) This action restarts the current running sequence (cutscene, dialog, interaction, etc).
 #: engines/pink/metaengine.cpp:173
-#, fuzzy
-#| msgid "Restart the Scene"
 msgid "Restart sequence"
-msgstr "Перезапустить сцену"
+msgstr "Перезапустить ролик"
 
 #: engines/playground3d/metaengine.cpp:55
-#, fuzzy
-#| msgid "Switch to Game"
 msgid "Switch test"
-msgstr "Переключиться в игру"
+msgstr "Переключить тест"
 
 #: engines/playground3d/metaengine.cpp:61
 #, fuzzy
