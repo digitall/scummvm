@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.5.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 22:58+0000\n"
+"POT-Creation-Date: 2026-02-28 23:20+0000\n"
 "PO-Revision-Date: 2024-02-05 18:42+0000\n"
 "Last-Translator: Josu Igoa <josuigoa@ni.eus>\n"
 "Language-Team: Basque <https://translations.scummvm.org/projects/scummvm/"
@@ -6134,16 +6134,16 @@ msgstr "Eguneraketak bilatzen..."
 #: engines/lure/metaengine.cpp:168 engines/made/metaengine.cpp:132
 #: engines/mads/metaengine.cpp:274 engines/neverhood/metaengine.cpp:185
 #: engines/ngi/metaengine.cpp:115 engines/petka/metaengine.cpp:113
-#: engines/playground3d/metaengine.cpp:51 engines/prince/metaengine.cpp:227
-#: engines/private/metaengine.cpp:127 engines/queen/metaengine.cpp:146
-#: engines/sherlock/metaengine.cpp:313 engines/stark/metaengine.cpp:184
-#: engines/supernova/metaengine.cpp:217 engines/sword1/metaengine.cpp:266
-#: engines/sword25/metaengine.cpp:108 engines/teenagent/metaengine.cpp:197
-#: engines/tetraedge/metaengine.cpp:86 engines/tinsel/metaengine.cpp:240
-#: engines/titanic/metaengine.cpp:172 engines/toltecs/metaengine.cpp:212
-#: engines/toon/metaengine.cpp:81 engines/tot/metaengine.cpp:102
-#: engines/trecision/metaengine.cpp:120 engines/tsage/metaengine.cpp:169
-#: engines/tucker/metaengine.cpp:167 engines/voyeur/metaengine.cpp:184
+#: engines/prince/metaengine.cpp:227 engines/private/metaengine.cpp:127
+#: engines/queen/metaengine.cpp:146 engines/sherlock/metaengine.cpp:313
+#: engines/stark/metaengine.cpp:184 engines/supernova/metaengine.cpp:217
+#: engines/sword1/metaengine.cpp:266 engines/sword25/metaengine.cpp:108
+#: engines/teenagent/metaengine.cpp:197 engines/tetraedge/metaengine.cpp:86
+#: engines/tinsel/metaengine.cpp:240 engines/titanic/metaengine.cpp:172
+#: engines/toltecs/metaengine.cpp:212 engines/toon/metaengine.cpp:81
+#: engines/tot/metaengine.cpp:102 engines/trecision/metaengine.cpp:120
+#: engines/tsage/metaengine.cpp:169 engines/tucker/metaengine.cpp:167
+#: engines/voyeur/metaengine.cpp:184
 #, fuzzy
 msgid "Default keymappings"
 msgstr "~A~ukerak..."
@@ -11648,22 +11648,6 @@ msgstr "Eszena saltatu"
 #, fuzzy
 msgid "Restart sequence"
 msgstr "Araztailea abiarazi"
-
-#: engines/playground3d/metaengine.cpp:55
-#, fuzzy
-#| msgid "Switch to Game"
-msgid "Switch test"
-msgstr "Aldatu jokora"
-
-#: engines/playground3d/metaengine.cpp:61
-#, fuzzy
-msgid "Enable/Disable fog"
-msgstr "Ezin izan da jokoa gorde"
-
-#: engines/playground3d/metaengine.cpp:67
-#, fuzzy
-msgid "Enable/Disable scissor"
-msgstr "Ezin izan da jokoa gorde"
 
 #. I18N: Plumbers is the title of the game. 3DO is the name of platform
 #: engines/plumbers/metaengine.cpp:51
@@ -17229,6 +17213,19 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Switch to Game"
+#~ msgid "Switch test"
+#~ msgstr "Aldatu jokora"
+
+#, fuzzy
+#~ msgid "Enable/Disable fog"
+#~ msgstr "Ezin izan da jokoa gorde"
+
+#, fuzzy
+#~ msgid "Enable/Disable scissor"
+#~ msgstr "Ezin izan da jokoa gorde"
 
 #, fuzzy
 #~| msgid "Toggle mute"
