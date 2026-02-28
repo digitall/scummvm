@@ -932,7 +932,7 @@ static void drawLabelBar(ImDrawList *dl, ImVec2 pos, Score *score) {
 				dl->AddText(ImVec2(textX, textY), U32(_state->_colors._type_color), labelName->c_str());
 
 			float px = pos.x + f * cfg._cellWidth;
-			ImGui::SetCursorScreenPos(ImVec2(pos.x + f * cfg._cellWidth, y));
+			ImGui::SetCursorScreenPos(ImVec2(px, y));
 			ImGui::InvisibleButton(Common::String::format("##labelcell_%d", f).c_str(), ImVec2(cfg._cellWidth, cfg._labelBarHeight));
 
 			if (ImGui::IsItemHovered())
