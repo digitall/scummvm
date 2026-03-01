@@ -61,13 +61,17 @@ PhoenixVREngine::PhoenixVREngine(OSystem *syst, const ADGameDescription *gameDes
 																					 _angleY(-kPi2),
 																					 _mixer(syst->getMixer()) {
 	g_engine = this;
+	bool pixelFormatFound = false;
 	for (auto format : g_system->getSupportedFormats()) {
-		debug("preferred format: %s", format.toString().c_str());
-		_pixelFormat = format;
-		break;
+		debug("supported format: %s", format.toString().c_str());
+		if (format.bytesPerPixel >= 2) {
+			pixelFormatFound = true;
+			_pixelFormat = format;
+			break;
+		}
 	}
-	if (_pixelFormat.bytesPerPixel < 2)
-		error("Expected at least 16 bit format");
+	if (!pixelFormatFound)
+		error("Couldn't find 16/32-bit pixel format");
 }
 
 PhoenixVREngine::~PhoenixVREngine() {
