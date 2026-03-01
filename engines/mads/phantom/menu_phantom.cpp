@@ -32,7 +32,6 @@
 namespace MADS {
 namespace Phantom {
 
-//#define PHANTOM_MENUSCREEN 990
 #define MADS_MENU_Y ((MADS_SCREEN_HEIGHT - MADS_SCENE_HEIGHT) / 2)
 #define MADS_MENU_ANIM_DELAY 70
 
@@ -296,7 +295,7 @@ void MainMenu::handleAction(MADSGameAction action) {
 		return;
 
 	case SHOW_INTRO:
-		AnimationView::execute(_vm, "rexopen");
+		AnimationView::execute(_vm, "phantom");
 		break;
 
 	case CREDITS:
