@@ -334,6 +334,7 @@ Cube toCube(float x, float y, float z) {
 	}
 
 	// Convert range from −1 to 1 to 0 to 1
+	assert(maxAxis != 0);
 	cube.y = 0.5f * (cy / maxAxis + 1.0f);
 	cube.x = 0.5f * (cx / maxAxis + 1.0f);
 	return cube;
