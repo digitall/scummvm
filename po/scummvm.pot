@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2026.1.1git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -10513,11 +10513,11 @@ msgstr ""
 msgid "Skip text"
 msgstr ""
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr ""
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr ""
 
@@ -12610,20 +12610,12 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr ""
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr ""
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
+msgid "Scroll dialogs up"
 msgstr ""
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
+msgid "Scroll dialogs down"
 msgstr ""
 
 #: engines/stark/metaengine.cpp:318
