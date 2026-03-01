@@ -23,13 +23,13 @@ namespace Gamos {
 
 const PlainGameDescriptor gamosGames[] = {
 	{ "gamos", "Gamos" },
-	{ "solgamer", "21 Solitaire" },
-	{ "pilots1", "Pilots 1" },
-	{ "pilots2", "Pilots 2" },
-	{ "wild", "WildSnakes"},
-	{ "flop", "Flip-Flop"},
-	{ "netwalk", "NetWalk"},
-	{ "vitamin", "Vitamin"},
+	{ "solgamer", "21 Solitaire" }, // Пасьянс
+	{ "pilots1", "Pilot Brothers: On the Track of Striped Elephant" }, // Братья-Пилоты. По следам полосатого слона
+	{ "pilots2", "Pilot Brothers: The Case of Serial Maniac" }, // Братья-Пилоты. Дело о серийном маньяке
+	{ "wild", "WildSnake" },
+	{ "flop", "Flip-Flop" },
+	{ "netwalk", "NetWalk" }, // АйТи
+	{ "vitamin", "Vitamin" },
 	{ 0, 0 }
 };
 
