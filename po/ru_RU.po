@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-02-28 23:20+0000\n"
-"PO-Revision-Date: 2026-02-28 23:16+0000\n"
+"PO-Revision-Date: 2026-03-01 23:52+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -11419,40 +11419,30 @@ msgid "3DO Plumbers requires RGB support."
 msgstr "Игра Plumbers для 3DO требует поддержки RGB."
 
 #: engines/prince/metaengine.cpp:237
-#, fuzzy
-#| msgid "Open main menu"
 msgid "Open interaction menu"
-msgstr "Открыть главное меню"
+msgstr "Открыть меню взаимодействия"
 
 #. I18N: This refers to the Z key on a keyboard.
 #: engines/prince/metaengine.cpp:256
-#, fuzzy
-#| msgid "Boss key"
 msgid "Z key"
-msgstr "Босс-кнопка"
+msgstr "Кнопка Z"
 
 #. I18N: This refers to the X key on a keyboard.
 #: engines/prince/metaengine.cpp:263
-#, fuzzy
-#| msgid "Boss key"
 msgid "X key"
-msgstr "Босс-кнопка"
+msgstr "Кнопка X"
 
 #: engines/private/metaengine.cpp:39
-#, fuzzy
-#| msgid "Toggle subtitles"
 msgid "Display SFX subtitles"
-msgstr "Вкл/выкл субтитры"
+msgstr "Показать SFX-субтитры"
 
 #: engines/private/metaengine.cpp:40
 msgid "Use SFX subtitles (if subtitles are enabled)."
 msgstr "Использовать субтитры для звуковых эффектов (если субтитры включены)."
 
 #: engines/private/metaengine.cpp:50
-#, fuzzy
-#| msgid "Highlight next dialogue"
 msgid "Highlight decision areas"
-msgstr "Подсветить следующий диалог"
+msgstr "Подсветить области решений"
 
 #: engines/private/metaengine.cpp:51
 msgid "Highlight clickable areas in decision scenes."
@@ -11463,10 +11453,8 @@ msgid "Skip video"
 msgstr "Пропустить видео"
 
 #: engines/qdengine/dialogs.cpp:32
-#, fuzzy
-#| msgid "Enable the debug mode"
 msgid "Enable 16 bits per pixel mode"
-msgstr "Включить режим отладки"
+msgstr "Включить режим 16-битного цвета"
 
 #: engines/qdengine/dialogs.cpp:32
 msgid "Enable this if backend does not support 32bpp and/or to debug graphics"
@@ -11493,46 +11481,32 @@ msgid "Move / Skip / Use default action with inventory item"
 msgstr ""
 
 #: engines/queen/metaengine.cpp:198 engines/twp/metaengine.cpp:176
-#, fuzzy
-#| msgid "Skip Text"
 msgid "Skip text"
 msgstr "Пропустить текст"
 
 #: engines/queen/metaengine.cpp:203
-#, fuzzy
-#| msgid "Scroll up in inventory"
 msgid "Scroll inventory up"
 msgstr "Прокрутить инвентарь вверх"
 
 #: engines/queen/metaengine.cpp:209
-#, fuzzy
-#| msgid "Scroll list down"
 msgid "Scroll inventory down"
-msgstr "Прокрутить список вниз"
+msgstr "Прокрутить инвентарь вниз"
 
 #: engines/queen/metaengine.cpp:215
-#, fuzzy
-#| msgid "Inventory"
 msgid "Inventory item 1"
-msgstr "Инвентарь"
+msgstr "Предмет инвентаря 1"
 
 #: engines/queen/metaengine.cpp:220
-#, fuzzy
-#| msgid "Inventory"
 msgid "Inventory item 2"
-msgstr "Инвентарь"
+msgstr "Предмет инвентаря 2"
 
 #: engines/queen/metaengine.cpp:225
-#, fuzzy
-#| msgid "Inventory"
 msgid "Inventory item 3"
-msgstr "Инвентарь"
+msgstr "Предмет инвентаря 3"
 
 #: engines/queen/metaengine.cpp:230
-#, fuzzy
-#| msgid "Inventory"
 msgid "Inventory item 4"
-msgstr "Инвентарь"
+msgstr "Предмет инвентаря 4"
 
 #: engines/queen/metaengine.cpp:235
 #, fuzzy
