@@ -96,6 +96,7 @@ public:
 	virtual void renderPlayerShootRay(byte color, const Common::Point &position, const Common::Rect &viewPort) override;
 	void drawCelestialBody(Math::Vector3d position, float radius, uint8 color) override;
 	void drawSkybox(Texture *texture, Math::Vector3d camera) override;
+	void drawThunder(Texture *texture, Math::Vector3d position, float size) override;
 
 	virtual void renderCrossair(const Common::Point &crossairPosition) override;
 
