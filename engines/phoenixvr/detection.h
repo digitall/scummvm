@@ -54,11 +54,11 @@ public:
 	}
 
 	const char *getEngineName() const override {
-		return "PhoenixVR";
+		return "Phoenix VR";
 	}
 
 	const char *getOriginalCopyright() const override {
-		return "PhoenixVR (C)";
+		return "PhoenixVR (C) DreamCatcher Interactive";
 	}
 
 	const DebugChannelDef *getDebugChannels() const override {
