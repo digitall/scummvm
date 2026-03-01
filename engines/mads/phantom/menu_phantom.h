@@ -39,29 +39,33 @@ enum MADSGameAction {
 };
 
 class MainMenu: public MenuView {
+	struct MenuItem {
+		SpriteAsset *_sprites = nullptr;
+		int _handle = -1;
+		bool _active = false;
+		int _status = 0;
+	};
 private:
-	SpriteAsset *_menuItems[7];
-	int _menuItemIndexes[7];
-	int _menuItemIndex;
-	int _frameIndex;
-	uint32 _delayTimeout;
-	bool _skipFlag;
-	bool _showEvolve, _showSets;
+	MenuItem _menuItems[7];
+	int _menuItemIndex = -1;
+	int _frameIndex = -1;
+	uint32 _delayTimeout = 0;
+	bool _skipFlag = false;
 
 	/**
 	 * Currently highlighted menu item
 	 */
-	int _highlightedIndex;
+	int _highlightedIndex = -1;
 
 	/**
 	 * Flag for mouse button being pressed
 	 */
-	bool _buttonDown;
+	bool _buttonDown = false;
 
 	/**
 	 * Stores menu item selection
 	 */
-	int _selectedIndex;
+	int _selectedIndex = -1;
 
 	/**
 	 * Get the highlighted menu item under the cursor

@@ -36,26 +36,13 @@ namespace Phantom {
 #define MADS_MENU_ANIM_DELAY 70
 
 MainMenu::MainMenu(MADSEngine *vm): MenuView(vm) {
-	Common::fill(&_menuItems[0], &_menuItems[7], (SpriteAsset *)nullptr);
-	Common::fill(&_menuItemIndexes[0], &_menuItemIndexes[7], -1);
-	_delayTimeout = 0;
-	_menuItemIndex = -1;
-	_frameIndex = 0;
-	_skipFlag = false;
-	_highlightedIndex = -1;
-	_selectedIndex = -1;
-	_buttonDown = false;
-	_showEvolve = _showSets = false;
-
-	for (int i = 0; i < 7; ++i)
-		_menuItems[i] = nullptr;
 }
 
 MainMenu::~MainMenu() {
 	Scene &scene = _vm->_game->_scene;
 	for (int i = 0; i < 7; ++i) {
-		if (_menuItemIndexes[i] != -1)
-			scene._sprites.remove(_menuItemIndexes[i]);
+		if (_menuItems[i]._handle != -1)
+			scene._sprites.remove(_menuItems[i]._handle);
 	}
 
 	scene._spriteSlots.reset();
@@ -70,11 +57,11 @@ void MainMenu::display() {
 	// Load each of the menu item assets and add to the scene sprites list
 	for (int i = 0; i < 7; ++i) {
 		Common::Path spritesName(Common::String::format("*MAIN%d.SS", i));
-		_menuItems[i] = new SpriteAsset(_vm, spritesName, 0);
-		_menuItemIndexes[i] = scene._sprites.add(_menuItems[i]);
+		_menuItems[i]._sprites = new SpriteAsset(_vm, spritesName, 0);
+		_menuItems[i]._handle = scene._sprites.add(_menuItems[i]._sprites);
 
 		// Register the menu item area in the screen objects
-		MSprite *frame0 = _menuItems[i]->getFrame(0);
+		MSprite *frame0 = _menuItems[i]._sprites->getFrame(0);
 		Common::Point pt(frame0->_offset.x - (frame0->w / 2),
 			frame0->_offset.y - frame0->h);
 		screenObjects.add(
@@ -95,7 +82,7 @@ void MainMenu::doFrame() {
 
 	// If an item has already been selected, handle rotating out the other menu items
 	if (_selectedIndex != -1) {
-		if (_frameIndex == _menuItems[0]->getCount()) {
+		if (_frameIndex == _menuItems[0]._sprites->getCount()) {
 			handleAction((MADSGameAction)_selectedIndex);
 		} else {
 			for (_menuItemIndex = 0; _menuItemIndex < 6; ++_menuItemIndex) {
@@ -134,7 +121,7 @@ void MainMenu::doFrame() {
 				return;
 			}
 
-			_frameIndex = _menuItems[_menuItemIndex]->getCount() - 1;
+			_frameIndex = _menuItems[_menuItemIndex]._sprites->getCount() - 1;
 		} else {
 			--_frameIndex;
 		}
@@ -151,13 +138,13 @@ void MainMenu::addSpriteSlot() {
 	int seqIndex = (_menuItemIndex < 6) ? _menuItemIndex : _frameIndex;
 	spriteSlots.deleteTimer(seqIndex);
 
-	SpriteAsset *menuItem = _menuItems[_menuItemIndex];
+	SpriteAsset *menuItem = _menuItems[_menuItemIndex]._sprites;
 	MSprite *spr = menuItem->getFrame(_frameIndex);
 
 	SpriteSlot &slot = spriteSlots[spriteSlots.add()];
 	slot._flags = IMG_UPDATE;
 	slot._seqIndex = seqIndex;
-	slot._spritesIndex = _menuItemIndexes[_menuItemIndex];
+	slot._spritesIndex = _menuItems[_menuItemIndex]._handle;
 	slot._frameNumber = _frameIndex + 1;
 	slot._position = spr->_offset;
 	slot._depth = 1;
