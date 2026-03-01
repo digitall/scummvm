@@ -284,7 +284,7 @@ struct Cube {
 };
 
 Cube toCube(float x, float y, float z) {
-	Cube cube;
+	Cube cube = {};
 
 	float absX = fabs(x);
 	float absY = fabs(y);
