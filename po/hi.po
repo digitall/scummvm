@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2024-07-11 17:47+0000\n"
 "Last-Translator: Krish <ganatrakrish2882005@gmail.com>\n"
 "Language-Team: Hindi <https://translations.scummvm.org/projects/scummvm/"
@@ -11220,12 +11220,12 @@ msgstr ""
 msgid "Skip text"
 msgstr "ऑटोसेव स्किप करें"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 msgid "Scroll inventory up"
 msgstr "नीचे देखो"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 msgid "Scroll inventory down"
 msgstr "नीचे देखो"
@@ -13496,24 +13496,15 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr ""
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-msgid "Scroll down in inventory"
-msgstr "नीचे देखो"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
 #| msgid "Scroll Up"
-msgid "Scroll up in your dialogs"
+msgid "Scroll dialogs up"
 msgstr "ऊपर स्क्रॉल करें"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-msgid "Scroll down in your dialogs"
+msgid "Scroll dialogs down"
 msgstr "नीचे देखो"
 
 #: engines/stark/metaengine.cpp:318
@@ -16537,6 +16528,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+#~ msgid "Scroll down in inventory"
+#~ msgstr "नीचे देखो"
+
+#, fuzzy
+#~| msgid "Scroll Up"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "ऊपर स्क्रॉल करें"
+
+#, fuzzy
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "नीचे देखो"
+
+#, fuzzy
 #~| msgid "Switch to Game"
 #~ msgid "Switch test"
 #~ msgstr "गेम पर स्विच करे"
@@ -16684,15 +16688,6 @@ msgstr ""
 #~| msgid "Go to end of line"
 #~ msgid "Go to end of journal"
 #~ msgstr "पंक्ति के अंत में जाएँ"
-
-#, fuzzy
-#~| msgid "Scroll Up"
-#~ msgid "Scroll page up"
-#~ msgstr "ऊपर स्क्रॉल करें"
-
-#, fuzzy
-#~ msgid "Scroll page down"
-#~ msgstr "नीचे देखो"
 
 #, fuzzy
 #~| msgid "Quit Game"

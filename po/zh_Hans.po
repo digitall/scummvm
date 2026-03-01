@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2024-12-01 22:18+0000\n"
 "Last-Translator: 复予 <clonewith@qq.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
@@ -11956,13 +11956,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "跳过文本"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Scroll up in inventory"
 msgid "Scroll inventory up"
 msgstr "物品界面向上滚动"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14320,25 +14320,17 @@ msgstr "向前循环切换物品区选中项目"
 msgid "Display all exits on current location"
 msgstr "显示当前位置的所有出口"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "物品界面向上滚动"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "物品界面向下滚动"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Scroll up in your dialogues"
-msgid "Scroll up in your dialogs"
-msgstr "向上滚动对话"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "向上滚动列表"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Scroll down in your dialogues"
-msgid "Scroll down in your dialogs"
-msgstr "向下滚动对话"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "向下滚动列表"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17494,6 +17486,22 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "物品界面向上滚动"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "物品界面向下滚动"
+
+#, fuzzy
+#~| msgid "Scroll up in your dialogues"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "向上滚动对话"
+
+#, fuzzy
+#~| msgid "Scroll down in your dialogues"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "向下滚动对话"
 
 #, fuzzy
 #~| msgid "Switch to Game"

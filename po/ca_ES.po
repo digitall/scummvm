@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-17 04:22+0000\n"
 "Last-Translator: Xaviu <xaviu@xaviu.com>\n"
 "Language-Team: Catalan <https://translations.scummvm.org/projects/scummvm/"
@@ -11132,11 +11132,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Omet el text"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Desplaça l'inventari cap amunt"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Desplaça l'inventari cap avall"
 
@@ -13251,21 +13251,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Desplaça't cap amunt a l'inventari"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Desplaça't cap avall en l'inventari"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Desplaça cap amunt en els vostres diàlegs"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Desplaça la llista amunt"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Desplaça cap avall en els vostres diàlegs"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Desplaça la llista avall"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16017,6 +16013,18 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Desplaça't cap amunt a l'inventari"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Desplaça't cap avall en l'inventari"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Desplaça cap amunt en els vostres diàlegs"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Desplaça cap avall en els vostres diàlegs"
 
 #~ msgid "Switch test"
 #~ msgstr "Commuta la prova"

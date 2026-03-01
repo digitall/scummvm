@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Einar Johan Trøan Sømåen <einarjohants@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://translations.scummvm.org/projects/"
@@ -12343,13 +12343,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "Hopp over tekst"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Open/Close Inventory"
 msgid "Scroll inventory up"
 msgstr "Åpne/Lukke utstyrsliste"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14792,29 +14792,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-#, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in inventory"
-msgstr "Åpne/Lukke utstyrsliste"
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in inventory"
-msgstr "Vis utstyrsliste"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in your dialogs"
-msgstr "Åpne/Lukke utstyrsliste"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Bla liste opp"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in your dialogs"
-msgstr "Vis utstyrsliste"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Bla liste ned"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -18071,6 +18059,26 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Åpne/Lukke utstyrsliste"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Vis utstyrsliste"
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Åpne/Lukke utstyrsliste"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Vis utstyrsliste"
 
 #, fuzzy
 #~| msgid "Switch to Game"

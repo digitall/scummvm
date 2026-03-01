@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-26 13:38+0000\n"
 "Last-Translator: Walter Agazzi <walter.agazzi@protonmail.com>\n"
 "Language-Team: Italian <https://translations.scummvm.org/projects/scummvm/"
@@ -11612,11 +11612,11 @@ msgstr "Spostamento / Salta/ Esegui azione predefinita dell'oggetto"
 msgid "Skip text"
 msgstr "Salta battuta"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Scorri inventario verso l'alto"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Scorri inventario verso il basso"
 
@@ -13914,21 +13914,17 @@ msgstr "Seleziona oggetto successivo nell'inventario"
 msgid "Display all exits on current location"
 msgstr "Mostra uscite dalla locazione corrente"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Scorri inventario verso l'alto"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Scorri inventario verso il basso"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Scorri log dialoghi verso l'alto"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Scorri lista verso l'alto"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Scorri log dialoghi verso il basso"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Scorri lista verso il basso"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16750,6 +16746,18 @@ msgstr ""
 "Zork Nemesis contiene alcuni puzzle musicali the richiedono l'audio MIDI per "
 "poterli risolvere. In alternativa, i puzzle possono essere risolti usando i "
 "sottotitoli, se supportati. Desideri continuare ad avviare il gioco?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Scorri inventario verso l'alto"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Scorri inventario verso il basso"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Scorri log dialoghi verso l'alto"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Scorri log dialoghi verso il basso"
 
 #~ msgid "Switch test"
 #~ msgstr "Test switch"

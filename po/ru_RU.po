@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-03-01 23:52+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
@@ -11484,11 +11484,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Пропустить текст"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Прокрутить инвентарь вверх"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Прокрутить инвентарь вниз"
 
@@ -13871,25 +13871,17 @@ msgstr "Прокрутить вперёд элементы курсора инв
 msgid "Display all exits on current location"
 msgstr "Показать все выходы в текущей локации"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Прокрутить инвентарь вверх"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Прокрутить инвентарь вниз"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Scroll up in your dialogues"
-msgid "Scroll up in your dialogs"
-msgstr "Прокрутить диалоги вверх"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Прокрутить список вверх"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Scroll down in your dialogues"
-msgid "Scroll down in your dialogs"
-msgstr "Прокрутить диалоги вниз"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Прокрутить список вниз"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17041,6 +17033,22 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Прокрутить инвентарь вверх"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Прокрутить инвентарь вниз"
+
+#, fuzzy
+#~| msgid "Scroll up in your dialogues"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Прокрутить диалоги вверх"
+
+#, fuzzy
+#~| msgid "Scroll down in your dialogues"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Прокрутить диалоги вниз"
 
 #~ msgid "Switch test"
 #~ msgstr "Переключить тест"

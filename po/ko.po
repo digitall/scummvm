@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-26 11:31+0000\n"
 "Last-Translator: Hoseok Seo <ddinghoya@gmail.com>\n"
 "Language-Team: Korean <https://translations.scummvm.org/projects/scummvm/"
@@ -11353,11 +11353,11 @@ msgstr "인벤토리 항목에 대한 이동/건너뛰기/기본 작업 사용"
 msgid "Skip text"
 msgstr "대사 건너뛰기"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "인벤토리 위로 스크롤"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "인벤토리 아래로 스크롤"
 
@@ -13584,21 +13584,17 @@ msgstr "인벤토리 커서 아이템을 앞으로 순환"
 msgid "Display all exits on current location"
 msgstr "현재 위치의 모든 나가기 표시"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "인벤토리에서 위로 스크롤"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "인벤토리에서 아래로 스크롤"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "대화에서 위로 스크롤"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "목록 위로 스크롤"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "대화에서 아래로 스크롤"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "목록 아래로 스크롤"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16367,6 +16363,18 @@ msgstr ""
 "MIDI 재생을 사용할 수 없거나, 제대로 구성되지 않았습니다. 죠크 네미시스에는 "
 "MIDI 오디오가 필요한 여러 음악 퍼즐이 포함되어 있습니다.  이러한 퍼즐은 지원"
 "되는 경우 자막을 사용하여 해결할 수 있습니다. 게임을 계속 실행할까요?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "인벤토리에서 위로 스크롤"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "인벤토리에서 아래로 스크롤"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "대화에서 위로 스크롤"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "대화에서 아래로 스크롤"
 
 #~ msgid "Switch test"
 #~ msgstr "테스트 전환"

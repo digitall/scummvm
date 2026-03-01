@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-26 23:58+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Ukrainian <https://translations.scummvm.org/projects/scummvm/"
@@ -11486,11 +11486,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Пропустити текст"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Прокрутити інвентар догори"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Прокрутити інвентар донизу"
 
@@ -13753,21 +13753,17 @@ msgstr "Прокрутка вперед через курсори елемент
 msgid "Display all exits on current location"
 msgstr "Показати всі виходи з поточної локації"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Прокрутити інвентар догори"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Прокрутити інвентар донизу"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Прокрутити діалоги догори"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Прокручення списку догори"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Прокрутити діалоги донизу"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Прокручення списку донизу"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16549,6 +16545,18 @@ msgstr ""
 "містить кілька музичних головоломок, для розв'язання яких потрібне MIDI-"
 "аудіо. Ці головоломки також можна розв'язати за допомогою субтитрів, якщо "
 "вони підтримуються. Продовжити запуск гри?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Прокрутити інвентар догори"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Прокрутити інвентар донизу"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Прокрутити діалоги догори"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Прокрутити діалоги донизу"
 
 #~ msgid "Switch test"
 #~ msgstr "Тест перемикання"

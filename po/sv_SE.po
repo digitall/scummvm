@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.5.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-26 11:31+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translations.scummvm.org/projects/scummvm/"
@@ -11491,11 +11491,11 @@ msgstr "Flytta / Hoppa över / Använd standardåtgärd med inventarieobjekt"
 msgid "Skip text"
 msgstr "Hoppa över text"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Rulla uppåt i inventarier"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Rulla nedåt i inventarier"
 
@@ -13774,21 +13774,17 @@ msgstr "Växla framåt genom översiktens markörobjekt"
 msgid "Display all exits on current location"
 msgstr "Visa alla utgångar på aktuell plats"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Rulla uppåt i översikten"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Rulla nedåt i översikten"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Rulla uppåt i dina dialoger"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Bläddra listan uppåt"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Rulla neråt i dina dialoger"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Bläddra listan nedåt"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16560,6 +16556,18 @@ msgstr ""
 "Nemesis innehåller flera musikpussel som kräver MIDI-ljud för att kunna "
 "lösas. Dessa pussel kan alternativt lösas med hjälp av undertexter, om detta "
 "stöds. Vill du fortsätta spela?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Rulla uppåt i översikten"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Rulla nedåt i översikten"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Rulla uppåt i dina dialoger"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Rulla neråt i dina dialoger"
 
 #~ msgid "Switch test"
 #~ msgstr "Växlingstest"

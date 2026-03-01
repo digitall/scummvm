@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2024-11-16 02:13+0000\n"
 "Last-Translator: Marcel Souza Lemes <marcosoutsider@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translations.scummvm.org/"
@@ -12317,13 +12317,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "Pular Texto"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Scroll up in inventory"
 msgid "Scroll inventory up"
 msgstr "Rolar inventário para cima"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14770,25 +14770,17 @@ msgstr "Avançar para os itens posteriores no inventário usando o cursor"
 msgid "Display all exits on current location"
 msgstr "Exibir todas as saídas no local atual"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Rolar inventário para cima"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Rolar inventário para baixo"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Scroll up in your dialogues"
-msgid "Scroll up in your dialogs"
-msgstr "Rolar lista de diálogos para cima"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Subir na lista"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Scroll down in your dialogues"
-msgid "Scroll down in your dialogs"
-msgstr "Rolar lista de diálogos para baixo"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Descer na lista"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17996,6 +17988,22 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Rolar inventário para cima"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Rolar inventário para baixo"
+
+#, fuzzy
+#~| msgid "Scroll up in your dialogues"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Rolar lista de diálogos para cima"
+
+#, fuzzy
+#~| msgid "Scroll down in your dialogues"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Rolar lista de diálogos para baixo"
 
 #, fuzzy
 #~| msgid "Switch to Game"

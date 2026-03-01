@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2023-02-26 15:01+0000\n"
 "Last-Translator: Kastuś K. <oakum2334@gmail.com>\n"
 "Language-Team: Belarusian (Taraškievica) <https://translations.scummvm.org/"
@@ -11950,13 +11950,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "Прапусьціць радок"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Open/Close Inventory"
 msgid "Scroll inventory up"
 msgstr "Адкрыць/закрыць рыштунак"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14389,29 +14389,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-#, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in inventory"
-msgstr "Адкрыць/закрыць рыштунак"
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in inventory"
-msgstr "Паказаць рыштунак"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in your dialogs"
-msgstr "Адкрыць/закрыць рыштунак"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Прагартаць сьпіс угару"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in your dialogs"
-msgstr "Паказаць рыштунак"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Прагартаць сьпіс уніз"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17630,6 +17618,26 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Адкрыць/закрыць рыштунак"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Паказаць рыштунак"
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Адкрыць/закрыць рыштунак"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Паказаць рыштунак"
 
 #, fuzzy
 #~| msgid "Switch to Game"

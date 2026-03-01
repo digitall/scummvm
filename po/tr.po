@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2024-10-10 12:33+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Turkish <https://translations.scummvm.org/projects/scummvm/"
@@ -11261,12 +11261,12 @@ msgstr ""
 msgid "Skip text"
 msgstr "İptal"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 msgid "Scroll inventory up"
 msgstr "Aşağı"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 msgid "Scroll inventory down"
 msgstr "Aşağı"
@@ -13517,21 +13517,14 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr ""
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr ""
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr ""
+#, fuzzy
+msgid "Scroll dialogs up"
+msgstr "Aşağı"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-msgid "Scroll down in your dialogs"
+msgid "Scroll dialogs down"
 msgstr "Aşağı"
 
 #: engines/stark/metaengine.cpp:318
@@ -16483,6 +16476,10 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Aşağı"
+
+#, fuzzy
 #~| msgid "Switch to Game"
 #~ msgid "Switch test"
 #~ msgstr "Oyunu seç"
@@ -16623,14 +16620,6 @@ msgstr ""
 #~| msgid "Close"
 #~ msgid "Go to end of journal"
 #~ msgstr "Kapat"
-
-#, fuzzy
-#~ msgid "Scroll page up"
-#~ msgstr "Aşağı"
-
-#, fuzzy
-#~ msgid "Scroll page down"
-#~ msgstr "Aşağı"
 
 #, fuzzy
 #~ msgid "Exit game"

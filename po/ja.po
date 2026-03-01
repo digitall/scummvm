@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-06 00:22+0000\n"
 "Last-Translator: VAN-Gluon <van.gluonp@gmail.com>\n"
 "Language-Team: Japanese <https://translations.scummvm.org/projects/scummvm/"
@@ -12009,13 +12009,13 @@ msgstr "移動/スキップ/デフォルトアクション(アイテム使用)"
 msgid "Skip text"
 msgstr "スキップ"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Open/Close Inventory"
 msgid "Scroll inventory up"
 msgstr "インベントリーを開く/閉じる"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14427,29 +14427,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-#, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in inventory"
-msgstr "インベントリーを開く/閉じる"
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in inventory"
-msgstr "インベントリーを表示"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in your dialogs"
-msgstr "インベントリーを開く/閉じる"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "リストを上へスクロール"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in your dialogs"
-msgstr "インベントリーを表示"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "リストを下へスクロール"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17661,6 +17649,26 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in inventory"
+#~ msgstr "インベントリーを開く/閉じる"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in inventory"
+#~ msgstr "インベントリーを表示"
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "インベントリーを開く/閉じる"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "インベントリーを表示"
 
 #, fuzzy
 #~| msgid "Switch to Game"

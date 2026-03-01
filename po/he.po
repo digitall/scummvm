@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.1.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2025-04-09 20:18+0000\n"
 "Last-Translator: Niv Baehr <bloop93@gmail.com>\n"
 "Language-Team: Hebrew <https://translations.scummvm.org/projects/scummvm/"
@@ -11808,13 +11808,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "דלג על טקסט"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Open/Close Inventory"
 msgid "Scroll inventory up"
 msgstr "מלאי פתוח / סגור"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14234,29 +14234,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-#, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in inventory"
-msgstr "מלאי פתוח / סגור"
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in inventory"
-msgstr "הצגת מצאי"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in your dialogs"
-msgstr "מלאי פתוח / סגור"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "גלול רשימה למעלה"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Show inventory"
-msgid "Scroll down in your dialogs"
-msgstr "הצגת מצאי"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "גלול רשימה למטה"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17479,6 +17467,26 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in inventory"
+#~ msgstr "מלאי פתוח / סגור"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in inventory"
+#~ msgstr "הצגת מצאי"
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "מלאי פתוח / סגור"
+
+#, fuzzy
+#~| msgid "Show inventory"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "הצגת מצאי"
 
 #, fuzzy
 #~| msgid "Switch to Game"

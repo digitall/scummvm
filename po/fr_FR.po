@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-26 20:58+0000\n"
 "Last-Translator: Purple T <ZEONK@hotmail.com>\n"
 "Language-Team: French <https://translations.scummvm.org/projects/scummvm/"
@@ -11654,11 +11654,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Passer le texte"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Faire défiler l'inventaire vers le haut"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Faire défiler l'inventaire vers le bas"
 
@@ -13977,21 +13977,17 @@ msgstr "Faire défiler les objets de l'inventaire du haut vers le bas"
 msgid "Display all exits on current location"
 msgstr "Afficher toutes les sorties dans la scène en cours"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Faire défiler l'inventaire vers le haut"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Faire défiler l'inventaire vers le bas"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Faire défiler vos répliques vers le haut"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Faire défiler vers le haut"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Faire défiler vos répliques vers le bas"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Faire défiler vers le bas"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16820,6 +16816,18 @@ msgstr ""
 "contient plusieurs énigmes musicales qui nécessitent l'audio MIDI pour être "
 "résolues.  Ces puzzles peuvent également être résolus à l'aide de sous-"
 "titres, s'ils sont pris en charge. Continuer à lancer le jeu ?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Faire défiler l'inventaire vers le haut"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Faire défiler l'inventaire vers le bas"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Faire défiler vos répliques vers le haut"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Faire défiler vos répliques vers le bas"
 
 #~ msgid "Switch test"
 #~ msgstr "Test de l'interrupteur"

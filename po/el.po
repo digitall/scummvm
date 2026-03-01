@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-20 15:48+0000\n"
 "Last-Translator: Antoniou Athanasios <a.antoniou79@gmail.com>\n"
 "Language-Team: Greek <https://translations.scummvm.org/projects/scummvm/"
@@ -12090,13 +12090,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "Παράλειψη Κειμένου"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Scroll up in inventory"
 msgid "Scroll inventory up"
 msgstr "Κύλιση προς τα πάνω στα υπάρχοντα"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -14577,25 +14577,17 @@ msgstr "Κανονικό πέρασμα από όλα τα αντικείμεν�
 msgid "Display all exits on current location"
 msgstr "Προβολή όλων των εξόδων από την τρέχουσα τοποθεσία"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Κύλιση προς τα πάνω στα υπάρχοντα"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Κύλιση προς τα κάτω στα υπάρχοντα"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Scroll up in your dialogues"
-msgid "Scroll up in your dialogs"
-msgstr "Κύλιση προς τα πάνω στους διαλόγους σας"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Κύλιση λίστας πάνω"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-#| msgid "Scroll down in your dialogues"
-msgid "Scroll down in your dialogs"
-msgstr "Κύλιση προς τα κάτω στους διαλόγους σας"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Κύλιση λίστας κάτω"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17826,6 +17818,22 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Κύλιση προς τα πάνω στα υπάρχοντα"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Κύλιση προς τα κάτω στα υπάρχοντα"
+
+#, fuzzy
+#~| msgid "Scroll up in your dialogues"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Κύλιση προς τα πάνω στους διαλόγους σας"
+
+#, fuzzy
+#~| msgid "Scroll down in your dialogues"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Κύλιση προς τα κάτω στους διαλόγους σας"
 
 #, fuzzy
 #~| msgid "Switch to Game"

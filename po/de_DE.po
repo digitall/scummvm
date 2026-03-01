@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-11 14:22+0000\n"
 "Last-Translator: DwarfDev <dwarflin@gmx.de>\n"
 "Language-Team: German <https://translations.scummvm.org/projects/scummvm/"
@@ -11663,11 +11663,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Text überspringen"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Inventar nach oben scrollen"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Inventar nach unten scrollen"
 
@@ -13977,21 +13977,17 @@ msgstr "Durch die Inventar-Items vorwärts scrollen"
 msgid "Display all exits on current location"
 msgstr "Alle Ausgänge am aktuellen Ort anzeigen"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Im Inventar nach oben scrollen"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Im Inventar nach unten scrollen"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Scrollen Sie in Ihren Dialogen nach oben"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Liste hochblättern"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Scrollen Sie in Ihren Dialogen nach unten"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Liste runterblättern"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16823,6 +16819,18 @@ msgstr ""
 "erforderlich ist. Diese Rätsel können alternativ auch mithilfe von "
 "Untertiteln gelöst werden, sofern diese unterstützt werden. Möchten Sie das "
 "Spiel trotzdem starten?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Im Inventar nach oben scrollen"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Im Inventar nach unten scrollen"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Scrollen Sie in Ihren Dialogen nach oben"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Scrollen Sie in Ihren Dialogen nach unten"
 
 #~ msgid "Switch test"
 #~ msgstr "Schaltertest"

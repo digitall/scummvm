@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2024-05-14 12:42+0000\n"
 "Last-Translator: 复予 <clonewith@qq.com>\n"
 "Language-Team: Chinese <https://translations.scummvm.org/projects/scummvm/"
@@ -11091,13 +11091,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "跳过自动保存"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Scroll Down"
 msgid "Scroll inventory up"
 msgstr "往下滾動"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll Down"
 msgid "Scroll inventory down"
@@ -13367,22 +13367,16 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr ""
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr ""
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr ""
+#, fuzzy
+#| msgid "Scroll Down"
+msgid "Scroll dialogs up"
+msgstr "往下滾動"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
 #| msgid "Scroll Down"
-msgid "Scroll down in your dialogs"
+msgid "Scroll dialogs down"
 msgstr "往下滾動"
 
 #: engines/stark/metaengine.cpp:318
@@ -16361,6 +16355,11 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+#~| msgid "Scroll Down"
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "往下滾動"
+
+#, fuzzy
 #~| msgid "Switch to Game"
 #~ msgid "Switch test"
 #~ msgstr "切换到游戏"
@@ -16500,16 +16499,6 @@ msgstr ""
 #~| msgid "Close popup"
 #~ msgid "Go to end of journal"
 #~ msgstr "关闭弹出窗口"
-
-#, fuzzy
-#~| msgid "Scroll Down"
-#~ msgid "Scroll page up"
-#~ msgstr "往下滾動"
-
-#, fuzzy
-#~| msgid "Scroll Down"
-#~ msgid "Scroll page down"
-#~ msgstr "往下滾動"
 
 #, fuzzy
 #~| msgid "Quit Game"

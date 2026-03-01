@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-11 14:23+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Dutch <https://translations.scummvm.org/projects/scummvm/"
@@ -11557,11 +11557,11 @@ msgstr "Verplaatsen / Overslaan / Standaardactie gebruiken met inventarisitem"
 msgid "Skip text"
 msgstr "Tekst overslaan"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Scroll inventaris omhoog"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Scroll naar beneden in de inventaris"
 
@@ -13859,21 +13859,17 @@ msgstr "Blader vooruit door de items in de inventaris"
 msgid "Display all exits on current location"
 msgstr "Alle uitgangen op huidige locatie weergeven"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Scroll omhoog in inventaris"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Scroll naar beneden in inventaris"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Scroll omhoog in je dialoogvensters"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Scroll lijst omhoog"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Scroll naar beneden in je dialoogvensters"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Scroll lijst naar beneden"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -16674,6 +16670,18 @@ msgstr ""
 "opgelost te kunnen worden. Deze puzzels kunnen ook worden opgelost met "
 "behulp van ondertitels, indien ondersteund. Doorgaan met het starten van het "
 "spel?"
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Scroll omhoog in inventaris"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Scroll naar beneden in inventaris"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Scroll omhoog in je dialoogvensters"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Scroll naar beneden in je dialoogvensters"
 
 #~ msgid "Switch test"
 #~ msgstr "Schakelaartest"

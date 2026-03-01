@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Timo Mikkolainen <tmikkola@gmail.com>\n"
 "Language-Team: Finnish <https://translations.scummvm.org/projects/scummvm/"
@@ -11776,11 +11776,11 @@ msgstr ""
 msgid "Skip text"
 msgstr "Ohita teksti"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 msgid "Scroll inventory up"
 msgstr "Vieritä inventaariota ylös"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 msgid "Scroll inventory down"
 msgstr "Vieritä inventaariota alas"
 
@@ -14098,21 +14098,17 @@ msgstr "Siirry eteenpäin inventaariossa"
 msgid "Display all exits on current location"
 msgstr "Näytä kaikki tämän sijainnin uloskäynnit"
 
-#: engines/stark/metaengine.cpp:292
-msgid "Scroll up in inventory"
-msgstr "Vieritä inventaariota ylös"
-
-#: engines/stark/metaengine.cpp:299
-msgid "Scroll down in inventory"
-msgstr "Vieritä inventaariota alas"
-
 #: engines/stark/metaengine.cpp:306
-msgid "Scroll up in your dialogs"
-msgstr "Vieritä dialogeja ylös"
+#, fuzzy
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Vieritä listaa ylös"
 
 #: engines/stark/metaengine.cpp:312
-msgid "Scroll down in your dialogs"
-msgstr "Vieritä dialogeja alas"
+#, fuzzy
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Vieritä listaa alas"
 
 #: engines/stark/metaengine.cpp:318
 msgid "Go to next dialog"
@@ -17014,6 +17010,18 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Vieritä inventaariota ylös"
+
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Vieritä inventaariota alas"
+
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Vieritä dialogeja ylös"
+
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Vieritä dialogeja alas"
 
 #~ msgid "Switch test"
 #~ msgstr "Vaihda testiä"

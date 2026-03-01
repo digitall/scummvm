@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.7.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-02-28 23:20+0000\n"
+"POT-Creation-Date: 2026-03-01 23:53+0000\n"
 "PO-Revision-Date: 2026-02-09 20:22+0000\n"
 "Last-Translator: AsciiWolf <mail@asciiwolf.com>\n"
 "Language-Team: Czech <https://translations.scummvm.org/projects/scummvm/"
@@ -11649,13 +11649,13 @@ msgstr ""
 msgid "Skip text"
 msgstr "Přeskočit text"
 
-#: engines/queen/metaengine.cpp:203
+#: engines/queen/metaengine.cpp:203 engines/stark/metaengine.cpp:292
 #, fuzzy
 #| msgid "Open/Close Inventory"
 msgid "Scroll inventory up"
 msgstr "Otevřít/Zavřít Inventář"
 
-#: engines/queen/metaengine.cpp:209
+#: engines/queen/metaengine.cpp:209 engines/stark/metaengine.cpp:299
 #, fuzzy
 #| msgid "Scroll list down"
 msgid "Scroll inventory down"
@@ -13972,27 +13972,17 @@ msgstr ""
 msgid "Display all exits on current location"
 msgstr ""
 
-#: engines/stark/metaengine.cpp:292
-#, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in inventory"
-msgstr "Otevřít/Zavřít Inventář"
-
-#: engines/stark/metaengine.cpp:299
-#, fuzzy
-msgid "Scroll down in inventory"
-msgstr "Inventář"
-
 #: engines/stark/metaengine.cpp:306
 #, fuzzy
-#| msgid "Open/Close Inventory"
-msgid "Scroll up in your dialogs"
-msgstr "Otevřít/Zavřít Inventář"
+#| msgid "Scroll list up"
+msgid "Scroll dialogs up"
+msgstr "Posunout seznam nahoru"
 
 #: engines/stark/metaengine.cpp:312
 #, fuzzy
-msgid "Scroll down in your dialogs"
-msgstr "Inventář"
+#| msgid "Scroll list down"
+msgid "Scroll dialogs down"
+msgstr "Posunout seznam dolu"
 
 #: engines/stark/metaengine.cpp:318
 #, fuzzy
@@ -17112,6 +17102,24 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in inventory"
+#~ msgstr "Otevřít/Zavřít Inventář"
+
+#, fuzzy
+#~ msgid "Scroll down in inventory"
+#~ msgstr "Inventář"
+
+#, fuzzy
+#~| msgid "Open/Close Inventory"
+#~ msgid "Scroll up in your dialogs"
+#~ msgstr "Otevřít/Zavřít Inventář"
+
+#, fuzzy
+#~ msgid "Scroll down in your dialogs"
+#~ msgstr "Inventář"
 
 #, fuzzy
 #~| msgid "Switch to Game"
