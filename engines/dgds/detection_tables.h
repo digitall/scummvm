@@ -459,6 +459,21 @@ static const ADGameDescription gameDescriptions[] = {
 		GUIO1(GUIO_NONE)
 	},
 
+	// Heart of China (Spanish), reported by Pakolmo (#16273)
+	{
+		"china",
+		0,
+		{
+			{"volume.rmf", 0, "072cffb026d91b8d25d11c70f4a57fb2", 10032},
+			{"volume.001", 0, "f3b05430e2fd64598fe9e7b422ae63e3", 1101775},
+			AD_LISTEND
+		},
+		Common::ES_ESP,
+		Common::kPlatformDOS,
+		ADGF_NO_FLAGS,
+		GUIO1(GUIO_NONE)
+	},
+
 	// Heart of China (Macintosh)
 	{
 		"china",
