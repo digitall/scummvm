@@ -32,7 +32,7 @@
 namespace MADS {
 namespace Phantom {
 
-#define NEBULAR_MENUSCREEN 990
+//#define PHANTOM_MENUSCREEN 990
 #define MADS_MENU_Y ((MADS_SCREEN_HEIGHT - MADS_SCENE_HEIGHT) / 2)
 #define MADS_MENU_ANIM_DELAY 70
 
@@ -62,10 +62,6 @@ MainMenu::~MainMenu() {
 	scene._spriteSlots.reset();
 }
 
-bool MainMenu::shouldShowQuotes() {
-	return ConfMan.hasKey("ShowQuotes") && ConfMan.getBool("ShowQuotes");
-}
-
 void MainMenu::display() {
 	MenuView::display();
 	Scene &scene = _vm->_game->_scene;
@@ -74,8 +70,7 @@ void MainMenu::display() {
 
 	// Load each of the menu item assets and add to the scene sprites list
 	for (int i = 0; i < 7; ++i) {
-		Common::Path spritesName = Resources::formatName(NEBULAR_MENUSCREEN,
-			'A', i + 1, EXT_SS, "");
+		Common::Path spritesName(Common::String::format("*MAIN%d.SS", i));
 		_menuItems[i] = new SpriteAsset(_vm, spritesName, 0);
 		_menuItemIndexes[i] = scene._sprites.add(_menuItems[i]);
 
@@ -105,9 +100,6 @@ void MainMenu::doFrame() {
 			handleAction((MADSGameAction)_selectedIndex);
 		} else {
 			for (_menuItemIndex = 0; _menuItemIndex < 6; ++_menuItemIndex) {
-				if (_menuItemIndex == 4 && !shouldShowQuotes())
-					continue;
-
 				if (_menuItemIndex != _selectedIndex) {
 					addSpriteSlot();
 				}
@@ -127,26 +119,20 @@ void MainMenu::doFrame() {
 	if (_skipFlag && _menuItemIndex >= 0) {
 		// Quickly loop through all the menu items to display each's final frame
 		for (; _menuItemIndex < 6; ++_menuItemIndex) {
-			if (_menuItemIndex == 4 && !shouldShowQuotes())
-				continue;
-
 			// Draw the final frame of the menuitem
 			_frameIndex = 0;
 			addSpriteSlot();
 		}
 
 		_vm->_events->showCursor();
-		showBonusItems();
+
 	} else {
 		if ((_menuItemIndex == -1) || (_frameIndex == 0)) {
 			if (++_menuItemIndex == 6) {
 
 				// Reached end of display animation
 				_vm->_events->showCursor();
-				showBonusItems();
 				return;
-			} else if (_menuItemIndex == 4 && !shouldShowQuotes()) {
-				++_menuItemIndex;
 			}
 
 			_frameIndex = _menuItems[_menuItemIndex]->getCount() - 1;
@@ -181,17 +167,6 @@ void MainMenu::addSpriteSlot() {
 	_redrawFlag = true;
 }
 
-void MainMenu::showBonusItems() {
-	Scene &scene = _vm->_game->_scene;
-	_showEvolve = Common::File::exists("SECTION0.HAG") && Common::File::exists("evolve.res");
-	_showSets = Common::File::exists("SECTION0.HAG") && Common::File::exists("sets.res");
-
-	if (_showSets)
-		scene._kernelMessages.add(Common::Point(290, 143), 0x4140, 0, 0, 0, "S");
-	if (_showEvolve)
-		scene._kernelMessages.add(Common::Point(305, 143), 0x4140, 0, 0, 0, "E");
-}
-
 bool MainMenu::onEvent(Common::Event &event) {
 	Scene &scene = _vm->_game->_scene;
 	if (_selectedIndex != -1)
@@ -219,22 +194,6 @@ bool MainMenu::onEvent(Common::Event &event) {
 		case kActionCredits:
 			handleAction(CREDITS);
 			break;
-
-		case kActionQuotes:
-			handleAction(QUOTES);
-			break;
-
-		case kActionRestartAnimation: {
-			// Goodness knows why, but Rex has a key to restart the menuitem animations
-			// Restart the animation
-			_menuItemIndex = -1;
-			for (int i = 0; i < 6; ++i)
-				scene._spriteSlots.deleteTimer(i);
-
-			_skipFlag = false;
-			_vm->_events->hideCursor();
-			break;
-		}
 
 		default:
 			_skipFlag = true;
@@ -294,10 +253,6 @@ bool MainMenu::onEvent(Common::Event &event) {
 			_selectedIndex = _highlightedIndex;
 			unhighlightItem();
 			_frameIndex = 0;
-		} else if (_showSets && Common::Rect(290, 165, 300, 185).contains(event.mouse)) {
-			handleAction(SETS);
-		} else if (_showEvolve && Common::Rect(305, 165, 315, 185).contains(event.mouse)) {
-			handleAction(EVOLVE);
 		}
 
 		return true;
@@ -347,18 +302,6 @@ void MainMenu::handleAction(MADSGameAction action) {
 	case CREDITS:
 		TextView::execute(_vm, "credits");
 		return;
-
-	case QUOTES:
-		TextView::execute(_vm, "quotes");
-		return;
-
-	case SETS:
-		AnimationView::execute(_vm, "sets");
-		break;
-
-	case EVOLVE:
-		AnimationView::execute(_vm, "evolve");
-		break;
 
 	case EXIT:
 		_vm->_dialogs->_pendingDialog = DIALOG_ADVERT;

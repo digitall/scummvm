@@ -41,14 +41,6 @@
 #include "mads/sound.h"
 #include "mads/detection.h"
 
-/**
- * This is the namespace of the MADS engine.
- *
- * Status of this engine: In Development
- *
- * Games using this engine:
- * - Rex Nebular and the Cosmic Gender Bender
- */
 namespace MADS {
 
 #define DEBUG_BASIC 1

@@ -26,7 +26,7 @@
 #include "mads/screen.h"
 #include "mads/msurface.h"
 #include "mads/nebular/dialogs_nebular.h"
-#ifdef MADSV2
+#ifdef ENABLE_MADSV2
 #include "mads/phantom/dialogs_phantom.h"
 #endif
 
@@ -457,7 +457,7 @@ Dialogs *Dialogs::init(MADSEngine *vm) {
 	switch (vm->getGameID()) {
 	case GType_RexNebular:
 		return new Nebular::DialogsNebular(vm);
-#ifdef MADSV2
+#ifdef ENABLE_MADSV2
 	case GType_Phantom:
 		return new Phantom::DialogsPhantom(vm);
 	case GType_Dragonsphere:
