@@ -9,6 +9,9 @@ For a more comprehensive changelog of the latest experimental code, see:
    - Updated ImGui library to 1.92.6-docker.
    - Fixed Smart Search in the Icons Grid view in the launcher.
    - Simulate MT-32 display for on-screen messages.
+   - Added possibility to load GUI strings from the local po/
+     directory. Useful for translators since it does not require
+     regeneration of the translations.dat file.
 
  Bagel:
    - Fix Enter/Escape keys in The Guessing Game guess dialog.
