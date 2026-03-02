@@ -133,6 +133,9 @@ U32String TranslationManager::getPoTranslation(const char* message) const {
 }
 
 U32String TranslationManager::getTranslation(const char *message, const char *context) const {
+	if (_usingPo)
+		return getPoTranslation(message);
+
 	// If no language is set or message is empty, return msgid as is
 	if (_currentTranslationMessages.empty() || *message == '\0')
 		return U32String(message);
@@ -368,7 +371,7 @@ void TranslationManager::loadLanguageDat(int index) {
 		return;
 	}
 
-	
+
 	// If po directory exists and loading the specific language .po succeeds we can skip loading the dat
 	if (_havePoDirectory && loadLanguagePo(index))
 		return;
