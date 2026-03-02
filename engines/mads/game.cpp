@@ -33,10 +33,12 @@
 #include "mads/screen.h"
 #include "mads/msurface.h"
 #include "mads/resources.h"
+#include "mads/nebular/game_nebular.h"
+#ifdef ENABLE_MADSV2
 #include "mads/dragonsphere/game_dragonsphere.h"
 #include "mads/forest/game_forest.h"
-#include "mads/nebular/game_nebular.h"
 #include "mads/phantom/game_phantom.h"
+#endif
 
 namespace MADS {
 
