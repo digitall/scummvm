@@ -486,7 +486,7 @@ FullScreenDialog::FullScreenDialog(MADSEngine *vm) : _vm(vm) {
 		_screenId = 990;
 		break;
 	case GType_Phantom:
-		_screenId = 920;
+		_screenId = 0; // 920;
 		break;
 	case GType_Dragonsphere:
 		_screenId = 922;
@@ -514,6 +514,9 @@ void FullScreenDialog::display() {
 		SceneInfo *sceneInfo = SceneInfo::init(_vm);
 		sceneInfo->load(_screenId, 0, "", 0, scene._depthSurface, scene._backgroundSurface);
 		delete sceneInfo;
+	} else if (_screenId == 0) {
+		scene._backgroundSurface.create(MADS_SCREEN_WIDTH, MADS_SCREEN_HEIGHT);
+		scene._depthSurface.create(MADS_SCREEN_WIDTH, MADS_SCREEN_HEIGHT);
 	}
 
 	scene._priorSceneId = priorSceneId;
