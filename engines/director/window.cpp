@@ -731,9 +731,12 @@ Common::Path Window::getSharedCastPath() {
 
 	Common::Path result;
 	for (uint i = 0; i < namesToTry.size(); i++) {
-		result = findMoviePath(namesToTry[i]);
-		if (!result.empty())
+		debugC(2, kDebugPaths, "getSharedCastPath(): trying '%s'", namesToTry[i].c_str());
+		result = findMoviePath(namesToTry[i], true, true, _currentPath);
+		if (!result.empty()) {
+			debugC(2, kDebugPaths, "getSharedCastPath(): found '%s'", result.toString().c_str());
 			return result;
+		}
 	}
 
 	return result;

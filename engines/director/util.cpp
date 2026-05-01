@@ -869,12 +869,12 @@ Common::Path findPath(const Common::Path &path, bool currentFolder, bool searchP
 	return findPath(path.toString(g_director->_dirSeparator), currentFolder, searchPaths, directory, exts);
 }
 
-Common::Path findPath(const Common::String &path, bool currentFolder, bool searchPaths, bool directory, const char **exts) {
+Common::Path findPath(const Common::String &path, bool currentFolder, bool searchPaths, bool directory, const char **exts, Common::String currentPath_) {
 	Common::Path result, base;
 	debugCN(1, kDebugPaths, "%s", recIndent());
 	debugC(1, kDebugPaths, "findPath(): beginning search for \"%s\"", path.c_str());
 
-	Common::String currentPath = g_director->getCurrentPath();
+	Common::String currentPath = currentPath_.empty() ? g_director->getCurrentPath() : currentPath_;
 	Common::Path current = resolvePath(currentPath, base, true, exts);
 
 	Common::String testPath = path;
@@ -948,7 +948,7 @@ Common::Path findPath(const Common::String &path, bool currentFolder, bool searc
 	return Common::Path();
 }
 
-Common::Path findMoviePath(const Common::String &path, bool currentFolder, bool searchPaths) {
+Common::Path findMoviePath(const Common::String &path, bool currentFolder, bool searchPaths, Common::String currentPath) {
 	const char *extsD3[] = { ".MMM", nullptr };
 	const char *extsD4[] = { ".DIR", ".DXR", ".EXE", nullptr };
 	const char *extsD5[] = { ".DIR", ".DXR", ".CST", ".CXT", ".EXE", nullptr };
@@ -965,7 +965,7 @@ Common::Path findMoviePath(const Common::String &path, bool currentFolder, bool 
 		exts = extsD6;
 	}
 
-	Common::Path result = findPath(path, currentFolder, searchPaths, false, exts);
+	Common::Path result = findPath(path, currentFolder, searchPaths, false, exts, currentPath);
 	return result;
 }
 
