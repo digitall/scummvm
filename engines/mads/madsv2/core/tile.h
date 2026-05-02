@@ -51,7 +51,7 @@ struct TileResource {
 	uint32 chunk_size;              /* Tile size in bytes (x*y)         */
 	int16 color_handle;             /* Color handle for loaded resource */
 
-	byte *tile_data = nullptr;      /* Flat tile store allocated by tile_load (not serialised) */
+	byte *tile_data;      /* Flat tile store allocated by tile_load (not serialised) */
 
 	static constexpr int SIZE = 2 + 2 + 2 + 2 + 2 + 2 + 2 + 4 + 2;
 	void load(Common::SeekableReadStream *src);

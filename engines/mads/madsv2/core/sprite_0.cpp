@@ -658,7 +658,7 @@ pixel_RLE:
 
 						/* pixel_RLE_run_yesdraw */
 						if (run_value != SS_SKIP) {
-#if !attribute
+#ifndef attribute
 							byte out_byte = run_value;
 #endif
 #if three_d
