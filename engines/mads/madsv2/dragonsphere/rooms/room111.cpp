@@ -34,7 +34,7 @@ namespace MADSV2 {
 namespace Dragonsphere {
 namespace Rooms {
 
-static Scratch scratch;
+//static Scratch scratch;
 
 void room_111_init() {
 
