@@ -154,15 +154,15 @@ void NancyEngine::errorString(const char *buf_input, char *buf_output, int buf_o
 		if (NancySceneState._state == State::Scene::kLoad) {
 			// Error while loading scene
 			snprintf(buf_output, buf_output_size, "While loading scene S%u, frame %u, action record %u:\n%s",
-				NancySceneState._sceneState.currentScene.sceneID,
-				NancySceneState._sceneState.currentScene.frameID,
-				NancySceneState._actionManager.getActionRecords().size(),
+				NancySceneState.getSceneInfo().sceneID,
+				NancySceneState.getSceneInfo().frameID,
+				NancySceneState.getActionManager().getActionRecords().size(),
 				buf_input);
 		} else {
 			// Error while running
 			snprintf(buf_output, buf_output_size, "In current scene S%u, frame %u:\n%s",
-				NancySceneState._sceneState.currentScene.sceneID,
-				NancySceneState._sceneState.currentScene.frameID,
+				NancySceneState.getSceneInfo().sceneID,
+				NancySceneState.getSceneInfo().frameID,
 				buf_input);
 		}
 	} else {
