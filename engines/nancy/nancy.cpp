@@ -325,7 +325,7 @@ Common::Error NancyEngine::run() {
 			s->process();
 		}
 
-		graphicsWereSuppressed = _graphics->_isSuppressed;
+		graphicsWereSuppressed = _graphics->getIsSuppressed();
 
 		_graphics->draw();
 

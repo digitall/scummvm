@@ -904,4 +904,27 @@ void SoundManager::soundEffectMaintenance(uint16 channelID, bool force) {
 	}
 }
 
+Common::String SoundManager::getChannelInfo(uint16 channelID) {
+	Common::String result;
+
+	const auto &chan = _channels[channelID];
+
+	if (isSoundPlaying(channelID)) {
+		result += Common::String::format("Channel %u, filename %s\n", channelID, chan.name.c_str());
+		result += Common::String::format("Source rate %i, playing at %i\n", chan.stream->getRate(), _mixer->getChannelRate(chan.handle));
+		result += Common::String::format("Volume: %u, pan: %i, numLoops: %u\n\n", chan.volume, _mixer->getChannelBalance(chan.handle), chan.numLoops);
+
+		if (chan.playCommands != kPlaySequential) {
+			result += Common::String::format("\tPlay commands 0x%08x\n", chan.playCommands);
+
+			if (chan.effectData) {
+				result += Common::String::format("\tPosition: %f, %f, %f, ", chan.position.x(), chan.position.y(), chan.position.z());
+				result += Common::String::format("delta: %f, %f, %f\n\n", chan.positionDelta.x(), chan.positionDelta.y(), chan.positionDelta.z());
+			}
+		}
+	}
+
+	return result;
+}
+
 } // End of namespace Nancy

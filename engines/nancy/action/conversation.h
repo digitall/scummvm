@@ -49,6 +49,7 @@ public:
 	void execute() override;
 
 	virtual bool isVideoDonePlaying() { return true; }
+	bool isViewportRelative() const override { return true; }
 
 protected:
 	struct ConversationFlag {
@@ -98,7 +99,6 @@ protected:
 	static const byte kNoPopNextScene			= 2;
 
 	Common::String getRecordTypeName() const override { return "ConversationSound"; }
-	bool isViewportRelative() const override { return true; }
 
 	// Functions for reading captions are virtual to allow easier support for the terse Conversation variants
 	virtual void readCaptionText(Common::SeekableReadStream &stream);
@@ -182,7 +182,6 @@ protected:
 	};
 
 	class RenderedCel : public RenderObject {
-		friend class ConversationCel;
 	public:
 		RenderedCel() : RenderObject(9) {}
 		bool isViewportRelative() const override { return true; }

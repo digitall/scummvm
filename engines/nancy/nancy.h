@@ -73,8 +73,6 @@ class State;
 
 class NancyEngine : public Engine {
 public:
-	friend class NancyConsole;
-
 	NancyEngine(OSystem *syst, const NancyGameDescription *gd);
 	~NancyEngine();
 

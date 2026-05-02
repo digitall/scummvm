@@ -29,10 +29,7 @@
 
 namespace Nancy {
 
-class NancyEngine;
-
 class CursorManager {
-	friend class NancyEngine;
 
 public:
 	enum CursorType {
@@ -87,6 +84,7 @@ public:
 	void setCursor(CursorType type, int16 itemID);
 	void setCursorType(CursorType type);
 	void setCursorItemID(int16 itemID);
+	void showCursor(bool shouldShow);
 
 	void warpCursor(const Common::Point &pos);
 
@@ -100,8 +98,6 @@ public:
 	const CursorType _puzzleExitCursor;
 
 private:
-	void showCursor(bool shouldShow);
-
 	void adjustCursorHotspot();
 
 	struct Cursor {

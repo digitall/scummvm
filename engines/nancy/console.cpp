@@ -451,7 +451,7 @@ bool NancyConsole::Cmd_loadScene(int argc, const char **argv) {
 		return true;
 	}
 
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -472,7 +472,7 @@ bool NancyConsole::Cmd_loadScene(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_sceneID(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -601,7 +601,7 @@ bool NancyConsole::Cmd_listActionRecords(int argc, const char **argv) {
 
 	if (argc == 1) {
 		// Print the current scene
-		if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+		if (g_nancy->getState() != NancyState::kScene) {
 			debugPrintf("Not in the kScene state\n");
 			return true;
 		}
@@ -770,7 +770,7 @@ bool NancyConsole::Cmd_scanForActionRecordType(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_getEventFlags(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -840,7 +840,7 @@ bool NancyConsole::Cmd_setEventFlags(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_getInventory(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -886,7 +886,7 @@ bool NancyConsole::Cmd_setInventory(int argc, const char **argv) {
 	auto *inventoryData = GetEngineData(INV);
 	assert(inventoryData);
 
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -924,12 +924,12 @@ bool NancyConsole::Cmd_setInventory(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_getPlayerTime(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
 
-	Time time = NancySceneState._timers.playerTime;
+	Time time = NancySceneState.getPlayerTime();
 	debugPrintf("Player time: %u days, %u hours, %u minutes; %u\n",
 		time.getDays(),
 		time.getHours(),
@@ -939,7 +939,7 @@ bool NancyConsole::Cmd_getPlayerTime(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_setPlayerTime(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -970,7 +970,7 @@ bool NancyConsole::Cmd_setPlayerTime(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_getDifficulty(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -981,7 +981,7 @@ bool NancyConsole::Cmd_getDifficulty(int argc, const char **argv) {
 }
 
 bool NancyConsole::Cmd_setDifficulty(int argc, const char **argv) {
-	if (g_nancy->_gameFlow.curState != NancyState::kScene) {
+	if (g_nancy->getState() != NancyState::kScene) {
 		debugPrintf("Not in the kScene state\n");
 		return true;
 	}
@@ -1008,7 +1008,7 @@ bool NancyConsole::Cmd_setDifficulty(int argc, const char **argv) {
 bool NancyConsole::Cmd_soundInfo(int argc, const char **argv) {
 	if (g_nancy->getGameType() >= kGameTypeNancy3) {
 		const Math::Vector3d &pos = NancySceneState.getSceneSummary().listenerPosition;
-		const Math::Vector3d &ori = g_nancy->_sound->_orientation;
+		const Math::Vector3d &ori = g_nancy->_sound->getOrientation();
 		debugPrintf("3D listener position: %f, %f, %f\n", pos.x(), pos.y(), pos.z());
 		debugPrintf("3D listener orientation: %f, %f, %f\n\n", ori.x(), ori.y(), ori.z());
 	}
@@ -1027,22 +1027,7 @@ bool NancyConsole::Cmd_soundInfo(int argc, const char **argv) {
 	}
 
 	for (byte channelID : channelIDs) {
-		const auto &chan = g_nancy->_sound->_channels[channelID];
-
-		if (g_nancy->_sound->isSoundPlaying(channelID)) {
-			debugPrintf("Channel %u, filename %s\n", channelID, chan.name.c_str());
-			debugPrintf("Source rate %i, playing at %i\n", chan.stream->getRate(), g_nancy->_sound->_mixer->getChannelRate(chan.handle));
-			debugPrintf("Volume: %u, pan: %i, numLoops: %u\n\n", chan.volume, g_nancy->_sound->_mixer->getChannelBalance(chan.handle), chan.numLoops);
-
-			if (chan.playCommands != SoundManager::kPlaySequential) {
-				debugPrintf("\tPlay commands 0x%08x\n", chan.playCommands);
-
-				if (chan.effectData) {
-					debugPrintf("\tPosition: %f, %f, %f, ", chan.position.x(), chan.position.y(), chan.position.z());
-					debugPrintf("delta: %f, %f, %f\n\n", chan.positionDelta.x(), chan.positionDelta.y(), chan.positionDelta.z());
-				}
-			}
-		}
+		debugPrintf(g_nancy->_sound->getChannelInfo(channelID).c_str());
 	}
 
 	return true;

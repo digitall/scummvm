@@ -54,7 +54,6 @@ public:
 private:
 	CacheHint _cacheHint;
 	class AVFVideoTrack : public FixedRateVideoTrack {
-	friend class AVFDecoder;
 	friend class VideoCacheLoader;
 	public:
 		AVFVideoTrack(Common::SeekableReadStream *stream, uint32 chunkFileFormat, CacheHint cacheHint);
@@ -72,6 +71,7 @@ private:
 		bool endOfTrack() const override;
 		const Graphics::Surface *decodeNextFrame() override;
 		const Graphics::Surface *decodeFrame(uint frameNr);
+		void addFrameTime(const uint16 timeToAdd) { _frameTime += timeToAdd; }
 
 	protected:
 		Common::Rational getFrameRate() const override { return Common::Rational(1000, _frameTime); }

@@ -30,12 +30,10 @@
 
 namespace Nancy {
 
-class NancyEngine;
 class RenderObject;
 
 // Graphics class that handles multilayered surface rendering with minimal redraw
 class GraphicsManager {
-	friend class NancyEngine;
 public:
 	GraphicsManager();
 
@@ -71,6 +69,8 @@ public:
 
 	static void rotateBlit(const Graphics::ManagedSurface &src, Graphics::ManagedSurface &dest, byte rotation);
 	static void crossDissolve(const Graphics::ManagedSurface &from, const Graphics::ManagedSurface &to, byte alpha, const Common::Rect &rect, Graphics::ManagedSurface &inResult);
+
+	bool getIsSuppressed() const { return _isSuppressed; }
 
 	// Debug
 	void debugDrawToScreen(const Graphics::ManagedSurface &surf);

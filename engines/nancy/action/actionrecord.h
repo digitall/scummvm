@@ -95,9 +95,6 @@ struct DependencyRecord {
 // Does _not_ support drawing to screen, records that need this functionality
 // will have to subclass RenderActionRecord.
 class ActionRecord {
-	friend class ActionManager;
-	friend class NancyConsole;
-
 public:
 	enum ExecutionState { kBegin, kRun, kActionTrigger };
 	enum ExecutionType { kOneShot = 1, kRepeating = 2 };
@@ -122,9 +119,11 @@ public:
 	// Used for debugging
 	virtual Common::String getRecordTypeName() const = 0;
 
+	// Used for handling kCursorType dependency
+	virtual bool canHaveHotspot() const { return false; }
+
 protected:
 	void finishExecution();
-	virtual bool canHaveHotspot() const { return false; } // Used for handling kCursorType dependency
 
 public:
 	Common::String _description;

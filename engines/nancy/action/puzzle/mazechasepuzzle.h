@@ -58,7 +58,6 @@ protected:
 		Common::Point _gridPos;
 		Common::Point _lastPos;
 
-	protected:
 		bool isViewportRelative() const override { return true; }
 	};
 

@@ -111,16 +111,16 @@ bool AVFDecoder::loadStream(Common::SeekableReadStream *stream) {
 }
 
 const Graphics::Surface *AVFDecoder::decodeFrame(uint frameNr) {
-	return ((AVFDecoder::AVFVideoTrack *)getTrack(0))->decodeFrame(frameNr);
+	return ((AVFVideoTrack *)getTrack(0))->decodeFrame(frameNr);
 }
 
 void AVFDecoder::addFrameTime(const uint16 timeToAdd) {
-	((AVFDecoder::AVFVideoTrack *)getTrack(0))->_frameTime += timeToAdd;
+	((AVFVideoTrack *)getTrack(0))->addFrameTime(timeToAdd);
 }
 
 // Custom function to allow the last frame of the video to play correctly
 bool AVFDecoder::atEnd() const {
-	const AVFDecoder::AVFVideoTrack *track = ((const AVFDecoder::AVFVideoTrack *)getTrack(0));
+	const AVFVideoTrack *track = ((const AVFVideoTrack *)getTrack(0));
 	if (!track) {
 		return true;
 	}

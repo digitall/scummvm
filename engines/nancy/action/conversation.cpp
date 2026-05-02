@@ -767,7 +767,7 @@ void ConversationCel::init() {
 
 void ConversationCel::registerGraphics() {
 	for (uint i = 0; i < _celRObjects.size(); ++i) {
-		_celRObjects[i]._z = 9 + _drawingOrder[i];
+		_celRObjects[i].setZOrder(9 + _drawingOrder[i]);
 		_celRObjects[i].setVisible(true);
 		_celRObjects[i].setTransparent(true);
 		_celRObjects[i].registerGraphics();

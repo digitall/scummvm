@@ -94,8 +94,6 @@ protected:
 };
 
 class TVDMap : public Map {
-	friend class MapGlobe;
-
 public:
 	TVDMap();
 	virtual ~TVDMap() = default;

@@ -73,11 +73,6 @@ namespace State {
 
 // The game state that handles all of the gameplay
 class Scene : public State, public Common::Singleton<Scene> {
-	friend class Action::ActionRecord;
-	friend class Action::ActionManager;
-	friend class NancyConsole;
-	friend class NancyEngine;
-
 public:
 	struct SceneSummary {
 		// SSUM and TSUM
@@ -123,6 +118,9 @@ public:
 	void changeScene(const SceneChangeDescription &sceneDescription);
 	void pushScene(int16 itemID = -1);
 	void popScene(bool inventory = false);
+	uint16 getSceneCounts(int16 hours) const {
+		return _flags.sceneCounts.contains(hours) ? _flags.sceneCounts[hours] : 0;
+	}
 
 	void setPlayerTime(Time time, byte relative);
 	Time getPlayerTime() const { return _timers.playerTime; }
@@ -149,6 +147,9 @@ public:
 	void setLogicCondition(int16 label, byte flag);
 	bool getLogicCondition(int16 label, byte flag) const;
 	void clearLogicConditions();
+	Time getLogicConditionTimestamp(int16 label) const {
+		return _flags.logicConditions[label].timestamp;	
+	}
 
 	void setDifficulty(uint difficulty) { _difficulty = difficulty; }
 	uint16 getDifficulty() const { return _difficulty; }
@@ -219,6 +220,8 @@ public:
 	};
 
 	Timers _timers;
+
+	RenderObject _hotspotDebug;
 
 private:
 	void init();
@@ -305,8 +308,6 @@ private:
 
 	// Contains a screenshot of the Scene state from the last time it was exited
 	Graphics::ManagedSurface _lastScreenshot;
-
-	RenderObject _hotspotDebug;
 
 	bool _destroyOnExit;
 	bool _isRunningAd;

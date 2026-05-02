@@ -79,8 +79,8 @@ void GraphicsManager::draw(bool updateScreen) {
 
 		current.updateGraphics();
 
-		if (current._needsRedraw) {
-			if (current._isVisible) {
+		if (current.needsRedraw()) {
+			if (current.isVisible()) {
 				if (current.hasMoved() && !current.getPreviousScreenPosition().isEmpty()) {
 					// Object moved to a new location on screen, update the previous one
 					_dirtyRects.push_back(current.getPreviousScreenPosition());
@@ -94,9 +94,9 @@ void GraphicsManager::draw(bool updateScreen) {
 			}
 		}
 
-		current._needsRedraw = false;
-		current._hasMoved = false;
-		current._previousScreenPosition = current._screenPosition;
+		current.setNeedsRedraw(false);
+		current.setHasMoved(false);
+		current.updatePreviousScreenPosition();
 	}
 
 	// Filter out dirty rects that are completely inside others to reduce overdraw
@@ -115,7 +115,7 @@ void GraphicsManager::draw(bool updateScreen) {
 		for (RenderObject **it = _objects.begin(); it < _objects.end(); ++it) {
 			RenderObject &current = **it;
 
-			if (!current._isVisible || current.getScreenPosition().isEmpty()) {
+			if (!current.isVisible() || current.getScreenPosition().isEmpty()) {
 				continue;
 			}
 
@@ -128,7 +128,7 @@ void GraphicsManager::draw(bool updateScreen) {
 				for (auto it2 = it + 1; it2 < _objects.end(); ++it2) {
 					RenderObject &other = **it2;
 
-					if (!other._isVisible || other.getScreenPosition().isEmpty()) {
+					if (!other.isVisible() || other.getScreenPosition().isEmpty()) {
 						continue;
 					}
 
@@ -206,7 +206,7 @@ void GraphicsManager::clearObjects() {
 
 void GraphicsManager::redrawAll() {
 	for (auto &obj : _objects) {
-		obj->_needsRedraw = true;
+		obj->setNeedsRedraw(true);
 	}
 }
 

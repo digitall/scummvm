@@ -47,9 +47,10 @@ public:
 	void execute() override;
 	void handleInput(NancyInput &input) override;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	Common::String getRecordTypeName() const override { return "MultiBuildPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	// A single puzzle piece. Each piece is its own RenderObject.
 	// Unplaced: _drawSurface shows srcRect from primary image.
@@ -77,7 +78,6 @@ protected:
 
 		void setZ(uint16 z) { _z = z; _needsRedraw = true; }
 
-	protected:
 		bool isViewportRelative() const override { return true; }
 	};
 

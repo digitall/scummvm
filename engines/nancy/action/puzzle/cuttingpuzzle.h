@@ -52,6 +52,8 @@ public:
 	void execute() override;
 	void handleInput(NancyInput &input) override;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	enum SubState {
 		kIdle           = 0, // waiting for player input, or checking solution
@@ -61,7 +63,6 @@ protected:
 	};
 
 	Common::String getRecordTypeName() const override { return "CuttingPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	void redrawSurface();
 	int grooveTypeForIndex(int i) const;

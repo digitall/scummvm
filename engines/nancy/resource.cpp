@@ -94,7 +94,7 @@ bool ResourceManager::loadImage(const Common::Path &name, Graphics::ManagedSurfa
 			// .cifs are compressed, so we need to extract
 			CifFile cifFile(stream, name); // cifFile takes ownership of the current stream
 			stream = cifFile.createReadStream();
-			info = cifFile._info;
+			info = cifFile.getInfo();
 		}
 	}
 
@@ -325,7 +325,7 @@ bool ResourceManager::exportCif(const Common::String &treeName, const Common::Pa
 		// .cifs are compressed, so we need to extract
 		CifFile cifFile(stream, name); // cifFile takes ownership of the current stream
 		stream = cifFile.createReadStreamRaw();
-		info = cifFile._info;
+		info = cifFile.getInfo();
 	}
 
 	if (!stream) {
@@ -368,8 +368,7 @@ bool ResourceManager::exportCif(const Common::String &treeName, const Common::Pa
 		}
 	}
 
-	CifFile file;
-	file._info = info;
+	CifFile file(info);
 
 	Common::DumpFile dump;
 	dump.open(name.append(".cif"));
@@ -413,7 +412,7 @@ bool ResourceManager::exportCifTree(const Common::String &treeName, const Common
 			// .cifs are compressed, so we need to extract
 			CifFile cifFile(stream, path); // cifFile takes ownership of the current stream
 			stream = cifFile.createReadStreamRaw();
-			info = cifFile._info;
+			info = cifFile.getInfo();
 		}
 
 		if (!stream) {
@@ -457,7 +456,7 @@ bool ResourceManager::exportCifTree(const Common::String &treeName, const Common
 		}
 
 		resStreams.push_back(stream);
-		file._writeFileMap.push_back(info);
+		file.addInfo(info);
 	}
 
 	uint16 dataOffset = headerSize + file._writeFileMap.size() * infoSize; // Initial offset after header/infos

@@ -54,9 +54,10 @@ public:
 	void execute() override;
 	void handleInput(NancyInput &input) override;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	Common::String getRecordTypeName() const override { return "AngleTossPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	Common::Path _imageName;
 

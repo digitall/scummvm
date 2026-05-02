@@ -57,9 +57,10 @@ public:
 	Common::Array<byte> _currentSequence;
 	Time _solveSoundPlayTime;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	Common::String getRecordTypeName() const override { return "RotatingLockPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	void drawDial(uint id);
 };

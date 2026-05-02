@@ -45,9 +45,10 @@ public:
 	void execute() override;
 	void handleInput(NancyInput &input) override;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	Common::String getRecordTypeName() const override { return "OneBuildPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	struct Piece : RenderObject {
 		Piece() : RenderObject(0) {}
@@ -70,7 +71,6 @@ protected:
 
 		void setZ(uint16 z) { _z = z; _needsRedraw = true; }
 
-	protected:
 		bool isViewportRelative() const override { return true; }
 	};
 

@@ -698,9 +698,9 @@ void Scene::synchronize(Common::Serializer &ser) {
 		ser.syncAsUint32LE((uint32 &)_flags.logicConditions[i].timestamp);
 	}
 
-	auto &order = getInventoryBox()._order;
-	uint prevSize = getInventoryBox()._order.size();
-	getInventoryBox()._order.resize(g_nancy->getStaticData().numItems);
+	auto &order = getInventoryBox().getOrder();
+	uint prevSize = order.size();
+	order.resize(g_nancy->getStaticData().numItems);
 
 	if (ser.isSaving()) {
 		for (uint i = prevSize; i < order.size(); ++i) {

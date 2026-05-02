@@ -49,9 +49,10 @@ public:
 	void execute() override;
 	void handleInput(NancyInput &input) override;
 
+	bool isViewportRelative() const override { return true; }
+
 protected:
 	Common::String getRecordTypeName() const override { return "MatchPuzzle"; }
-	bool isViewportRelative() const override { return true; }
 
 	// ---------- Inner types ----------
 

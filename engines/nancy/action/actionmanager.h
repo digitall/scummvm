@@ -46,9 +46,6 @@ struct DependencyRecord;
 
 // The class that handles ActionRecords and their execution
 class ActionManager {
-	friend class State::Scene;
-	friend class NancyConsole;
-
 public:
 	static const byte kCursInvHolding			= 0;
 	static const byte kCursInvNotHolding		= 1;
