@@ -25,6 +25,9 @@
 #include "gui/debugger.h"
 
 namespace Nancy {
+namespace State {
+class Scene;
+}
 
 namespace Action {
 class ActionRecord;
@@ -34,6 +37,7 @@ struct DependencyRecord;
 class NancyEngine;
 
 class NancyConsole : public GUI::Debugger {
+	friend class State::Scene;
 public:
 	NancyConsole();
 	virtual ~NancyConsole(void);
