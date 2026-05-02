@@ -663,7 +663,7 @@ osxsnap: bundle
 	mkdir ScummVM-snapshot/doc/sv
 	cp $(DIST_FILES_DOCS_se) ./ScummVM-snapshot/doc/sv/
 ifdef MACOSX_LEOPARD_OR_BELOW
-	perl -pi -e 'print "\xEF\xBB\xBF" if $$. == 1 && !/^\xEF\xBB\xBF/' ./ScummVM-snapshot/doc/*/*
+	perl -pi -e 'print "\xEF\xBB\xBF" if $$. == 1 && substr($$_, 0, 3) ne "\xEF\xBB\xBF"; close ARGV if eof' ./ScummVM-snapshot/doc/*/*
 else
 	xattr -w "com.apple.TextEncoding" "utf-8;134217984" ./ScummVM-snapshot/doc/*/*
 endif
