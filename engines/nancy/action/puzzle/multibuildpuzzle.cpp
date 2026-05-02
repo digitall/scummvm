@@ -141,9 +141,9 @@ void MultiBuildPuzzle::readData(Common::SeekableReadStream &stream) {
 	}
 
 	// 0x59b: three SoundDescriptions (0x31 bytes each)
-	_sounds[0].readNormal(stream);
-	_sounds[1].readNormal(stream);
-	_sounds[2].readNormal(stream);
+	_rotationSound.readNormal(stream);
+	_pickupSound.readNormal(stream);
+	_dropSound.readNormal(stream);
 
 	// 0x62e: 6 unknown bytes
 	stream.skip(6);
@@ -178,9 +178,9 @@ void MultiBuildPuzzle::execute() {
 	case kBegin:
 		init();
 		registerGraphics();
-		g_nancy->_sound->loadSound(_sounds[0]);
-		g_nancy->_sound->loadSound(_sounds[1]);
-		g_nancy->_sound->loadSound(_sounds[2]);
+		g_nancy->_sound->loadSound(_rotationSound);
+		g_nancy->_sound->loadSound(_pickupSound);
+		g_nancy->_sound->loadSound(_dropSound);
 		g_nancy->_sound->loadSound(_solveSound);
 		_state = kRun;
 		// fall through
@@ -218,9 +218,9 @@ void MultiBuildPuzzle::execute() {
 		break;
 
 	case kActionTrigger:
-		g_nancy->_sound->stopSound(_sounds[0]);
-		g_nancy->_sound->stopSound(_sounds[1]);
-		g_nancy->_sound->stopSound(_sounds[2]);
+		g_nancy->_sound->stopSound(_rotationSound);
+		g_nancy->_sound->stopSound(_pickupSound);
+		g_nancy->_sound->stopSound(_dropSound);
 		g_nancy->_sound->stopSound(_solveSound);
 		if (_isCancelled) {
 			// Change to cancel scene unconditionally, but only set the cancel flag if
@@ -276,7 +276,7 @@ void MultiBuildPuzzle::handleInput(NancyInput &input) {
 			pp.curRotation = (pp.curRotation + 1) % 4;
 			_pickedUpWidth  = pp.rotateSurfaces[pp.curRotation].w;
 			_pickedUpHeight = pp.rotateSurfaces[pp.curRotation].h;
-			g_nancy->_sound->playSound(_sounds[0]);
+			g_nancy->_sound->playSound(_rotationSound);
 			updatePieceRender(_pickedUpPiece);
 			return;
 		}
@@ -319,7 +319,7 @@ void MultiBuildPuzzle::handleInput(NancyInput &input) {
 
 			if (validDrop) {
 				pp.isPlaced = true;
-				g_nancy->_sound->playSound(_sounds[1]);
+				g_nancy->_sound->playSound(_dropSound);
 			} else {
 				// Return piece to its shelf position
 				pp.gameRect = pp.homeRect;
@@ -355,6 +355,7 @@ void MultiBuildPuzzle::handleInput(NancyInput &input) {
 			pp.gameRect = Common::Rect(newLeft, newTop,
 			                          newLeft + _pickedUpWidth, newTop + _pickedUpHeight);
 			updatePieceRender(sel);
+			g_nancy->_sound->playSound(_pickupSound);
 		}
 		return;
 	}
@@ -378,7 +379,6 @@ void MultiBuildPuzzle::handleInput(NancyInput &input) {
 			pp.curRotation = 0;
 			pp.setZ((uint16)(_z + (int)_pieces.size() * 2));
 			pp.registerGraphics();
-			g_nancy->_sound->playSound(_sounds[0]);
 
 			if (_hasCloseupImage && !pp.cuSrcRect.isEmpty()) {
 				// First click shows close-up view, centered in the viewport.
@@ -394,6 +394,7 @@ void MultiBuildPuzzle::handleInput(NancyInput &input) {
 				_pickedUpPiece = topmost;
 				_pickedUpWidth  = pp.rotateSurfaces[0].w;
 				_pickedUpHeight = pp.rotateSurfaces[0].h;
+				g_nancy->_sound->playSound(_pickupSound);
 			}
 			updatePieceRender(topmost);
 		}

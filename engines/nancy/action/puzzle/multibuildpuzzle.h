@@ -96,7 +96,9 @@ protected:
 	// so the shelf always shows the source ingredient regardless of where the active piece is.
 	Common::Array<Piece> _shelfSlots;
 
-	SoundDescription _sounds[3];  // [0]=pickup/move, [1]=placement, [2]=extra
+	SoundDescription _rotationSound;
+	SoundDescription _pickupSound;
+	SoundDescription _dropSound;
 
 	SceneChangeWithFlag _solveScene;
 	SoundDescription _solveSound;
