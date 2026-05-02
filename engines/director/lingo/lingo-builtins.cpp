@@ -802,8 +802,8 @@ void LB::b_offset(int nargs) {
 		b_offsetRect(nargs);
 		return;
 	}
-	Common::String source = g_lingo->pop().asString();
-	Common::String target = g_lingo->pop().asString();
+	Common::String source = Common::U32String(g_lingo->pop().asString()).encode(g_director->getPlatformEncoding());
+	Common::String target = Common::U32String(g_lingo->pop().asString()).encode(g_director->getPlatformEncoding());
 
 	const char *str = d_strstr(source.c_str(), target.c_str());
 
