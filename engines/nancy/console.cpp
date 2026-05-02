@@ -466,7 +466,7 @@ bool NancyConsole::Cmd_loadScene(int argc, const char **argv) {
 	SceneChangeDescription scene;
 	scene.sceneID = (uint16)atoi(argv[1]);
 	NancySceneState.changeScene(scene);
-	NancySceneState._state = State::Scene::kLoad;
+	NancySceneState.setState(State::Scene::kLoad);
 	delete iff;
 	return cmdExit(0, nullptr);
 }

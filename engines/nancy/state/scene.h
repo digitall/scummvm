@@ -198,6 +198,16 @@ public:
 	// Get the persistent data for a given puzzle type
 	PuzzleData *getPuzzleData(const uint32 tag);
 
+	enum State {
+		kInit,
+		kLoad,
+		kStartSound,
+		kRun
+	};
+
+	State getState() const { return _state; }
+	void setState(State state) { _state = state; }
+
 	struct Timers {
 		Time pushedPlayTime;
 		Time lastTotalTime;
@@ -220,13 +230,6 @@ private:
 
 	void clearSceneData();
 	void clearPuzzleData();
-
-	enum State {
-		kInit,
-		kLoad,
-		kStartSound,
-		kRun
-	};
 
 	struct SceneState {
 		SceneSummary summary;

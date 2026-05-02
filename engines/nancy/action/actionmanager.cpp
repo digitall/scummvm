@@ -263,7 +263,7 @@ void ActionManager::processActionRecords() {
 			activeRecordsThisFrame = true;
 		}
 
-		if (g_nancy->getGameType() >= kGameTypeNancy4 && NancySceneState._state == State::Scene::kLoad) {
+		if (g_nancy->getGameType() >= kGameTypeNancy4 && NancySceneState.getState() == State::Scene::kLoad) {
 			// changeScene() must have been called, abort any further processing.
 			// Both old and new behavior is needed (nancy3 intro narration, nancy4 garden gate)
 			return;

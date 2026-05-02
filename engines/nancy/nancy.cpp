@@ -138,7 +138,7 @@ bool NancyEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 
 bool NancyEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 	return State::Scene::hasInstance() &&
-			NancySceneState._state == State::Scene::kRun &&
+		   NancySceneState.getState() == State::Scene::kRun &&
 			NancySceneState.getActiveConversation() == nullptr &&
 			NancySceneState.getActiveMovie() == nullptr &&
 			!NancySceneState.isRunningAd();
@@ -151,7 +151,7 @@ void NancyEngine::secondChance() {
 
 void NancyEngine::errorString(const char *buf_input, char *buf_output, int buf_output_size) {
 	if (State::Scene::hasInstance()) {
-		if (NancySceneState._state == State::Scene::kLoad) {
+		if (NancySceneState.getState() == State::Scene::kLoad) {
 			// Error while loading scene
 			snprintf(buf_output, buf_output_size, "While loading scene S%u, frame %u, action record %u:\n%s",
 				NancySceneState.getSceneInfo().sceneID,
@@ -711,7 +711,7 @@ Common::Error NancyEngine::synchronize(Common::Serializer &ser) {
 
 	// Sync scene and action records
 	NancySceneState.synchronize(ser);
-	NancySceneState._actionManager.synchronize(ser);
+	NancySceneState.getActionManager().synchronize(ser);
 
 	return Common::kNoError;
 }
