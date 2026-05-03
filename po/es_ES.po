@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.4.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-03 07:07+0000\n"
-"PO-Revision-Date: 2026-04-30 09:38+0000\n"
+"PO-Revision-Date: 2026-05-03 09:23+0000\n"
 "Last-Translator: IlDucci <pajaroloco_2@hotmail.com>\n"
 "Language-Team: Spanish <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/es/>\n"
@@ -11104,10 +11104,8 @@ msgid "Might and Magic"
 msgstr "Might and Magic"
 
 #: engines/mm/mm1/metaengine.cpp:51
-#, fuzzy
-#| msgid "No"
 msgid "N"
-msgstr "No"
+msgstr "N"
 
 #: engines/mm/mm1/metaengine.cpp:57
 msgid "View party member 1"
