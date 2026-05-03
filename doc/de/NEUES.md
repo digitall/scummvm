@@ -19,6 +19,13 @@ Umfangreichere Informationen über die Änderungen des aktuellen Codes findest D
  GLK:
    - Text- und Engine-Optionen können jetzt über die Benutzeroberfläche gesetzt werden.
 
+ LastExpress:
+   - Das Spiel wird schon seit einer Weile (2026.1.0) unterstützt,
+     wir haben aber vergessen, hier einen News-Eintrag hinzuzufügen. Ups!
+   - Mehrere Ungenauigkeiten in der Charakter-Logik wurden korrigiert,
+     sodass einige seltene Probleme mit Charakteren nun nicht mehr auftreten
+	 sollten.
+
  MM:
    - Verbesserte Unterstützung für Tastenkürzel in MM1.
 
