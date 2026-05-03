@@ -1027,7 +1027,7 @@ bool NancyConsole::Cmd_soundInfo(int argc, const char **argv) {
 	}
 
 	for (byte channelID : channelIDs) {
-		debugPrintf(g_nancy->_sound->getChannelInfo(channelID).c_str());
+		debugPrintf("%s", g_nancy->_sound->getChannelInfo(channelID).c_str());
 	}
 
 	return true;
