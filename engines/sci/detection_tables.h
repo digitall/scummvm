@@ -5983,6 +5983,13 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::ES_ESP, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO_STD16_PALETTEMODS },
 
+	// Space Quest 3 - Russian fan translation by Igor Malyshko
+	{ "sq3", "", {
+		{"resource.map", 0, "7f1a45f497a8b93dce14147807ce383c", 3726},
+		{"resource.001", 0, "b62b0f98ff876304a5af214c9557f266", 1674902},
+		AD_LISTEND},
+		Common::RU_RUS, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO_STD16_PALETTEMODS },
+
 #define GUIO_SQ4_CD GUIO6(GAMEOPTION_SQ4_SILVER_CURSORS,	\
 						  GAMEOPTION_PREFER_DIGITAL_SFX,	\
 						  GAMEOPTION_ORIGINAL_SAVELOAD,		\
