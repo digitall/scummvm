@@ -19,6 +19,8 @@
  *
  */
 
+#include "common/textconsole.h"
+
 #include "chamber/chamber.h"
 #include "chamber/common.h"
 #include "chamber/saveload.h"

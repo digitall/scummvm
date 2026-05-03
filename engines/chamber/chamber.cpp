@@ -32,6 +32,8 @@
 
 #include "engines/util.h"
 
+#include "common/gui_options.h"
+
 #include "chamber/chamber.h"
 #include "chamber/renderer.h"
 #include "chamber/script.h"
