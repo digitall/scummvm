@@ -241,7 +241,7 @@ AnimPtr anim_load(const char *file_name, Buffer *orig, Buffer *depth,
 	{
 		anim_error = 2;
 		byte buffer[AnimFile::SIZE];
-		if (!loader_read(buffer, sizeof(AnimFile), 1, &load_handle))
+		if (!loader_read(buffer, AnimFile::SIZE, 1, &load_handle))
 			goto done;
 
 		Common::MemoryReadStream src(buffer, AnimFile::SIZE);
