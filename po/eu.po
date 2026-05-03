@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.5.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-03 07:07+0000\n"
+"POT-Creation-Date: 2026-05-03 09:58+0000\n"
 "PO-Revision-Date: 2024-02-05 18:42+0000\n"
 "Last-Translator: Josu Igoa <josuigoa@ni.eus>\n"
 "Language-Team: Basque <https://translations.scummvm.org/projects/scummvm/"
@@ -4902,12 +4902,13 @@ msgid "X"
 msgstr ""
 
 #. I18N: Hardware key
+#. I18N: Y key for Yes
 #: backends/platform/3ds/osystem-events.cpp:48
 #: backends/platform/ds/osystem_ds.cpp:180
 #: backends/platform/sdl/miyoo/miyoo.cpp:65
 #: backends/platform/sdl/miyoo/miyoo.cpp:92
 #: backends/platform/sdl/opendingux/opendingux.cpp:55
-#: backends/platform/sdl/switch/switch.cpp:39 engines/mm/mm1/metaengine.cpp:52
+#: backends/platform/sdl/switch/switch.cpp:39 engines/mm/mm1/metaengine.cpp:54
 msgid "Y"
 msgstr ""
 
@@ -4923,7 +4924,7 @@ msgstr ""
 #: backends/platform/sdl/ps3/ps3.cpp:49 backends/platform/sdl/psp2/psp2.cpp:51
 #: engines/bagel/metaengine.cpp:64 engines/efh/metaengine.cpp:397
 #: engines/got/metaengine.cpp:76 engines/hypno/metaengine.cpp:363
-#: engines/mm/mm1/metaengine.cpp:50 engines/mm/mm1/metaengine.cpp:95
+#: engines/mm/mm1/metaengine.cpp:50 engines/mm/mm1/metaengine.cpp:97
 #: engines/sherlock/metaengine.cpp:660 engines/sherlock/metaengine.cpp:672
 #: engines/sherlock/metaengine.cpp:1014 engines/supernova/metaengine.cpp:303
 #: engines/titanic/metaengine.cpp:233 engines/ultima/ultima0/metaengine.cpp:47
@@ -6243,7 +6244,7 @@ msgstr "Jaso"
 #: engines/access/metaengine.cpp:304 engines/access/metaengine.cpp:325
 #: engines/bbvs/metaengine.cpp:136 engines/cine/metaengine.cpp:342
 #: engines/efh/metaengine.cpp:462 engines/hdb/metaengine.cpp:237
-#: engines/lab/metaengine.cpp:323 engines/mm/mm1/metaengine.cpp:84
+#: engines/lab/metaengine.cpp:323 engines/mm/mm1/metaengine.cpp:86
 #: engines/petka/metaengine.cpp:151 engines/queen/metaengine.cpp:294
 #: engines/saga/metaengine.cpp:379 engines/scumm/help.cpp:129
 #: engines/scumm/help.cpp:153 engines/scumm/help.cpp:171
@@ -6739,7 +6740,7 @@ msgstr "Aurrera mugitu"
 
 #: engines/agos/metaengine.cpp:228 engines/dm/metaengine.cpp:186
 #: engines/kyra/engine/eobcommon.cpp:375 engines/kyra/engine/lol.cpp:517
-#: engines/lab/metaengine.cpp:257 engines/mm/mm1/metaengine.cpp:100
+#: engines/lab/metaengine.cpp:257 engines/mm/mm1/metaengine.cpp:102
 #: engines/mohawk/riven.cpp:901 engines/pegasus/pegasus.cpp:2740
 #: engines/twine/metaengine.cpp:353 engines/ultima/ultima0/metaengine.cpp:80
 #: engines/ultima/ultima8/metaengine.cpp:48
@@ -6754,7 +6755,7 @@ msgstr "Ezkerrera biratu"
 
 #: engines/agos/metaengine.cpp:234 engines/dm/metaengine.cpp:206
 #: engines/kyra/engine/eobcommon.cpp:376 engines/kyra/engine/lol.cpp:518
-#: engines/lab/metaengine.cpp:271 engines/mm/mm1/metaengine.cpp:101
+#: engines/lab/metaengine.cpp:271 engines/mm/mm1/metaengine.cpp:103
 #: engines/mohawk/riven.cpp:907 engines/pegasus/pegasus.cpp:2747
 #: engines/twine/metaengine.cpp:346 engines/ultima/ultima0/metaengine.cpp:81
 #: engines/ultima/ultima8/metaengine.cpp:49
@@ -8049,7 +8050,7 @@ msgstr "Atzera mugitu"
 
 #: engines/colony/metaengine.cpp:113 engines/dm/metaengine.cpp:216
 #: engines/freescape/movement.cpp:53 engines/hpl1/metaengine.cpp:78
-#: engines/mm/mm1/metaengine.cpp:102
+#: engines/mm/mm1/metaengine.cpp:104
 #, fuzzy
 #| msgid "Slide Left"
 msgid "Strafe left"
@@ -8057,7 +8058,7 @@ msgstr "Ezkerrera irristatu"
 
 #: engines/colony/metaengine.cpp:120 engines/dm/metaengine.cpp:236
 #: engines/freescape/movement.cpp:61 engines/hpl1/metaengine.cpp:79
-#: engines/mm/mm1/metaengine.cpp:103
+#: engines/mm/mm1/metaengine.cpp:105
 #, fuzzy
 #| msgid "Slide Right"
 msgid "Strafe right"
@@ -8141,7 +8142,7 @@ msgstr "Elkarreragin"
 #. I18N: Combat command in Might & Magic 1
 #: engines/crab/input/input.cpp:125 engines/efh/metaengine.cpp:487
 #: engines/efh/metaengine.cpp:512 engines/griffon/metaengine.cpp:145
-#: engines/mm/mm1/metaengine.cpp:68 engines/scumm/metaengine.cpp:1053
+#: engines/mm/mm1/metaengine.cpp:70 engines/scumm/metaengine.cpp:1053
 #: engines/ultima/ultima0/metaengine.cpp:82
 #: engines/ultima/ultima4/metaengine.cpp:48
 #: engines/ultima/nuvie/metaengine.cpp:74
@@ -8150,7 +8151,7 @@ msgid "Attack"
 msgstr "1 erasoa"
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/crab/input/input.cpp:130 engines/mm/mm1/metaengine.cpp:70
+#: engines/crab/input/input.cpp:130 engines/mm/mm1/metaengine.cpp:72
 #, fuzzy
 #| msgid "Unlock"
 msgid "Block"
@@ -9094,7 +9095,7 @@ msgid "Enable background music ported from the C64 version"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/freescape/movement.cpp:69 engines/mm/mm1/metaengine.cpp:82
+#: engines/freescape/movement.cpp:69 engines/mm/mm1/metaengine.cpp:84
 msgid "Shoot"
 msgstr ""
 
@@ -9253,7 +9254,7 @@ msgstr "Mututu/Ez-mututu"
 
 #. I18N: Action of hero party in Might & Magic 1
 #: engines/freescape/games/eclipse/eclipse.cpp:411
-#: engines/kyra/engine/lol.cpp:519 engines/mm/mm1/metaengine.cpp:112
+#: engines/kyra/engine/lol.cpp:519 engines/mm/mm1/metaengine.cpp:114
 #: engines/ultima/nuvie/metaengine.cpp:195
 #: engines/ultima/nuvie/metaengine.cpp:200
 msgid "Rest"
@@ -10673,7 +10674,7 @@ msgstr "Pertsonaia aldatu:"
 msgid "Camp"
 msgstr ""
 
-#: engines/kyra/engine/eobcommon.cpp:380 engines/mm/mm1/metaengine.cpp:105
+#: engines/kyra/engine/eobcommon.cpp:380 engines/mm/mm1/metaengine.cpp:107
 #, fuzzy
 msgid "Cast spell"
 msgstr "Sorginkeria aukeratu"
@@ -10715,7 +10716,7 @@ msgid "Attack 3"
 msgstr "3 erasoa"
 
 #: engines/kyra/engine/lol.cpp:512 engines/lab/metaengine.cpp:278
-#: engines/mm/mm1/metaengine.cpp:106 engines/mohawk/myst.cpp:606
+#: engines/mm/mm1/metaengine.cpp:108 engines/mohawk/myst.cpp:606
 #: engines/wintermute/keymapper_tables.h:1526
 #: engines/wintermute/keymapper_tables.h:1673
 #: engines/wintermute/keymapper_tables.h:1722
@@ -11221,101 +11222,102 @@ msgstr ""
 msgid "Might and Magic"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:51
+#. I18N: N key for No
+#: engines/mm/mm1/metaengine.cpp:52
 #, fuzzy
 #| msgid "No"
 msgid "N"
 msgstr "Ez"
 
-#: engines/mm/mm1/metaengine.cpp:57
+#: engines/mm/mm1/metaengine.cpp:59
 msgid "View party member 1"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:58
+#: engines/mm/mm1/metaengine.cpp:60
 msgid "View party member 2"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:59
+#: engines/mm/mm1/metaengine.cpp:61
 msgid "View party member 3"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:60
+#: engines/mm/mm1/metaengine.cpp:62
 msgid "View party member 4"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:61
+#: engines/mm/mm1/metaengine.cpp:63
 msgid "View party member 5"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:62
+#: engines/mm/mm1/metaengine.cpp:64
 msgid "View party member 6"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:72 engines/ultima/ultima4/metaengine.cpp:50
+#: engines/mm/mm1/metaengine.cpp:74 engines/ultima/ultima4/metaengine.cpp:50
 #: engines/ultima/nuvie/metaengine.cpp:194
 msgid "Cast"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:74
+#: engines/mm/mm1/metaengine.cpp:76
 msgid "Exchange"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:76
+#: engines/mm/mm1/metaengine.cpp:78
 #, fuzzy
 #| msgid "Right"
 msgid "Fight"
 msgstr "Eskuin"
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:78 engines/mm/mm1/metaengine.cpp:119
+#: engines/mm/mm1/metaengine.cpp:80 engines/mm/mm1/metaengine.cpp:121
 #, fuzzy
 msgid "Quick reference"
 msgstr "Gogoko gailua:"
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:80
+#: engines/mm/mm1/metaengine.cpp:82
 msgid "Retreat"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:87
+#: engines/mm/mm1/metaengine.cpp:89
 msgid "Delay"
 msgstr ""
 
 #. I18N: Combat command in Might & Magic 1
 #. I18N: Action of hero party in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:89 engines/mm/mm1/metaengine.cpp:110
+#: engines/mm/mm1/metaengine.cpp:91 engines/mm/mm1/metaengine.cpp:112
 msgid "Protect"
 msgstr ""
 
 #. I18N: Party arrangement command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:97
+#: engines/mm/mm1/metaengine.cpp:99
 #, fuzzy
 #| msgid "Move Forward"
 msgid "Forwards"
 msgstr "Aurrera mugitu"
 
 #. I18N: Party arrangement command in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:99
+#: engines/mm/mm1/metaengine.cpp:101
 #, fuzzy
 msgid "Backwards"
 msgstr "Atzera mugitu"
 
-#: engines/mm/mm1/metaengine.cpp:107
+#: engines/mm/mm1/metaengine.cpp:109
 #, fuzzy
 msgid "Toggle minimap"
 msgstr "Mututu/Ez-mututu"
 
-#: engines/mm/mm1/metaengine.cpp:108
+#: engines/mm/mm1/metaengine.cpp:110
 msgid "Reorder party"
 msgstr ""
 
 #. I18N: Action of hero party in Might & Magic 1
 #. I18N: (Game: The Lost Files of Sherlock Holmes: The Case of the Serrated Scalpel) The game has a journal, this action is used to search the journal
-#: engines/mm/mm1/metaengine.cpp:114 engines/sherlock/metaengine.cpp:514
+#: engines/mm/mm1/metaengine.cpp:116 engines/sherlock/metaengine.cpp:514
 #: engines/sherlock/metaengine.cpp:961 engines/ultima/ultima4/metaengine.cpp:71
 #, fuzzy
 #| msgid "Search:"
@@ -11323,37 +11325,37 @@ msgid "Search"
 msgstr "Bilatu:"
 
 #. I18N: Action of hero party in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:116
+#: engines/mm/mm1/metaengine.cpp:118
 msgid "Bash"
 msgstr ""
 
 #. I18N: Action of hero party in Might & Magic 1
-#: engines/mm/mm1/metaengine.cpp:118 engines/scumm/help.cpp:147
+#: engines/mm/mm1/metaengine.cpp:120 engines/scumm/help.cpp:147
 msgid "Unlock"
 msgstr "Ireki"
 
-#: engines/mm/mm1/metaengine.cpp:125 engines/ultima/ultima4/metaengine.cpp:112
+#: engines/mm/mm1/metaengine.cpp:127 engines/ultima/ultima4/metaengine.cpp:112
 #, fuzzy
 msgid "Goto location"
 msgstr "~A~urrekoa"
 
-#: engines/mm/mm1/metaengine.cpp:150
+#: engines/mm/mm1/metaengine.cpp:152
 msgid "Might and Magic 1 - Menus"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:151
+#: engines/mm/mm1/metaengine.cpp:153
 msgid "Might and Magic 1 - Minimal Keys"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:152
+#: engines/mm/mm1/metaengine.cpp:154
 msgid "Might and Magic 1 - Main"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:153
+#: engines/mm/mm1/metaengine.cpp:155
 msgid "Might and Magic 1 - Party"
 msgstr ""
 
-#: engines/mm/mm1/metaengine.cpp:154
+#: engines/mm/mm1/metaengine.cpp:156
 msgid "Might and Magic 1 - Combat"
 msgstr ""
 
