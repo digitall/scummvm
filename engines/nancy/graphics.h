@@ -52,7 +52,7 @@ public:
 	const Font *getFont(uint id) const { return id < _fonts.size() ? &_fonts[id] : nullptr; }
 	const Graphics::Screen *getScreen() { return &_screen; }
 
-	const Graphics::PixelFormat &getInputPixelFormat();
+	const Graphics::PixelFormat &getInputPixelFormat(uint bpp = 16);
 	const Graphics::PixelFormat &getScreenPixelFormat();
 	const Graphics::PixelFormat &getTransparentPixelFormat();
 	uint32 getTransColor() { return _transColor; }
@@ -85,7 +85,7 @@ private:
 
 	Common::SortedArray<RenderObject *> _objects;
 
-	Graphics::PixelFormat _inputPixelFormat;
+	Graphics::PixelFormat _inputPixelFormat16, _inputPixelFormat24, _inputPixelFormat32;
 	Graphics::PixelFormat _screenPixelFormat;
 	Graphics::PixelFormat _clut8Format;
 	Graphics::PixelFormat _transparentPixelFormat;

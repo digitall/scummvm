@@ -431,8 +431,8 @@ void NancyEngine::bootGameEngine() {
 	// Setup mixer
 	syncSoundSettings();
 
-	if (getGameType() >= kGameTypeNancy13) {
-		// Nancy13+ games use 24/32bpp images, which we don't support yet.
+	if (getGameType() >= kGameTypeNancy14) {
+		// Nancy14+ games use a newer font format, which we don't support yet.
 		error("Game not supported; Use console to inspect game data");
 	}
 

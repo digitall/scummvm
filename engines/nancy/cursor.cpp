@@ -278,6 +278,9 @@ void CursorManager::warpCursor(const Common::Point &pos) {
 }
 
 void CursorManager::applyCursor() {
+	if (g_nancy->getGameType() >= kGameTypeNancy13)
+		return;	// TODO: In nancy13, the cursor format has changed
+
 	if (_curCursorID != _lastCursorID) {
 		Graphics::ManagedSurface *surf;
 		Common::Rect bounds = _cursors[_curCursorID].bounds;
