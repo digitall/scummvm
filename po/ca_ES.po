@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-02 11:21+0000\n"
+"POT-Creation-Date: 2026-05-03 07:07+0000\n"
 "PO-Revision-Date: 2026-04-15 17:22+0000\n"
 "Last-Translator: Xaviu <xaviu@xaviu.com>\n"
 "Language-Team: Catalan <https://translations.scummvm.org/projects/scummvm/"
@@ -6972,15 +6972,15 @@ msgstr "Assignació de tecles d'escapament"
 msgid "Open inventory"
 msgstr "Obre l'inventari"
 
-#: engines/bladerunner/bladerunner.cpp:395
+#: engines/bladerunner/bladerunner.cpp:396
 msgid "Failed to initialize resources"
 msgstr "No s'han pogut inicialitzar els recursos"
 
-#: engines/bladerunner/bladerunner.cpp:1166
+#: engines/bladerunner/bladerunner.cpp:1167
 msgid "A required game resource was not found"
 msgstr "No s'ha trobat el recurs del joc requerit"
 
-#: engines/bladerunner/bladerunner.cpp:2753
+#: engines/bladerunner/bladerunner.cpp:2754
 msgid ""
 "WARNING: This game was saved in Restored Cut Content mode, but you are "
 "playing in Original Content mode. The mode will be adjusted to Restored Cut "
@@ -6990,7 +6990,7 @@ msgstr ""
 "jugant en el mode Contingut original. El mode s'ajustarà a Contingut "
 "restaurat per a aquesta sessió fins que sortiu del joc."
 
-#: engines/bladerunner/bladerunner.cpp:2755
+#: engines/bladerunner/bladerunner.cpp:2756
 msgid ""
 "WARNING: This game was saved in Original Content mode, but you are playing "
 "in Restored Cut Content mode. The mode will be adjusted to Original Content "
@@ -7000,7 +7000,7 @@ msgstr ""
 "jugant en el mode Contingut restaurat. El mode s'ajustarà al Contingut "
 "original per a aquesta sessió fins que sortiu del joc."
 
-#: engines/bladerunner/bladerunner.cpp:2757
+#: engines/bladerunner/bladerunner.cpp:2758
 msgid "Continue"
 msgstr "Continua"
 
@@ -11108,7 +11108,7 @@ msgstr ""
 msgid "PS2 version is not yet supported"
 msgstr "Encara no s'admet la versió PS2"
 
-#: engines/myst3/myst3.cpp:412
+#: engines/myst3/myst3.cpp:413
 #, c-format
 msgid ""
 "This version of Myst III has not been updated with the latest official "
@@ -11118,7 +11118,7 @@ msgid ""
 "%s"
 msgstr ""
 
-#: engines/myst3/myst3.cpp:1659 engines/pegasus/pegasus.cpp:749
+#: engines/myst3/myst3.cpp:1660 engines/pegasus/pegasus.cpp:749
 msgid "Invalid file name for saving"
 msgstr "Nom de fitxer no válid per desar la partida"
 
