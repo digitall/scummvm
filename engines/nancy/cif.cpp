@@ -343,6 +343,18 @@ bool CifTree::sync(Common::Serializer &ser) {
 	return true;
 }
 
+Common::Array<Common::Path> CifTree::getPathsForType(CifInfo::ResType type) const {
+	Common::Array<Common::Path> pathList;
+
+	for (auto &it : _fileMap) {
+		if (type == CifInfo::kResTypeAny || it._value.type == type) {
+			pathList.push_back(it._key);
+		}
+	}
+
+	return pathList;
+}
+
 bool PatchTree::hasFile(const Common::Path &path) const {
 	if (CifTree::hasFile(path)) {
 		// An association is just a Pair of two StringArrays

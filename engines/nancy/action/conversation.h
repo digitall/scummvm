@@ -161,7 +161,6 @@ class ConversationCelLoader;
 // Conversation with separate cels for the body and head of the character.
 // Cels are separate images bundled inside a .cal file
 class ConversationCel : public ConversationSound {
-	friend class ConversationCelLoader;
 public:
 	ConversationCel() {}
 	virtual ~ConversationCel();
@@ -171,6 +170,9 @@ public:
 	void updateGraphics() override;
 
 	void readData(Common::SeekableReadStream &stream) override;
+
+	bool load();
+	uint getCurFrame() const { return _curFrame; }
 
 protected:
 	Common::String getRecordTypeName() const override { return "ConversationCel"; }

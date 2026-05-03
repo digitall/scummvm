@@ -293,22 +293,14 @@ void ResourceManager::list(const Common::String &treeName, Common::Array<Common:
 		if (!tree) {
 			return;
 		}
-		for (auto &i : tree->_fileMap) {
-			if (type == CifInfo::kResTypeAny || i._value.type == type) {
-				outList.push_back(i._key);
-			}
-		}
+		outList = tree->getPathsForType(type);
 	} else {
 		for (uint i = 0; i < _cifTreeNames.size(); ++i) {
 			// No provided tree name, check inside every loaded tree
 			Common::String upper = _cifTreeNames[i];
 			upper.toUppercase();
 			const CifTree *tree = (const CifTree *)SearchMan.getArchive(treePrefix + upper);
-			for (auto &it : tree->_fileMap) {
-				if (type == CifInfo::kResTypeAny || it._value.type == type) {
-					outList.push_back(it._key);
-				}
-			}
+			outList = tree->getPathsForType(type);
 		}
 	}
 }
@@ -459,11 +451,11 @@ bool ResourceManager::exportCifTree(const Common::String &treeName, const Common
 		file.addInfo(info);
 	}
 
-	uint16 dataOffset = headerSize + file._writeFileMap.size() * infoSize; // Initial offset after header/infos
-	for (uint i = 0; i < file._writeFileMap.size(); ++i) {
-		file._writeFileMap[i].dataOffset = dataOffset;
+	uint16 dataOffset = headerSize + file.writeFileMapSize() * infoSize; // Initial offset after header/infos
+	for (uint i = 0; i < file.writeFileMapSize(); ++i) {
+		file.setDataOffset(i, dataOffset);
 		for (uint j = 0; j < i; ++j) {
-			file._writeFileMap[i].dataOffset += resStreams[j]->size(); // Final offset, following raw data of previous files
+			file.setDataOffset(i, file.getDataOffset(i) + resStreams[j]->size()); // Final offset, following raw data of previous files
 		}
 	}
 

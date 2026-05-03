@@ -78,7 +78,6 @@ private:
 
 // Container type comprising of multiple CIF files. Contrary to its name it contains no tree structure.
 class CifTree : public Common::Archive {
-	friend class ResourceManager;
 public:
 	CifTree() : _stream(nullptr) {}
 	CifTree(Common::SeekableReadStream *stream, const Common::Path &name);
@@ -101,6 +100,11 @@ public:
 	bool sync(Common::Serializer &ser);
 
 	void addInfo(const CifInfo &info) { _writeFileMap.push_back(info); }
+	uint writeFileMapSize() const { return _writeFileMap.size(); }
+	uint32 getDataOffset(uint i) const { return _writeFileMap[i].dataOffset; }
+	void setDataOffset(uint i, uint32 offset) { _writeFileMap[i].dataOffset = offset; }
+
+	Common::Array<Common::Path> getPathsForType(CifInfo::ResType type = CifInfo::kResTypeAny) const;
 
 private:
 	Common::Path _name;

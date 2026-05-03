@@ -42,9 +42,9 @@ private:
 };
 
 bool VideoCacheLoader::loadInner() {
-	AVFDecoder::CacheHint hint = _owner._cacheHint;
-	int frameID = _owner._curFrame;
-	int frameCount = _owner._frameCount;
+	AVFDecoder::CacheHint hint = _owner.getCacheHint();
+	int frameID = _owner.getCurFrame();
+	int frameCount = _owner.getFrameCount();
 
 	for (int i = 0; i < frameCount; ++i) {
 		if (frameID < 0) {
@@ -55,16 +55,16 @@ bool VideoCacheLoader::loadInner() {
 			frameID -= frameCount;
 		}
 
-		if (!_owner._frameCache[frameID].getPixels()) {
+		if (!_owner.getSurfaceForFrame(frameID)->getPixels()) {
 			_owner.decodeFrame(frameID);
 			return false;
 		}
 
 		// Select next frame based on hint and play direction
 		if (hint != AVFDecoder::kLoadBidirectional) {
-			frameID = _owner._reversed ? frameID - 1 : frameID + 1;
+			frameID = _owner.isReversed() ? frameID - 1 : frameID + 1;
 		} else {
-			frameID = _owner._curFrame + (i % 2 ? i >> 1 : -(i >> 1));
+			frameID = _owner.getCurFrame() + (i % 2 ? i >> 1 : -(i >> 1));
 		}
 	}
 

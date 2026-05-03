@@ -723,23 +723,10 @@ public:
 	ConversationCelLoader(ConversationCel &owner) : _owner(owner) {}
 
 private:
-	bool loadInner() override;
+	bool loadInner() override { return _owner.load(); }
 
 	ConversationCel &_owner;
 };
-
-bool ConversationCelLoader::loadInner() {
-	for (uint i = _owner._curFrame; i < _owner._celNames[0].size(); ++i) {
-		for (uint j = 0; j < _owner._celRObjects.size(); ++j) {
-			if (!_owner._celCache.contains(_owner._celNames[j][i])) {
-				_owner.loadCel(_owner._celNames[j][i], _owner._treeNames[j]);
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
 
 ConversationCel::~ConversationCel() {
 	// Make sure there isn't a single-frame gap between conversation scenes where
@@ -873,6 +860,19 @@ ConversationCel::Cel &ConversationCel::loadCel(const Common::Path &name, const C
 	Cel &newCel = _celCache.getOrCreateVal(name);
 	g_nancy->_resource->loadImage(name, newCel.surf, treeName, &newCel.src, &newCel.dest);
 	return _celCache[name];
+}
+
+bool ConversationCel::load() {
+	for (uint i = _curFrame; i < _celNames[0].size(); ++i) {
+		for (uint j = 0; j < _celRObjects.size(); ++j) {
+			if (!_celCache.contains(_celNames[j][i])) {
+				loadCel(_celNames[j][i], _treeNames[j]);
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 void ConversationSoundTerse::readData(Common::SeekableReadStream &stream) {
