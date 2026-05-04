@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-03 09:58+0000\n"
+"POT-Creation-Date: 2026-05-04 10:15+0000\n"
 "PO-Revision-Date: 2024-07-11 17:47+0000\n"
 "Last-Translator: Krish <ganatrakrish2882005@gmail.com>\n"
 "Language-Team: Hindi <https://translations.scummvm.org/projects/scummvm/"
@@ -2007,8 +2007,10 @@ msgid "MIDI gain:"
 msgstr ""
 
 #: gui/options.cpp:1866
-msgid "MT-32 Device:"
-msgstr ""
+#, fuzzy
+#| msgid "Music device:"
+msgid "MT-32 device:"
+msgstr "संगीत उपकरण:"
 
 #: gui/options.cpp:1866
 msgid "Specifies default sound device for Roland MT-32/LAPC1/CM32l/CM64 output"

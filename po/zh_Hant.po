@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-03 09:58+0000\n"
+"POT-Creation-Date: 2026-05-04 10:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -1922,7 +1922,7 @@ msgid "MIDI gain:"
 msgstr ""
 
 #: gui/options.cpp:1866
-msgid "MT-32 Device:"
+msgid "MT-32 device:"
 msgstr ""
 
 #: gui/options.cpp:1866
