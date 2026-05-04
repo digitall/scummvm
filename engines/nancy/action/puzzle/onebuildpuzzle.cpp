@@ -124,26 +124,35 @@ void OneBuildPuzzle::readData(Common::SeekableReadStream &stream) {
 	readFilename(stream, _goodAlt2Filename);
 
 	_goodTexts.resize(3);
+
+	const CVTX *autotext = (const CVTX *)g_nancy->getEngineData("AUTOTEXT");
+	assert(autotext);
+
 	Common::String unusedKey;
-	for (uint i = 0; i < 3; ++i)
-		readFilename(stream, unusedKey);
 	char textBuf[200];
+
 	for (uint i = 0; i < 3; ++i) {
 		stream.read(textBuf, 200);
 		assembleTextLine(textBuf, _goodTexts[i], 200);
+		if (!_goodTexts[i].empty() && autotext->texts.contains(_goodTexts[i]))
+			_goodTexts[i] = autotext->texts[_goodTexts[i]];
 	}
+	for (uint i = 0; i < 3; ++i)
+		readFilename(stream, unusedKey);
 
 	_badPlacementSound.readNormal(stream);  // +0x841
 	readFilename(stream, _badAlt1Filename);
 	readFilename(stream, _badAlt2Filename);
 
 	_badTexts.resize(3);
-	for (uint i = 0; i < 3; ++i)
-		readFilename(stream, unusedKey);
 	for (uint i = 0; i < 3; ++i) {
 		stream.read(textBuf, 200);
 		assembleTextLine(textBuf, _badTexts[i], 200);
+		if (!_badTexts[i].empty() && autotext->texts.contains(_badTexts[i]))
+			_badTexts[i] = autotext->texts[_badTexts[i]];
 	}
+	for (uint i = 0; i < 3; ++i)
+		readFilename(stream, unusedKey);
 
 	stream.skip(4); // unknown bytes at +0xb6f
 	_solveScene.readData(stream);
@@ -151,6 +160,8 @@ void OneBuildPuzzle::readData(Common::SeekableReadStream &stream) {
 	readFilename(stream, unusedKey);
 	stream.read(textBuf, 200);
 	assembleTextLine(textBuf, _completionText, 200);
+	if (!_completionText.empty() && autotext->texts.contains(_completionText))
+		_completionText = autotext->texts[_completionText];
 
 	_cancelScene.readData(stream);
 	readRect(stream, _exitHotspot);
@@ -320,19 +331,19 @@ void OneBuildPuzzle::handleInput(NancyInput &input) {
 	}
 
 	if (topmostAny != -1) {
-		g_nancy->_cursor->setCursorType(CursorManager::kHotspot);
-
-		// Right click: rotate topmost piece under cursor
-		if (input.input & NancyInput::kRightMouseButtonUp) {
-			rotatePiece(topmostAny);
-			playPickupSound();
-			return;
-		}
+		g_nancy->_cursor->setCursorType(CursorManager::kCustom1);
 
 		// Left click on an unplaced piece: pick it up
-		if ((input.input & NancyInput::kLeftMouseButtonUp) && topmostUnplaced != -1) {
-			Piece &pp = _pieces[topmostUnplaced];
+		// Right click: pick it up and rotate it
+		bool leftClick = (input.input & NancyInput::kLeftMouseButtonUp);
+		bool rightClick = (input.input & NancyInput::kRightMouseButtonUp);
+		if ((leftClick || rightClick) && topmostUnplaced != -1) {
 			_pickedUpPiece = topmostUnplaced;
+
+			if (rightClick)
+				rotatePiece(_pickedUpPiece);
+
+			Piece &pp = _pieces[_pickedUpPiece];
 			_isDragging = true;
 			_pickedUpWidth  = pp.rotateSurfaces[pp.curRotation].w;
 			_pickedUpHeight = pp.rotateSurfaces[pp.curRotation].h;
