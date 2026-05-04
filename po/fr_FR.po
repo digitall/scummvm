@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-04 10:28+0000\n"
-"PO-Revision-Date: 2026-05-03 09:23+0000\n"
+"PO-Revision-Date: 2026-05-04 17:22+0000\n"
 "Last-Translator: Purple T <ZEONK@hotmail.com>\n"
 "Language-Team: French <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/fr/>\n"
@@ -2089,8 +2089,6 @@ msgid "MIDI gain:"
 msgstr "Gain MIDI :"
 
 #: gui/options.cpp:1866
-#, fuzzy
-#| msgid "MT-32 Device:"
 msgid "MT-32 device:"
 msgstr "Périph. MT-32 :"
 
