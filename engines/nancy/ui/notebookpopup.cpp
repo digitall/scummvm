@@ -32,7 +32,9 @@ namespace Nancy {
 namespace UI {
 
 NotebookPopup::NotebookPopup() :
-		RenderObject(6),
+		// z=12: above the viewport (6) and the taskbar (7). All Nancy
+		// 10+ taskbar popups render on top of the entire scene UI.
+		RenderObject(12),
 		_uinbData(nullptr),
 		_isOpen(false),
 		_activeTab(0) {}
@@ -43,7 +45,14 @@ void NotebookPopup::init() {
 
 	g_nancy->_resource->loadImage(_uinbData->header.imageName, _overlayImage);
 
-	moveTo(_uinbData->header.normalDestRect);
+	Common::Rect popupRect = _uinbData->header.normalDestRect;
+	if (_uinbData->header.overlayInGameFrame) {
+		const VIEW *view = GetEngineData(VIEW);
+		if (view) {
+			popupRect.translate(view->screenPosition.left, view->screenPosition.top);
+		}
+	}
+	moveTo(popupRect);
 	Common::Rect bounds = _screenPosition;
 	bounds.moveTo(0, 0);
 	_drawSurface.create(bounds.width(), bounds.height(), g_nancy->_graphics->getInputPixelFormat());

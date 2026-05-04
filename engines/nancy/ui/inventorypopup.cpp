@@ -34,7 +34,9 @@ namespace Nancy {
 namespace UI {
 
 InventoryPopup::InventoryPopup() :
-		RenderObject(6),
+		// z=12: above the viewport (6) and the taskbar (7). All Nancy
+		// 10+ taskbar popups render on top of the entire scene UI.
+		RenderObject(12),
 		_uiivData(nullptr),
 		_invData(nullptr),
 		_isOpen(false),
@@ -60,7 +62,14 @@ void InventoryPopup::init() {
 
 	// Position the popup using the "normal-size" rects from the popup
 	// header (popup state 2).
-	moveTo(_uiivData->header.normalDestRect);
+	Common::Rect popupRect = _uiivData->header.normalDestRect;
+	if (_uiivData->header.overlayInGameFrame) {
+		const VIEW *view = GetEngineData(VIEW);
+		if (view) {
+			popupRect.translate(view->screenPosition.left, view->screenPosition.top);
+		}
+	}
+	moveTo(popupRect);
 	Common::Rect bounds = _screenPosition;
 	bounds.moveTo(0, 0);
 	_drawSurface.create(bounds.width(), bounds.height(), g_nancy->_graphics->getInputPixelFormat());
