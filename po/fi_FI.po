@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.6.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 21:34+0000\n"
+"POT-Creation-Date: 2026-05-04 23:29+0000\n"
 "PO-Revision-Date: 2026-02-07 15:22+0000\n"
 "Last-Translator: Timo Mikkolainen <tmikkola@gmail.com>\n"
 "Language-Team: Finnish <https://translations.scummvm.org/projects/scummvm/"
@@ -719,7 +719,7 @@ msgstr "Lisäkansio:"
 
 #: gui/editgamedialog.cpp:306 gui/options.cpp:2530 gui/options.cpp:2558
 #: gui/options.cpp:2567 gui/options.cpp:2848
-#: backends/platform/libretro/src/libretro-options-widget.cpp:271
+#: backends/platform/libretro/src/libretro-options-widget.cpp:277
 msgctxt "path"
 msgid "None"
 msgstr "Ei määritelty"
@@ -3518,7 +3518,7 @@ msgid "Alt"
 msgstr "Alt"
 
 #: dists/android.strings.xml.cpp:48
-#: backends/platform/libretro/src/libretro-options-widget.cpp:249
+#: backends/platform/libretro/src/libretro-options-widget.cpp:255
 msgid "Done"
 msgstr "Valmis"
 
@@ -6007,27 +6007,27 @@ msgstr "Luo soittolista"
 msgid "Status: "
 msgstr "Tila: "
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:151
+#: backends/platform/libretro/src/libretro-options-widget.cpp:153
 msgid "Failed, can't access playlist file"
 msgstr "Luonti epäonnistui, soittolistatiedostoon ei päästy käsiksi"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:251
+#: backends/platform/libretro/src/libretro-options-widget.cpp:257
 msgid "cleaning failed"
 msgstr "Hook:ien poistaminen epäonnistui"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:253
+#: backends/platform/libretro/src/libretro-options-widget.cpp:259
 msgid "Failed, can't create hook files"
 msgstr "Hook-tiedostojen luonti epäonnistui"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:263
+#: backends/platform/libretro/src/libretro-options-widget.cpp:269
 msgid "Select Playlist directory"
 msgstr "Valitse hakemisto soittolistoille"
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:233
+#: backends/platform/libretro/src/libretro-os-utils.cpp:235
 msgid "Libretro playlist"
 msgstr "Libretro soittolista"
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:236
+#: backends/platform/libretro/src/libretro-os-utils.cpp:238
 msgid ""
 "## Libretro playlists for ScummVM core\n"
 "Playlists used in Libretro frontends (e.g. Retroarch) are plain text lists "

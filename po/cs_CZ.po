@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.7.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 21:34+0000\n"
+"POT-Creation-Date: 2026-05-04 23:29+0000\n"
 "PO-Revision-Date: 2026-02-09 20:22+0000\n"
 "Last-Translator: AsciiWolf <mail@asciiwolf.com>\n"
 "Language-Team: Czech <https://translations.scummvm.org/projects/scummvm/"
@@ -750,7 +750,7 @@ msgstr "Dodatečná Cesta:"
 
 #: gui/editgamedialog.cpp:306 gui/options.cpp:2530 gui/options.cpp:2558
 #: gui/options.cpp:2567 gui/options.cpp:2848
-#: backends/platform/libretro/src/libretro-options-widget.cpp:271
+#: backends/platform/libretro/src/libretro-options-widget.cpp:277
 msgctxt "path"
 msgid "None"
 msgstr "Žádné"
@@ -3429,7 +3429,7 @@ msgid "Alt"
 msgstr "Alt"
 
 #: dists/android.strings.xml.cpp:48
-#: backends/platform/libretro/src/libretro-options-widget.cpp:249
+#: backends/platform/libretro/src/libretro-options-widget.cpp:255
 msgid "Done"
 msgstr ""
 
@@ -5620,34 +5620,34 @@ msgstr ""
 msgid "Status: "
 msgstr "Stav:"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:151
+#: backends/platform/libretro/src/libretro-options-widget.cpp:153
 #, fuzzy
 #| msgid "Failed to save game to file."
 msgid "Failed, can't access playlist file"
 msgstr "Uložení hry do souboru selhalo."
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:251
+#: backends/platform/libretro/src/libretro-options-widget.cpp:257
 #, fuzzy
 #| msgid "Reading data failed"
 msgid "cleaning failed"
 msgstr "Čtení dat selhalo"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:253
+#: backends/platform/libretro/src/libretro-options-widget.cpp:259
 #, fuzzy
 msgid "Failed, can't create hook files"
 msgstr "Nelze smazat soubor."
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:263
+#: backends/platform/libretro/src/libretro-options-widget.cpp:269
 #, fuzzy
 #| msgid "Select additional game directory"
 msgid "Select Playlist directory"
 msgstr "Vyberte dodatečný adresář hry"
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:233
+#: backends/platform/libretro/src/libretro-os-utils.cpp:235
 msgid "Libretro playlist"
 msgstr ""
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:236
+#: backends/platform/libretro/src/libretro-os-utils.cpp:238
 msgid ""
 "## Libretro playlists for ScummVM core\n"
 "Playlists used in Libretro frontends (e.g. Retroarch) are plain text lists "

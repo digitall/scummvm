@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 21:34+0000\n"
+"POT-Creation-Date: 2026-05-04 23:29+0000\n"
 "PO-Revision-Date: 2026-02-24 22:26+0000\n"
 "Last-Translator: Mohamed Shaaban <mohmedbashamedo@hotmail.com>\n"
 "Language-Team: Arabic <https://translations.scummvm.org/projects/scummvm/"
@@ -740,7 +740,7 @@ msgstr "مسار إضافي:"
 
 #: gui/editgamedialog.cpp:306 gui/options.cpp:2530 gui/options.cpp:2558
 #: gui/options.cpp:2567 gui/options.cpp:2848
-#: backends/platform/libretro/src/libretro-options-widget.cpp:271
+#: backends/platform/libretro/src/libretro-options-widget.cpp:277
 msgctxt "path"
 msgid "None"
 msgstr "لا شئ"
@@ -3464,7 +3464,7 @@ msgid "Alt"
 msgstr "بديل"
 
 #: dists/android.strings.xml.cpp:48
-#: backends/platform/libretro/src/libretro-options-widget.cpp:249
+#: backends/platform/libretro/src/libretro-options-widget.cpp:255
 msgid "Done"
 msgstr ""
 
@@ -5690,35 +5690,35 @@ msgstr ""
 msgid "Status: "
 msgstr "حالة:"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:151
+#: backends/platform/libretro/src/libretro-options-widget.cpp:153
 #, fuzzy
 #| msgid "Failed to save game to file."
 msgid "Failed, can't access playlist file"
 msgstr "فشل حفظ اللعبة في ملف."
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:251
+#: backends/platform/libretro/src/libretro-options-widget.cpp:257
 #, fuzzy
 #| msgid "Reading data failed"
 msgid "cleaning failed"
 msgstr "فشلت قراءة البيانات"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:253
+#: backends/platform/libretro/src/libretro-options-widget.cpp:259
 #, fuzzy
 #| msgid "Failed to read the file!"
 msgid "Failed, can't create hook files"
 msgstr "فشلت قراءة الملف!"
 
-#: backends/platform/libretro/src/libretro-options-widget.cpp:263
+#: backends/platform/libretro/src/libretro-options-widget.cpp:269
 #, fuzzy
 #| msgid "Select additional game directory"
 msgid "Select Playlist directory"
 msgstr "حدد مجلد العبة الإضافي"
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:233
+#: backends/platform/libretro/src/libretro-os-utils.cpp:235
 msgid "Libretro playlist"
 msgstr ""
 
-#: backends/platform/libretro/src/libretro-os-utils.cpp:236
+#: backends/platform/libretro/src/libretro-os-utils.cpp:238
 msgid ""
 "## Libretro playlists for ScummVM core\n"
 "Playlists used in Libretro frontends (e.g. Retroarch) are plain text lists "
