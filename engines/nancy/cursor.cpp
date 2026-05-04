@@ -74,18 +74,33 @@ void CursorManager::init(Common::SeekableReadStream *chunkStream) {
 	// cursor code in later games.
 
 	uint numCursors = _numCursorTypes * (g_nancy->getGameType() == kGameTypeVampire ? 2 : 3) + g_nancy->getStaticData().numItems * _numCursorTypes;
-	if (g_nancy->getGameType() >= kGameTypeNancy10) {
+	if (g_nancy->getGameType() >= kGameTypeNancy10 && g_nancy->getGameType() <= kGameTypeNancy12) {
 		_numCursorTypes = 37;
 		numCursors = _numCursorTypes * 2 + g_nancy->getStaticData().numItems * 2;
+	} else if (g_nancy->getGameType() >= kGameTypeNancy13) {
+		_numCursorTypes = 37;
+		numCursors = 174;
 	}
 
 	_cursors.resize(numCursors);
+
+	Common::Path uiCursorsImageName;
+	Common::Path inventoryCursorsImageName;
+
+	if (g_nancy->getGameType() <= kGameTypeNancy12) {
+		auto *inventoryData = GetEngineData(INV)
+		assert(inventoryData);
+		inventoryCursorsImageName = inventoryData->inventoryCursorsImageName;
+	} else {
+		readFilename(*chunkStream, uiCursorsImageName);
+		readFilename(*chunkStream, inventoryCursorsImageName);
+	}
 
 	for (uint i = 0; i < numCursors; ++i) {
 		readRect(*chunkStream, _cursors[i].bounds);
 	}
 
-	if (g_nancy->getGameType() >= kGameTypeNancy10)
+	if (g_nancy->getGameType() >= kGameTypeNancy10 && g_nancy->getGameType() <= kGameTypeNancy12)
 		chunkStream->skip(numCursors * 4 * 4);	// TODO
 
 	for (uint i = 0; i < numCursors; ++i) {
@@ -97,10 +112,10 @@ void CursorManager::init(Common::SeekableReadStream *chunkStream) {
 	_primaryVideoInitialPos.x = chunkStream->readUint16LE();
 	_primaryVideoInitialPos.y = chunkStream->readUint16LE();
 
-	auto *inventoryData = GetEngineData(INV);
-	assert(inventoryData);
+	if (g_nancy->getGameType() >= kGameTypeNancy13)
+		g_nancy->_resource->loadImage(uiCursorsImageName, _uiCursorsSurface);
 
-	g_nancy->_resource->loadImage(inventoryData->inventoryCursorsImageName, _invCursorsSurface);
+	g_nancy->_resource->loadImage(inventoryCursorsImageName, _invCursorsSurface);
 
 	setCursor(kNormalArrow, -1);
 	showCursor(false);
@@ -278,20 +293,15 @@ void CursorManager::warpCursor(const Common::Point &pos) {
 }
 
 void CursorManager::applyCursor() {
-	if (g_nancy->getGameType() >= kGameTypeNancy13)
-		return;	// TODO: In nancy13, the cursor format has changed
-
 	if (_curCursorID != _lastCursorID) {
 		Graphics::ManagedSurface *surf;
 		Common::Rect bounds = _cursors[_curCursorID].bounds;
 		Common::Point hotspot = _cursors[_curCursorID].hotspot;
 
-		if (_hasItem) {
+		if (_hasItem)
 			surf = &_invCursorsSurface;
-
-		} else {
-			surf = &g_nancy->_graphics->_object0;
-		}
+		else
+			surf = g_nancy->getGameType() <= kGameTypeNancy12 ? &g_nancy->_graphics->_object0 : &_uiCursorsSurface;
 
 		Graphics::ManagedSurface temp(*surf, bounds);
 

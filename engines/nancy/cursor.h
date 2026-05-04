@@ -112,6 +112,7 @@ private:
 	Common::Point _primaryVideoInitialPos;
 
 	Graphics::ManagedSurface _invCursorsSurface;
+	Graphics::ManagedSurface _uiCursorsSurface;	// Nancy13+
 
 	Common::Point _warpedMousePos;
 	CursorType _curCursorType;
