@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.9.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-04 10:15+0000\n"
-"PO-Revision-Date: 2026-04-21 22:05+0000\n"
+"PO-Revision-Date: 2026-05-04 10:26+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Ukrainian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/uk/>\n"
@@ -2062,8 +2062,6 @@ msgid "MIDI gain:"
 msgstr "Посилення MIDI:"
 
 #: gui/options.cpp:1866
-#, fuzzy
-#| msgid "MT-32 Device:"
 msgid "MT-32 device:"
 msgstr "Пристрій MT-32:"
 
@@ -8178,10 +8176,8 @@ msgid "Toggle wireframe"
 msgstr "Перемкнути каркасне зображення"
 
 #: engines/colony/metaengine.cpp:178
-#, fuzzy
-#| msgid "Menu / Skip"
 msgid "Menu / Skip intro"
-msgstr "Меню / Пропустити"
+msgstr "Меню / Пропустити заставку"
 
 #: engines/colony/metaengine.cpp:184 engines/ultima/ultima8/metaengine.cpp:89
 msgid "Fire weapon"
