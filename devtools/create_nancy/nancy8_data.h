@@ -267,7 +267,7 @@ const Common::Array<Common::Array<ConditionalDialogue>> _nancy8ConditionalDialog
 },
 {	// Frank & Joe, 21 responses + 2 repeats
 	{	0, 1750, "NFJ50",
-		{ { kEv, 231, true }, { kEv, 148, false } } },
+		{ { kEv, 231, false }, { kEv, 148, false } } },
 	{	0, 1751, "NFJ51",
 		{ { kEv, 231, true }, { kEv, 389, false }, { kEv, 232, false }, { kEv, 228, false }, { kEv, 148, false } } },
 	{	0, 1751, "NFJ51",
