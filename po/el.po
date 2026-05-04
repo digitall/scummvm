@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 10:15+0000\n"
+"POT-Creation-Date: 2026-05-04 10:28+0000\n"
 "PO-Revision-Date: 2026-04-23 00:22+0000\n"
 "Last-Translator: Antoniou Athanasios <a.antoniou79@gmail.com>\n"
 "Language-Team: Greek <https://translations.scummvm.org/projects/scummvm/"
@@ -329,6 +329,7 @@ msgstr ""
 "Μια άλλη Αποθήκη έχει εργασία σε εξέλιξη αυτή τη στιγμή. Επιθυμείτε να τη "
 "διακόψετε;"
 
+#. I18N: Y key for Yes
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:152 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
@@ -340,7 +341,7 @@ msgstr ""
 #: engines/efh/metaengine.cpp:362 engines/grim/grim.cpp:366
 #: engines/hypno/metaengine.cpp:192 engines/kyra/gui/saveload_eob.cpp:611
 #: engines/kyra/gui/saveload_eob.cpp:644 engines/lab/metaengine.cpp:197
-#: engines/parallaction/metaengine.cpp:169
+#: engines/mm/mm1/metaengine.cpp:54 engines/parallaction/metaengine.cpp:169
 #: engines/sci/graphics/controls32.cpp:937 engines/scumm/scumm.cpp:4365
 #: engines/sherlock/metaengine.cpp:638 engines/sherlock/metaengine.cpp:1244
 #: engines/sludge/event.cpp:144 engines/toon/toon.cpp:1550
@@ -348,6 +349,7 @@ msgstr ""
 msgid "Yes"
 msgstr "Ναι"
 
+#. I18N: N key for No
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:153 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
@@ -358,7 +360,7 @@ msgstr "Ναι"
 #: engines/efh/metaengine.cpp:368 engines/grim/grim.cpp:366
 #: engines/hypno/metaengine.cpp:198 engines/kyra/gui/saveload_eob.cpp:611
 #: engines/kyra/gui/saveload_eob.cpp:644 engines/lab/metaengine.cpp:204
-#: engines/parallaction/metaengine.cpp:175
+#: engines/mm/mm1/metaengine.cpp:52 engines/parallaction/metaengine.cpp:175
 #: engines/sci/graphics/controls32.cpp:937 engines/scumm/scumm.cpp:4365
 #: engines/sherlock/metaengine.cpp:643 engines/sherlock/metaengine.cpp:1250
 #: engines/sludge/event.cpp:144 engines/toon/toon.cpp:1550
@@ -4937,13 +4939,12 @@ msgid "X"
 msgstr "X"
 
 #. I18N: Hardware key
-#. I18N: Y key for Yes
 #: backends/platform/3ds/osystem-events.cpp:48
 #: backends/platform/ds/osystem_ds.cpp:180
 #: backends/platform/sdl/miyoo/miyoo.cpp:65
 #: backends/platform/sdl/miyoo/miyoo.cpp:92
 #: backends/platform/sdl/opendingux/opendingux.cpp:55
-#: backends/platform/sdl/switch/switch.cpp:39 engines/mm/mm1/metaengine.cpp:54
+#: backends/platform/sdl/switch/switch.cpp:39
 msgid "Y"
 msgstr "Y"
 
@@ -11231,13 +11232,6 @@ msgstr ""
 #: engines/mm/metaengine.cpp:183
 msgid "Might and Magic"
 msgstr "Might and Magic"
-
-#. I18N: N key for No
-#: engines/mm/mm1/metaengine.cpp:52
-#, fuzzy
-#| msgid "No"
-msgid "N"
-msgstr "Όχι"
 
 #: engines/mm/mm1/metaengine.cpp:59
 msgid "View party member 1"
@@ -17556,6 +17550,11 @@ msgstr ""
 "απαιτούν ήχο MIDI για την επίλυσή τους.  Αυτοί οι γρίφοι εναλλακτικά μπορεί "
 "να επιλυθούν με χρήση υπότιτλων , αν υποστηρίζονται. Θα συνεχίσετε την "
 "εκκίνηση του παιχνιδιού;"
+
+#, fuzzy
+#~| msgid "No"
+#~ msgid "N"
+#~ msgstr "Όχι"
 
 #~ msgid "Might and Magic 1 - Cheats"
 #~ msgstr "Might and Magic 1 - Κόλπα (Cheats)"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.7.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 10:15+0000\n"
+"POT-Creation-Date: 2026-05-04 10:28+0000\n"
 "PO-Revision-Date: 2026-02-09 20:22+0000\n"
 "Last-Translator: AsciiWolf <mail@asciiwolf.com>\n"
 "Language-Team: Czech <https://translations.scummvm.org/projects/scummvm/"
@@ -344,6 +344,7 @@ msgstr "Další"
 msgid "Another Storage is working right now. Do you want to interrupt it?"
 msgstr "Jiné úložiště právě pracuje. Chcete ho přerušit?"
 
+#. I18N: Y key for Yes
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:152 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
@@ -355,7 +356,7 @@ msgstr "Jiné úložiště právě pracuje. Chcete ho přerušit?"
 #: engines/efh/metaengine.cpp:362 engines/grim/grim.cpp:366
 #: engines/hypno/metaengine.cpp:192 engines/kyra/gui/saveload_eob.cpp:611
 #: engines/kyra/gui/saveload_eob.cpp:644 engines/lab/metaengine.cpp:197
-#: engines/parallaction/metaengine.cpp:169
+#: engines/mm/mm1/metaengine.cpp:54 engines/parallaction/metaengine.cpp:169
 #: engines/sci/graphics/controls32.cpp:937 engines/scumm/scumm.cpp:4365
 #: engines/sherlock/metaengine.cpp:638 engines/sherlock/metaengine.cpp:1244
 #: engines/sludge/event.cpp:144 engines/toon/toon.cpp:1550
@@ -363,6 +364,7 @@ msgstr "Jiné úložiště právě pracuje. Chcete ho přerušit?"
 msgid "Yes"
 msgstr "Ano"
 
+#. I18N: N key for No
 #: gui/cloudconnectionwizard.cpp:530 gui/downloaddialog.cpp:118
 #: gui/downloaddialog.cpp:153 gui/filebrowser-dialog.cpp:135
 #: gui/fluidsynth-dialog.cpp:210 gui/launcher.cpp:428 gui/launcher.cpp:457
@@ -373,7 +375,7 @@ msgstr "Ano"
 #: engines/efh/metaengine.cpp:368 engines/grim/grim.cpp:366
 #: engines/hypno/metaengine.cpp:198 engines/kyra/gui/saveload_eob.cpp:611
 #: engines/kyra/gui/saveload_eob.cpp:644 engines/lab/metaengine.cpp:204
-#: engines/parallaction/metaengine.cpp:175
+#: engines/mm/mm1/metaengine.cpp:52 engines/parallaction/metaengine.cpp:175
 #: engines/sci/graphics/controls32.cpp:937 engines/scumm/scumm.cpp:4365
 #: engines/sherlock/metaengine.cpp:643 engines/sherlock/metaengine.cpp:1250
 #: engines/sludge/event.cpp:144 engines/toon/toon.cpp:1550
@@ -4860,13 +4862,12 @@ msgid "X"
 msgstr ""
 
 #. I18N: Hardware key
-#. I18N: Y key for Yes
 #: backends/platform/3ds/osystem-events.cpp:48
 #: backends/platform/ds/osystem_ds.cpp:180
 #: backends/platform/sdl/miyoo/miyoo.cpp:65
 #: backends/platform/sdl/miyoo/miyoo.cpp:92
 #: backends/platform/sdl/opendingux/opendingux.cpp:55
-#: backends/platform/sdl/switch/switch.cpp:39 engines/mm/mm1/metaengine.cpp:54
+#: backends/platform/sdl/switch/switch.cpp:39
 msgid "Y"
 msgstr ""
 
@@ -11144,13 +11145,6 @@ msgstr ""
 #: engines/mm/metaengine.cpp:183
 msgid "Might and Magic"
 msgstr ""
-
-#. I18N: N key for No
-#: engines/mm/mm1/metaengine.cpp:52
-#, fuzzy
-#| msgid "No"
-msgid "N"
-msgstr "Ne"
 
 #: engines/mm/mm1/metaengine.cpp:59
 msgid "View party member 1"
@@ -17629,6 +17623,11 @@ msgid ""
 "solved.  These puzzles may alternatively be solved using subtitles, if "
 "supported. Continue launching game?"
 msgstr ""
+
+#, fuzzy
+#~| msgid "No"
+#~ msgid "N"
+#~ msgstr "Ne"
 
 #~ msgid "Load game:"
 #~ msgstr "Nahrát hru:"
