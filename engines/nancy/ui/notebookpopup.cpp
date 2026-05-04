@@ -112,6 +112,13 @@ void NotebookPopup::drawBackground() {
 }
 
 void NotebookPopup::drawTabs() {
+	// Sub-rects in the chunk are stored relative to header.normalDestRect.
+	// After we translate the popup by the viewport offset, _screenPosition
+	// no longer matches that origin, so popup-local conversions must
+	// subtract chunk.normalDestRect.topLeft, not _screenPosition.
+	const Common::Point chunkOrigin(_uinbData->header.normalDestRect.left,
+									_uinbData->header.normalDestRect.top);
+
 	for (uint i = 0; i < kNumTabs; ++i) {
 		const UIButtonSlot &tab = _uinbData->tabs[i];
 		if (!tab.enabled) {
@@ -127,10 +134,9 @@ void NotebookPopup::drawTabs() {
 			continue;
 		}
 
-		Common::Rect dst = tab.button.destRect;
-		dst.translate(-_screenPosition.left, -_screenPosition.top);
-
-		_drawSurface.blitFrom(_overlayImage, src, Common::Point(dst.left, dst.top));
+		_drawSurface.blitFrom(_overlayImage, src,
+								Common::Point(tab.button.destRect.left - chunkOrigin.x,
+												tab.button.destRect.top - chunkOrigin.y));
 	}
 
 	_needsRedraw = true;
@@ -141,13 +147,19 @@ void NotebookPopup::handleInput(NancyInput &input) {
 		return;
 	}
 
+	// Bring the mouse into the chunk's coordinate system so hit-tests
+	// against tab destRects work after the popup was translated.
+	const Common::Point chunkMouse(
+		input.mousePos.x - _screenPosition.left + _uinbData->header.normalDestRect.left,
+		input.mousePos.y - _screenPosition.top  + _uinbData->header.normalDestRect.top);
+
 	// Tab clicks
 	for (uint i = 0; i < kNumTabs; ++i) {
 		const UIButtonSlot &tab = _uinbData->tabs[i];
 		if (!tab.enabled) {
 			continue;
 		}
-		if (!tab.button.destRect.contains(input.mousePos)) {
+		if (!tab.button.destRect.contains(chunkMouse)) {
 			continue;
 		}
 

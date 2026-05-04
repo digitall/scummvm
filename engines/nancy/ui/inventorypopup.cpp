@@ -182,17 +182,21 @@ void InventoryPopup::drawBackground() {
 }
 
 void InventoryPopup::drawFilterTabs() {
+	// Sub-rects in the chunk are stored relative to header.normalDestRect.
+	// After we translate the popup by the viewport offset, _screenPosition
+	// no longer matches that origin, so popup-local conversions must
+	// subtract chunk.normalDestRect.topLeft, not _screenPosition.
+	const Common::Point chunkOrigin(_uiivData->header.normalDestRect.left,
+									_uiivData->header.normalDestRect.top);
+
 	for (const auto &filter : _uiivData->filters) {
 		if (!filter.enabled || filter.button.sourceRects[0].isEmpty()) {
 			continue;
 		}
 
-		Common::Rect dst = filter.button.destRect;
-		dst.translate(-_screenPosition.left, -_screenPosition.top);
-
-		// Draw the idle sprite from the button's primary image; fall back
-		// to the overlay image if no primary image is loaded for the slot.
-		_drawSurface.blitFrom(_overlayImage, filter.button.sourceRects[0], Common::Point(dst.left, dst.top));
+		_drawSurface.blitFrom(_overlayImage, filter.button.sourceRects[0],
+								Common::Point(filter.button.destRect.left - chunkOrigin.x,
+												filter.button.destRect.top - chunkOrigin.y));
 	}
 }
 
@@ -200,9 +204,6 @@ void InventoryPopup::drawSlot(uint slotIndex, int16 itemID) {
 	if (slotIndex >= _uiivData->slotDestRects.size()) {
 		return;
 	}
-
-	Common::Rect dst = _uiivData->slotDestRects[slotIndex];
-	dst.translate(-_screenPosition.left, -_screenPosition.top);
 
 	if (itemID < 0 || itemID >= (int16)_invData->itemDescriptions.size()) {
 		// Empty slot — leave the popup-background pixels in place.
@@ -214,7 +215,12 @@ void InventoryPopup::drawSlot(uint slotIndex, int16 itemID) {
 		return;
 	}
 
-	_drawSurface.blitFrom(_itemIcons, desc.sourceRect, Common::Point(dst.left, dst.top));
+	const Common::Point chunkOrigin(_uiivData->header.normalDestRect.left,
+									_uiivData->header.normalDestRect.top);
+	const Common::Rect &slotDst = _uiivData->slotDestRects[slotIndex];
+	_drawSurface.blitFrom(_itemIcons, desc.sourceRect,
+							Common::Point(slotDst.left - chunkOrigin.x,
+											slotDst.top - chunkOrigin.y));
 }
 
 void InventoryPopup::handleInput(NancyInput &input) {
@@ -222,8 +228,13 @@ void InventoryPopup::handleInput(NancyInput &input) {
 		return;
 	}
 
-	// Hit-test slots against the on-screen DEST rects (UIIV stores them in
-	// absolute screen coords, same as button rects).
+	// Bring the mouse into the chunk's coordinate system so hit-tests
+	// against the chunk's destRects work after we translated the popup
+	// by the viewport offset.
+	const Common::Point chunkMouse(
+		input.mousePos.x - _screenPosition.left + _uiivData->header.normalDestRect.left,
+		input.mousePos.y - _screenPosition.top  + _uiivData->header.normalDestRect.top);
+
 	int newHovered = -1;
 	for (uint i = 0; i < kSlotsPerPage; ++i) {
 		if (i >= _uiivData->slotDestRects.size()) {
@@ -232,7 +243,7 @@ void InventoryPopup::handleInput(NancyInput &input) {
 		if (_slotItemIDs[i] < 0) {
 			continue;
 		}
-		if (_uiivData->slotDestRects[i].contains(input.mousePos)) {
+		if (_uiivData->slotDestRects[i].contains(chunkMouse)) {
 			newHovered = (int)i;
 			break;
 		}
@@ -260,7 +271,7 @@ void InventoryPopup::handleInput(NancyInput &input) {
 		if (!filter.enabled) {
 			continue;
 		}
-		if (!filter.button.destRect.contains(input.mousePos)) {
+		if (!filter.button.destRect.contains(chunkMouse)) {
 			continue;
 		}
 
