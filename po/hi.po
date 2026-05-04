@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: ScummVM 2.3.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-04 10:28+0000\n"
-"PO-Revision-Date: 2024-07-11 17:47+0000\n"
-"Last-Translator: Krish <ganatrakrish2882005@gmail.com>\n"
+"PO-Revision-Date: 2026-05-04 17:22+0000\n"
+"Last-Translator: KARTIK SAXENA <kartiksaxena2005@gmail.com>\n"
 "Language-Team: Hindi <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/hi/>\n"
 "Language: hi\n"
@@ -17,19 +17,18 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "X-Language-name: Hindi\n"
 
 #: audio/mac_plugin.cpp:30
 msgid "Apple Macintosh Audio"
-msgstr ""
+msgstr "एप्पल मैकिन्टोश ऑडियो"
 
 #. I18N: built with <compiler>
 #: gui/about.cpp:119
-#, fuzzy, c-format
-#| msgid "(built on %s with %s)"
+#, c-format
 msgid "(built with %s)"
-msgstr "(%s को बनाया गया %s )"
+msgstr "(%s के साथ बनाया गया)"
 
 #. I18N: built on <build date> with <compiler>
 #: gui/about.cpp:122
@@ -88,7 +87,7 @@ msgstr "बंद करें"
 #: engines/ngi/metaengine.cpp:162 engines/supernova/metaengine.cpp:238
 #: engines/tucker/metaengine.cpp:215 engines/zvision/metaengine.cpp:246
 msgid "Help"
-msgstr ""
+msgstr "सहायता"
 
 #: gui/browser.cpp:77 backends/dialogs/macosx/macosx-dialogs.mm:108
 msgid "Show hidden files"
@@ -398,7 +397,7 @@ msgstr "गलत JSON।"
 #. I18N: error message displayed on 'Manual Mode: Failure' step of 'Cloud Connection Wizard', describing that storage connection process was interrupted
 #: gui/cloudconnectionwizard.cpp:593
 msgid "Interrupted."
-msgstr ""
+msgstr "बाधित।"
 
 #: gui/cloudconnectionwizard.cpp:666
 msgid ""
@@ -506,10 +505,8 @@ msgid "Download speed: %s %S/s"
 msgstr "डाउनलोड की गति: %s %S"
 
 #: gui/downloaddlcsdialog.cpp:41
-#, fuzzy
-#| msgid "Download game files"
 msgid "Currently Downloading Games"
-msgstr "गेम फाइल डाउनलोड करे"
+msgstr "वर्तमान में डाउनलोड हो रहे गेम"
 
 #: gui/downloaddlcsdialog.cpp:55
 msgid "Pending Downloads"
