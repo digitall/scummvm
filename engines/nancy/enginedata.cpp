@@ -50,15 +50,24 @@ BSUM::BSUM(Common::SeekableReadStream *chunkStream) : EngineData(chunkStream) {
 	readFilename(s, fontFilename, kGameTypeNancy12);
 	readFilename(s, flagsFilename, kGameTypeNancy12);
 
-	s.syncAsUint16LE(firstScene.sceneID);
+	s.skip(1, kGameTypeNancy14);
+	s.syncAsUint16LE(firstScene.sceneID, kGameTypeVampire, kGameTypeNancy13);
 	s.skip(0xC, kGameTypeVampire, kGameTypeVampire); // Palette name + unknown 2 bytes
 	s.syncAsUint16LE(firstScene.frameID);
+	s.syncAsUint16LE(firstScene.sceneID, kGameTypeNancy14);
+	s.skip(2, kGameTypeNancy14); // Unknown
 	s.syncAsUint16LE(firstScene.verticalOffset);
-	s.syncAsUint16LE(startTimeHours);
-	s.syncAsUint16LE(startTimeMinutes);
 
-	s.syncAsUint16LE(adScene.sceneID, kGameTypeNancy7);
+	s.syncAsUint16LE(startTimeHours, kGameTypeVampire, kGameTypeNancy13);
+	s.syncAsUint16LE(startTimeMinutes, kGameTypeVampire, kGameTypeNancy13);
+
+	s.skip(1, kGameTypeNancy14);
+
+	s.skip(1, kGameTypeNancy14);
+	s.syncAsUint16LE(adScene.sceneID, kGameTypeNancy7, kGameTypeNancy13);
 	s.syncAsUint16LE(adScene.frameID, kGameTypeNancy7);
+	s.syncAsUint16LE(adScene.sceneID, kGameTypeNancy14);
+	s.skip(2, kGameTypeNancy14);	// Unknown
 	s.syncAsUint16LE(adScene.verticalOffset, kGameTypeNancy7);
 
 	s.skip(0xA4, kGameTypeVampire, kGameTypeNancy2);

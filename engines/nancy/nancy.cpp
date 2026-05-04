@@ -431,11 +431,6 @@ void NancyEngine::bootGameEngine() {
 	// Setup mixer
 	syncSoundSettings();
 
-	if (getGameType() >= kGameTypeNancy14) {
-		// Nancy14+ games use a newer font format, which we don't support yet.
-		error("Game not supported; Use console to inspect game data");
-	}
-
 	IFF *iff = _resource->loadIFF("boot");
 	if (!iff)
 		error("Failed to load boot script");
