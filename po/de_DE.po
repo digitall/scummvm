@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-05 11:01+0000\n"
-"PO-Revision-Date: 2026-04-18 06:04+0000\n"
+"PO-Revision-Date: 2026-05-05 16:31+0000\n"
 "Last-Translator: Lothar Serra Mari <lothar.serramari@scummvm.org>\n"
 "Language-Team: German <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/de/>\n"
@@ -2084,8 +2084,6 @@ msgid "MIDI gain:"
 msgstr "MIDI-Lautstärke:"
 
 #: gui/options.cpp:1866
-#, fuzzy
-#| msgid "MT-32 Device:"
 msgid "MT-32 device:"
 msgstr "MT-32-Gerät:"
 
@@ -8265,10 +8263,8 @@ msgid "Toggle wireframe"
 msgstr "Drahtmodell umschalten"
 
 #: engines/colony/metaengine.cpp:178
-#, fuzzy
-#| msgid "Menu / Skip"
 msgid "Menu / Skip intro"
-msgstr "Menü / Überspringen"
+msgstr "Menü / Intro überspringen"
 
 #: engines/colony/metaengine.cpp:184 engines/ultima/ultima8/metaengine.cpp:89
 msgid "Fire weapon"
@@ -9769,10 +9765,8 @@ msgid "Alignment of the \"More...\" marker on the window"
 msgstr ""
 
 #: engines/glk/dialogs.cpp:375
-#, fuzzy
-#| msgid "SoundFont:"
 msgid "Font:"
-msgstr "SoundFont:"
+msgstr "Schriftart:"
 
 #: engines/glk/dialogs.cpp:375
 msgid "Font for the \"More...\" marker"
@@ -11108,10 +11102,8 @@ msgstr ""
 "Ersetzt den farbigen Edelstein mit Balken für Treffer- und Magie-Punkte."
 
 #: engines/mm/metaengine.cpp:183
-#, fuzzy
-#| msgid "Might and Magic 1"
 msgid "Might and Magic"
-msgstr "Might and Magic 1"
+msgstr "Might and Magic"
 
 #: engines/mm/mm1/metaengine.cpp:59
 msgid "View party member 1"
@@ -11222,10 +11214,8 @@ msgid "Might and Magic 1 - Minimal Keys"
 msgstr "Might and Magic 1 - Minimale Tasten"
 
 #: engines/mm/mm1/metaengine.cpp:154
-#, fuzzy
-#| msgid "Might and Magic 1 - Menus"
 msgid "Might and Magic 1 - Main"
-msgstr "Might and Magic 1 - Menüs"
+msgstr "Might and Magic 1 - Hauptmenü"
 
 #: engines/mm/mm1/metaengine.cpp:155
 msgid "Might and Magic 1 - Party"
@@ -11977,10 +11967,8 @@ msgid "Toggle Chatty AI"
 msgstr "Schalte die gesprächige KI um"
 
 #: engines/pelrock/metaengine.cpp:46
-#, fuzzy
-#| msgid "Alternative action"
 msgid "Alternate timing"
-msgstr "Alternative Handlung"
+msgstr "Alternatives Timing"
 
 #: engines/pelrock/metaengine.cpp:47
 msgid ""
@@ -11989,10 +11977,8 @@ msgid ""
 msgstr ""
 
 #: engines/pelrock/metaengine.cpp:57
-#, fuzzy
-#| msgid "Play intro videos"
 msgid "Play intro"
-msgstr "Intro-Videos abspielen"
+msgstr "Intro abspielen"
 
 #: engines/pelrock/metaengine.cpp:58
 msgid ""
