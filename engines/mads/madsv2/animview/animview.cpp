@@ -41,16 +41,33 @@ struct AnimEntry {
 	uint8 bg_load_status;
 	uint8 sound_mode;
 	uint8 show_bars;
+	uint8 fx;
 };
 constexpr int MAX_ANIM = 40;
+constexpr bool in_mads_mode = true;
 
 static int anim_count;
 static AnimEntry anim_list[MAX_ANIM];
 static uint8 background_load_status;
 static int16 sound_interrupts_mode;
 static bool show_white_bars;
-constexpr bool in_mads_mode = true;
 static int concat_mode;
+static bool resync_timer1, resync_timer2;
+static bool exit_immediately_at_end;
+
+/**
+ * Initializes animview global variables
+ */
+static void init_globals() {
+	anim_count = 0;
+	background_load_status = 0xff;
+	sound_interrupts_mode = -1;
+	show_white_bars = true;
+	concat_mode = 0;
+	resync_timer1 = true;
+	resync_timer2 = false;
+	exit_immediately_at_end = false;
+}
 
 /**
  * Adds an animation to the list of .aa files to show in sequence
@@ -73,21 +90,52 @@ static void add_anim(const char *name) {
 }
 
 /**
- * Initializes animview global variables
- */
-static void init_globals() {
-	anim_count = 0;
-	background_load_status = 0xff;
-	sound_interrupts_mode = -1;
-	show_white_bars = true;
-	concat_mode = 0;
-}
-
-/**
  * Parses a flag from an animation line in the resource file
  */
 static void flag_parse(const char *param) {
-	// TODO
+	switch (tolower(*param++)) {
+	case 'o':
+		// Specify opening special effect
+		assert(anim_count < MAX_ANIM);
+		if (*param == ':')
+			anim_list[anim_count].fx = atoi(param + 1);
+		break;
+
+	case 'r':
+		// -r[:abn] Resynch timer (always, beginning, never)
+		if (*param == ':') {
+			switch (tolower(*++param)) {
+			case 'n':
+				resync_timer1 = true;
+				resync_timer2 = false;
+				break;
+			case 'a':
+				resync_timer1 = false;
+				break;
+			case 'b':
+				resync_timer1 = true;
+				resync_timer2 = true;
+				break;
+			default:
+				break;
+			}
+		}
+		break;
+
+	case 'w':
+		// Toggle white bars on or off
+		show_white_bars = !show_white_bars;
+		break;
+
+	case 'x':
+		// Exit immediately after last frame
+		exit_immediately_at_end = true;
+		break;
+
+	default:
+		error("Unsupported animview flag - %c", *param);
+		break;
+	}
 }
 
 /**
@@ -105,6 +153,7 @@ static void read_resource(Common::SeekableReadStream *src) {
 		const char *lineP = line.c_str();
 		while (strchr("/-", *lineP)) {
 			// It's a flag
+			++lineP;
 			const char *switchEnd = strchr(lineP, ' ');
 			Common::String param;
 
