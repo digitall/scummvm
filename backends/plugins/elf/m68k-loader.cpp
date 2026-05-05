@@ -28,8 +28,6 @@
 
 #include "common/debug.h"
 
-#include <mint/basepage.h>
-
 bool M68KDLObject::relocate(Elf32_Off offset, Elf32_Word size, byte *relSegment) {
 	Elf32_Rela *rel = (Elf32_Rela *)malloc(size);
 

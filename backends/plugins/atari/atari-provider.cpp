@@ -27,6 +27,7 @@
 #include "backends/plugins/atari/atari-provider.h"
 #include "backends/plugins/elf/m68k-loader.h"
 
+#include <mint/basepage.h>
 #include <mint/cookie.h>
 #include <mint/mintbind.h>
 #include <mint/ssystem.h>
