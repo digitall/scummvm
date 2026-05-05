@@ -217,6 +217,11 @@ void animview_main(const char *resName) {
 	(void)env_verify();
 
 	Common::strcpy_s(name, resName);
+	if (*name == '@') {
+		Common::strcpy_s(name, resName + 1);
+		Common::strcat_s(name, ".res");
+	}
+
 	if (!Common::File::exists(name)) {
 		Common::strcpy_s(name, "*");
 		Common::strcat_s(name, resName);

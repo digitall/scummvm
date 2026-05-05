@@ -260,34 +260,34 @@ void phantom_main() {
 	if (!env_verify())
 		env_search_mode = ENV_SEARCH_CONCAT_FILES;
 
-	bool firstTime = !ConfMan.getBool("start_game") && !ConfMan.hasKey("save_slot");
-	selected_item = 0;
+	if (ConfMan.getBool("start_game") || ConfMan.hasKey("save_slot"))
+		selected_item = 0;
+	else if (ConfMan.getBool("start_intro"))
+		selected_item = 3;
+	else
+		selected_item = -1;
 
 	while (!g_engine->shouldQuit()) {
-		if (firstTime) {
+		switch (selected_item) {
+		case -1:
 			main_menu_main();
-			firstTime = false;
-		}
+			break;
 
-		if (!g_engine->shouldQuit()) {
-			switch (selected_item) {
-			case 0:
-				game_main(2, CMD_LINE);
-				return;
+		case 0:
+			game_main(2, CMD_LINE);
+			return;
 
-			case 3:
-				AnimView::animview_main("@phantom");
-				firstTime = true;
-				selected_item = 0;
-				break;
+		case 3:
+			AnimView::animview_main("@phantom");
+			selected_item = -1;
+			break;
 
-			case 4:
-				// Exit
-				return;
+		case 4:
+			// Exit
+			return;
 
-			default:
-				break;
-			}
+		default:
+			break;
 		}
 	}
 }
