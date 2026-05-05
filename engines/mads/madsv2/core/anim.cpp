@@ -56,6 +56,7 @@ void AnimFile::load(Common::SeekableReadStream *src) {
 	src->read(background_depth, 13);
 	src->read(speech_file, 13);
 	src->read(font_file, 13);
+	src->skip(1);
 }
 
 void Speech::load(Common::SeekableReadStream *src) {
@@ -533,15 +534,15 @@ int anim_get_header_info(char *file_name,
 
 	load_handle.open = false;
 
-	if (loader_open(&load_handle, file_name, "rb", true))
-		goto done;
+	if (!loader_open(&load_handle, file_name, "rb", true)) {
+		byte buffer[AnimFile::SIZE];
+		if (loader_read(buffer, AnimFile::SIZE, 1, &load_handle)) {
+			Common::MemoryReadStream src(buffer, AnimFile::SIZE);
+			anim_in->load(&src);
+			error_flag = false;
+		}
+	}
 
-	if (!loader_read(anim_in, sizeof(AnimFile), 1, &load_handle))
-		goto done;
-
-	error_flag = false;
-
-done:
 	if (load_handle.open)
 		loader_close(&load_handle);
 

@@ -31,6 +31,7 @@
 #include "mads/madsv2/core/tile.h"
 #include "mads/madsv2/core/timer.h"
 #include "mads/madsv2/animview/animview.h"
+#include "mads/madsv2/engine.h"
 
 namespace MADS {
 namespace MADSV2 {
@@ -178,10 +179,39 @@ static void read_resource(Common::SeekableReadStream *src) {
 	}
 }
 
-static void perform() {
+/**
+ * Animate a single entry in the anim_list
+ */
+static void animate_entry(AnimEntry &entry) {
 	char buf[80];// , speech_name[80];
 	AnimFile anim_in;
 
+	*buf = '\0';
+	if (in_mads_mode)
+		Common::strcpy_s(buf, "*");
+	Common::strcat_s(buf, entry.name);
+
+	himem_preload_series(buf, 0);
+
+	if (anim_get_header_info(buf, &anim_in))
+		return;
+
+	if (anim_in.load_flags & AA_LOAD_FONT) {
+		*buf = '\0';
+		if (in_mads_mode)
+			Common::strcpy_s(buf, "*");
+		Common::strcat_s(buf, anim_in.font_file);
+		himem_preload_series(buf, 0);
+	}
+
+	// TODO: More stuff
+}
+
+/**
+ * Iterate over the entries in the anim_list, animating each
+ * in sequence
+ */
+static void animate() {
 	himem_startup();
 	(void)tile_setup();
 
@@ -193,19 +223,8 @@ static void perform() {
 	timer_install();
 	matte_init(-1);
 
-	for (int count = 0; count < anim_count; ++count) {
-		*buf = '\0';
-		if (in_mads_mode)
-			Common::strcpy_s(buf, "*");
-		Common::strcat_s(buf, anim_list[count].name);
-
-		himem_preload_series(buf, 0);
-
-		if (anim_get_header_info(buf, &anim_in))
-			continue;
-		
-		// TODO: More stuff
-	}
+	for (int count = 0; count < anim_count && !g_engine->shouldQuit(); ++count)
+		animate_entry(anim_list[count]);
 }
 
 void animview_main(const char *resName) {
@@ -235,7 +254,7 @@ void animview_main(const char *resName) {
 	read_resource(file);
 	delete file;
 
-	perform();
+	animate();
 }
 
 } // namespace AnimView
