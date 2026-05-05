@@ -167,15 +167,9 @@ ActionRecord *ActionManager::createActionRecord(uint16 type, Common::SeekableRea
 		else
 			return new HotMultiframeMultiSceneChange();	// Moved from 13 in Nancy 10
 	case 27:
-		if (g_nancy->getGameType() >= kGameTypeNancy10)
-			return new HotMultiframeMultiSceneCursorTypeSceneChange(); // Moved from 24 to 27 in Nancy10
-		// fallthrough
-		// FIXME: Is fallthrough intended here?
+		return new HotMultiframeMultiSceneCursorTypeSceneChange(); // Moved from 24 to 27 in Nancy10
 	case 28:
-		if (g_nancy->getGameType() >= kGameTypeNancy10)
-			return new InteractiveVideo();	// Moved from 26 to 28 in Nancy10
-		// fallthrough
-		// FIXME: Is fallthrough intended here?
+		return new InteractiveVideo();	// Moved from 26 to 28 in Nancy10
 	case 29:
 		// Nancy 10+
 		return new ControlUIItems();
