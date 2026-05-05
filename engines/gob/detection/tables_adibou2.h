@@ -403,6 +403,22 @@
 	{
 		"adibou2readcount67",
 		"", // "Lecture/Calcul 6-7 ans"
+		AD_ENTRY2s("intro_ap.stk", "0e91d0d693d5731353ad4738f4aa065c", 36540132,
+				   "appli_03.vmd", "d037d75824a033a5de4a45b9c02419ee", 58858),
+		FR_FRA,
+		kPlatformWindows,
+		ADGF_ADDON,
+		GUIO0()
+	},
+	kFeatures640x480,
+	0, 0, 0
+},
+
+
+{
+	{
+		"adibou2readcount67",
+		"", // "Lecture/Calcul 6-7 ans"
 		AD_ENTRY2s("intro_ap.stk", "82ec211d2f0cb3430d8f1eb80c949f41", 36540108,
 				   "appli_03.vmd", "2ec3177c0f1b4ef326cc663834003eb4", 38062),
 		FR_CAN,
