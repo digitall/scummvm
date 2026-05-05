@@ -338,12 +338,7 @@ void ActionManager::processDependency(DependencyRecord &dep, ActionRecord &recor
 			dep.satisfied = true;
 			break;
 		case DependencyType::kInventory:
-			if (dep.condition == g_nancy->_false) {
-				// Item not in possession or held
-				dep.satisfied = !NancySceneState.hasItem(dep.label);
-			} else {
-				dep.satisfied = NancySceneState.hasItem(dep.label);
-			}
+			dep.satisfied = NancySceneState.hasItem(dep.label) == dep.condition;
 
 			break;
 		case DependencyType::kEvent:
