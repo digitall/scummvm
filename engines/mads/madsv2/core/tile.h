@@ -98,7 +98,7 @@ struct TileMapHeader {
 extern ShadowList tile_shadow;
 extern int tile_load_error;
 
-
+extern int tile_setup();
 extern int tile_load(const char *base, int tile_type, TileResource *tile_resource,
 	TileMapHeader *map, Buffer *picture, ColorListPtr color_list,
 	CycleListPtr cycle_list, int ems_handle, int load_flags);

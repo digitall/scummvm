@@ -28,6 +28,7 @@
 #include "mads/madsv2/core/mem.h"
 #include "mads/madsv2/core/pack.h"
 #include "mads/madsv2/core/color.h"
+#include "mads/madsv2/core/ems.h"
 #include "mads/madsv2/core/env.h"
 #include "mads/madsv2/core/room.h"
 #include "mads/madsv2/core/pal.h"
@@ -43,7 +44,11 @@ namespace MADSV2 {
 
 int tile_load_error;
 ShadowList tile_shadow;
-
+static bool tile_ems_available = false;
+#if 0
+static int tile_picture_handle;
+static int tile_attribute_handle;
+#endif
 
 void TileMapHeader::load(Common::SeekableReadStream *src) {
 	src->readMultipleLE(tile_type, one_to_one, num_x_tiles, num_y_tiles,
@@ -63,6 +68,28 @@ void TileResource::load(Common::SeekableReadStream *src) {
 		num_pages, tiles_per_page, chunk_size, color_handle);
 }
 
+int tile_setup() {
+	int error_flag = true;
+
+	picture_map.map = NULL;
+	depth_map.map = NULL;
+#if 0
+	tile_picture_handle = ems_get_page_handle(TILE_MAX_PAGES);
+	if (tile_picture_handle < 0) goto done;
+
+	tile_attribute_handle = ems_get_page_handle(TILE_MAX_PAGES >> 1);
+	if (tile_attribute_handle < 0) goto done;
+
+	tile_ems_available = true;
+	error_flag = false;
+
+done:
+	if (error_flag) {
+		if (tile_picture_handle >= 0) ems_free_page_handle(tile_picture_handle);
+	}
+#endif
+	return error_flag;
+}
 
 int tile_load(const char *base, int tile_type, TileResource *tile_resource,
 		TileMapHeader *map, Buffer *picture, ColorListPtr color_list,

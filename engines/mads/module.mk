@@ -57,6 +57,7 @@ ifdef ENABLE_MADSV2
 MODULE_OBJS += \
 	madsv2/console.o \
 	madsv2/engine.o \
+	madsv2/animview/animview.o \
 	madsv2/core/anim.o \
 	madsv2/core/asound.o \
 	madsv2/core/attr.o \

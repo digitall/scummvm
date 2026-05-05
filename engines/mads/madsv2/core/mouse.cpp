@@ -240,6 +240,9 @@ const byte *mouse_get_stack() {
 	error("TODO: mouse_get_stack");
 }
 
+void mouse_hard_cursor_mode(int mode, Palette mypal) {
+}
+
 } // namespace MADSV2
 } // namespace MADS
 
