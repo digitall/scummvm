@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2026-05-04 23:29+0000\n"
+"POT-Creation-Date: 2026-05-05 11:01+0000\n"
 "PO-Revision-Date: 2021-03-21 08:24+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Belarusian <https://translations.scummvm.org/projects/scummvm/"
@@ -6406,10 +6406,11 @@ msgstr ""
 #: engines/got/metaengine.cpp:35 engines/groovie/metaengine.cpp:53
 #: engines/m4/metaengine.cpp:37 engines/mads/metaengine.cpp:116
 #: engines/nancy/metaengine.cpp:104 engines/neverhood/dialogs.cpp:47
-#: engines/phoenixvr/metaengine.cpp:38 engines/sci/detection_options.h:105
-#: engines/sherlock/metaengine.cpp:47 engines/toltecs/metaengine.cpp:44
-#: engines/trecision/metaengine.cpp:41 engines/ultima/metaengine.cpp:56
-#: engines/waynesworld/metaengine.cpp:37 engines/zvision/metaengine.cpp:42
+#: engines/pelrock/metaengine.cpp:35 engines/phoenixvr/metaengine.cpp:38
+#: engines/sci/detection_options.h:105 engines/sherlock/metaengine.cpp:47
+#: engines/toltecs/metaengine.cpp:44 engines/trecision/metaengine.cpp:41
+#: engines/ultima/metaengine.cpp:56 engines/waynesworld/metaengine.cpp:37
+#: engines/zvision/metaengine.cpp:42
 msgid "Use original save/load screens"
 msgstr "Выкарыстоўваць арыгінальныя экраны запісу/чытання гульні"
 
@@ -6420,10 +6421,11 @@ msgstr "Выкарыстоўваць арыгінальныя экраны за�
 #: engines/got/metaengine.cpp:36 engines/groovie/metaengine.cpp:54
 #: engines/m4/metaengine.cpp:38 engines/mads/metaengine.cpp:117
 #: engines/nancy/metaengine.cpp:105 engines/neverhood/dialogs.cpp:48
-#: engines/phoenixvr/metaengine.cpp:39 engines/sci/detection_options.h:106
-#: engines/sherlock/metaengine.cpp:48 engines/toltecs/metaengine.cpp:45
-#: engines/trecision/metaengine.cpp:42 engines/ultima/metaengine.cpp:57
-#: engines/waynesworld/metaengine.cpp:38 engines/zvision/metaengine.cpp:43
+#: engines/pelrock/metaengine.cpp:36 engines/phoenixvr/metaengine.cpp:39
+#: engines/sci/detection_options.h:106 engines/sherlock/metaengine.cpp:48
+#: engines/toltecs/metaengine.cpp:45 engines/trecision/metaengine.cpp:42
+#: engines/ultima/metaengine.cpp:57 engines/waynesworld/metaengine.cpp:38
+#: engines/zvision/metaengine.cpp:43
 msgid "Use the original save/load screens instead of the ScummVM ones"
 msgstr ""
 "Выкарыстоўваць арыгінальныя экраны чытання/захавання гульні замест ScummVM"
@@ -12154,6 +12156,38 @@ msgstr "Пераключыць хуткі рэжым"
 #, fuzzy
 msgid "Toggle Chatty AI"
 msgstr "Пераключыць хуткі рэжым"
+
+#: engines/pelrock/metaengine.cpp:46
+#, fuzzy
+msgid "Alternate timing"
+msgstr "Альтэрнатыўны ўступ"
+
+#: engines/pelrock/metaengine.cpp:47
+msgid ""
+"Use ScummVM's alternate animation timing instead of the original game's "
+"slower walking and talking speed"
+msgstr ""
+
+#: engines/pelrock/metaengine.cpp:57
+#, fuzzy
+#| msgid "Play intro videos"
+msgid "Play intro"
+msgstr "Прайграваць уступныя відэа"
+
+#: engines/pelrock/metaengine.cpp:58
+msgid ""
+"Play the game's intro sequence. Plays automatically the first time the game "
+"is launched."
+msgstr ""
+
+#: engines/pelrock/metaengine.cpp:68
+#, fuzzy
+msgid "Disable screensaver"
+msgstr "Не атрымалася захаваць гульню"
+
+#: engines/pelrock/metaengine.cpp:69
+msgid "Disable original screensaver slider mini-game every 60 seconds."
+msgstr ""
 
 #: engines/petka/metaengine.cpp:117
 #, fuzzy
