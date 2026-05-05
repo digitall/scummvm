@@ -17,7 +17,7 @@ MODULE_OBJS = \
 	metaengine.o \
 	pathfinding.o \
 	pelrock.o \
-	resources.o\
+	resources.o \
 	room.o \
 	saveload.o \
 	slidingpuzzle.o \
