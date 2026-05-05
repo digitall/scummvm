@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-05 11:01+0000\n"
-"PO-Revision-Date: 2026-05-01 16:31+0000\n"
+"PO-Revision-Date: 2026-05-05 14:12+0000\n"
 "Last-Translator: Walter Agazzi <walter.agazzi@protonmail.com>\n"
 "Language-Team: Italian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/it/>\n"
@@ -2075,8 +2075,6 @@ msgid "MIDI gain:"
 msgstr "Guadagno MIDI:"
 
 #: gui/options.cpp:1866
-#, fuzzy
-#| msgid "MT-32 Device:"
 msgid "MT-32 device:"
 msgstr "Disposit. MT-32:"
 
@@ -11921,38 +11919,38 @@ msgid "Toggle Chatty AI"
 msgstr "Attiva/disattiva IA chiacchierona"
 
 #: engines/pelrock/metaengine.cpp:46
-#, fuzzy
-#| msgid "Alternative action"
 msgid "Alternate timing"
-msgstr "Azione alternativa"
+msgstr "Animazione alternativa"
 
 #: engines/pelrock/metaengine.cpp:47
 msgid ""
 "Use ScummVM's alternate animation timing instead of the original game's "
 "slower walking and talking speed"
 msgstr ""
+"Usa un timing alternativo (più veloce) per le animazioni durante gli "
+"spostamenti e i dialoghi"
 
 #: engines/pelrock/metaengine.cpp:57
-#, fuzzy
-#| msgid "Play intro videos"
 msgid "Play intro"
-msgstr "Riproduci filmati di introduzione"
+msgstr "Riproduci introduzione"
 
 #: engines/pelrock/metaengine.cpp:58
 msgid ""
 "Play the game's intro sequence. Plays automatically the first time the game "
 "is launched."
 msgstr ""
+"Riproduce sempre la sequenza di introduzione, anzichè solamente al primo "
+"primo avvio del gioco."
 
 #: engines/pelrock/metaengine.cpp:68
-#, fuzzy
-#| msgid "Disable sensors"
 msgid "Disable screensaver"
-msgstr "Disabilita torrette laser"
+msgstr "Disabilita salvaschermo"
 
 #: engines/pelrock/metaengine.cpp:69
 msgid "Disable original screensaver slider mini-game every 60 seconds."
 msgstr ""
+"Disabilita il mini-gioco / screensaver che viene visualizzato dopo 60 "
+"secondi di inattività."
 
 #: engines/petka/metaengine.cpp:117
 msgid "Interact / Skip dialog"
