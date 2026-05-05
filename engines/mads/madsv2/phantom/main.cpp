@@ -21,6 +21,7 @@
 
 #include "common/config-manager.h"
 #include "mads/madsv2/phantom/main.h"
+#include "mads/madsv2/animview/animview.h"
 #include "mads/madsv2/core/env.h"
 #include "mads/madsv2/core/error.h"
 #include "mads/madsv2/core/fileio.h"
@@ -273,6 +274,12 @@ void phantom_main() {
 			case 0:
 				game_main(2, CMD_LINE);
 				return;
+
+			case 3:
+				AnimView::animview_main("@phantom");
+				firstTime = true;
+				selected_item = 0;
+				break;
 
 			case 4:
 				// Exit

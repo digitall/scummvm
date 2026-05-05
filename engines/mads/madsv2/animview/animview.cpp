@@ -44,7 +44,6 @@ struct AnimEntry {
 };
 constexpr int MAX_ANIM = 40;
 
-static bool has_anim;
 static int anim_count;
 static AnimEntry anim_list[MAX_ANIM];
 static uint8 background_load_status;
@@ -61,8 +60,6 @@ static void add_anim(const char *name) {
 	static char buf[16];
 
 	if (strlen(name) > 0 && anim_count < MAX_ANIM) {
-		has_anim = true;
-
 		Common::strcpy_s(buf, name);
 		if (!strchr(buf, '.'))
 			Common::strcat_s(buf, ".aa");
@@ -75,8 +72,10 @@ static void add_anim(const char *name) {
 	}
 }
 
+/**
+ * Initializes animview global variables
+ */
 static void init_globals() {
-	has_anim = false;
 	anim_count = 0;
 	background_load_status = 0xff;
 	sound_interrupts_mode = -1;
@@ -84,8 +83,54 @@ static void init_globals() {
 	concat_mode = 0;
 }
 
+/**
+ * Parses a flag from an animation line in the resource file
+ */
+static void flag_parse(const char *param) {
+	// TODO
+}
+
+/**
+ * Reads the contents of the resource file stream, and adds
+ * entries to the anim_list for what to display
+ */
+static void read_resource(Common::SeekableReadStream *src) {
+	while (!src->eos()) {
+		Common::String line = src->readLine();
+		line.trim();
+		if (line.empty())
+			continue;
+
+		// Handle any flags at the start of the line
+		const char *lineP = line.c_str();
+		while (strchr("/-", *lineP)) {
+			// It's a flag
+			const char *switchEnd = strchr(lineP, ' ');
+			Common::String param;
+
+			if (switchEnd) {
+				// There's more line after the flag
+				param = Common::String(lineP, switchEnd);
+				for (lineP = switchEnd; *lineP == ' '; ++lineP) {
+				}
+			} else {
+				// This is the last flag of the line
+				param = Common::String(lineP);
+				lineP = lineP + strlen(lineP);
+			}
+
+			flag_parse(param.c_str());
+		}
+
+		// As long as we're not at the end of the line, any remainder
+		// should be the name of the animation resource to play
+		if (*lineP)
+			add_anim(lineP);
+	}
+}
+
 static void perform() {
-	char buf[80], speech_name[80];
+	char buf[80];// , speech_name[80];
 	AnimFile anim_in;
 
 	himem_startup();
@@ -131,6 +176,10 @@ void animview_main(const char *resName) {
 	Common::SeekableReadStream *file = env_open(name);
 	if (!file)
 		error("Could not open animview resource - %s", name);
+
+	// Read in the resource lines
+	read_resource(file);
+	delete file;
 
 	perform();
 }
