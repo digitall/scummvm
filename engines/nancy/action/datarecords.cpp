@@ -407,7 +407,13 @@ void ModifyListEntry::readData(Common::SeekableReadStream &stream) {
 	readFilename(stream, _stringID);
 	_mark = stream.readUint16LE();
 
-	if (g_nancy->getGameType() >= kGameTypeNancy9 && _mark >= 10) {
+	if (g_nancy->getGameType() >= kGameTypeNancy10) {
+		// Nancy 10+: the trailing sceneID is always present
+		_sceneID = stream.readUint16LE();
+		if (_mark < 10 && _mark != 7)
+			_sceneID = kNoScene;
+	} else if (g_nancy->getGameType() >= kGameTypeNancy9 && _mark >= 10) {
+		// Nancy 9: the trailing sceneID is only present when mark >= 10.
 		_sceneID = stream.readUint16LE();
 	}
 }
