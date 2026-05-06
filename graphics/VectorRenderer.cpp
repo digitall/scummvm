@@ -105,7 +105,7 @@ int VectorRenderer::stepGetRadius(const DrawStep &step, const Common::Rect &area
 	if (step.scale != (1 << 16) && step.scale != 0)
 		radius = (radius * step.scale) >> 16;
 
-	if (raduis < 0)
+	if (radius < 0)
 		radius = 0;
 
 	return radius;
