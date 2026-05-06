@@ -37,6 +37,9 @@ namespace MADS {
 namespace MADSV2 {
 namespace AnimView {
 
+#define MADS_FORMAT(BUF, SRC) Common::strcpy_s(BUF, in_mads_mode ? "*" : ""); \
+	Common::strcat_s(BUF, SRC)
+
 struct AnimEntry {
 	char name[16];
 	uint8 bg_load_status;
@@ -55,6 +58,9 @@ static bool show_white_bars;
 static int concat_mode;
 static bool resync_timer1, resync_timer2;
 static bool exit_immediately_at_end;
+static bool do_not_clear_screen;
+static bool has_sound_file;
+static char sound_file_name[80];
 
 /**
  * Initializes animview global variables
@@ -68,6 +74,9 @@ static void init_globals() {
 	resync_timer1 = true;
 	resync_timer2 = false;
 	exit_immediately_at_end = false;
+	do_not_clear_screen = false;
+	has_sound_file = false;
+	*sound_file_name = '\0';
 }
 
 /**
@@ -133,6 +142,11 @@ static void flag_parse(const char *param) {
 		exit_immediately_at_end = true;
 		break;
 
+	case 'y':
+		// Do not clear screen at start
+		do_not_clear_screen = true;
+		break;
+
 	default:
 		error("Unsupported animview flag - %c", *param);
 		break;
@@ -180,38 +194,17 @@ static void read_resource(Common::SeekableReadStream *src) {
 }
 
 /**
- * Animate a single entry in the anim_list
- */
-static void animate_entry(AnimEntry &entry) {
-	char buf[80];// , speech_name[80];
-	AnimFile anim_in;
-
-	*buf = '\0';
-	if (in_mads_mode)
-		Common::strcpy_s(buf, "*");
-	Common::strcat_s(buf, entry.name);
-
-	himem_preload_series(buf, 0);
-
-	if (anim_get_header_info(buf, &anim_in))
-		return;
-
-	if (anim_in.load_flags & AA_LOAD_FONT) {
-		*buf = '\0';
-		if (in_mads_mode)
-			Common::strcpy_s(buf, "*");
-		Common::strcat_s(buf, anim_in.font_file);
-		himem_preload_series(buf, 0);
-	}
-
-	// TODO: More stuff
-}
-
-/**
  * Iterate over the entries in the anim_list, animating each
  * in sequence
  */
 static void animate() {
+	char buf[80], speech_name[80];
+	AnimFile anim_in;
+	int count, series_ctr;
+	int soundLoadFlag = 0;
+	bool foundSound;
+	int oldMode;
+
 	himem_startup();
 	(void)tile_setup();
 
@@ -223,8 +216,75 @@ static void animate() {
 	timer_install();
 	matte_init(-1);
 
-	for (int count = 0; count < anim_count && !g_engine->shouldQuit(); ++count)
-		animate_entry(anim_list[count]);
+	// Preload resources used by the animations
+	for (count = 0; count < anim_count && !g_engine->shouldQuit(); ++count) {
+		AnimEntry &entry = anim_list[count];
+
+		MADS_FORMAT(buf, entry.name);
+		himem_preload_series(buf, 0);
+
+		if (anim_get_header_info(buf, &anim_in))
+			return;
+
+		// Preload resources used by the animation
+		if (anim_in.load_flags & AA_LOAD_FONT) {
+			*buf = '\0';
+			if (in_mads_mode)
+				Common::strcpy_s(buf, "*");
+			Common::strcat_s(buf, anim_in.font_file);
+			himem_preload_series(buf, 0);
+		}
+
+		for (series_ctr = 0; series_ctr < anim_in.num_series; ++series_ctr) {
+			MADS_FORMAT(buf, anim_in.series_name[series_ctr]);
+			himem_preload_series(buf, 0);
+		}
+
+		if (anim_in.background_type == AA_ROOM) {
+			static const char *EXT[5] = { ".dat", ".tt", ".mm", ".tt0", ".mm0" };
+			for (int i = 0; i < 5; ++i) {
+				env_get_level_path(buf, anim_in.background_room, EXT[i], 3, 0);
+				himem_preload_series(buf, 0);
+			}
+		}
+	}
+
+	if (!do_not_clear_screen) {
+		mcga_setpal(&cycling_palette);
+	}
+
+	speech_init();
+
+	for (count = 0; count < anim_count; ++count) {
+		MADS_FORMAT(buf, anim_list[count].name);
+
+		foundSound = false;
+
+		if (!has_sound_file) {
+			if (anim_get_sound_info(buf, sound_file_name, &soundLoadFlag))
+				goto done;
+
+			if (soundLoadFlag) {
+				oldMode = concat_mode;
+				*speech_name = '\0';
+				MADS_FORMAT(speech_name, sound_file_name);
+				env_get_path(sound_file_name, speech_name);
+				concat_mode = oldMode;
+
+				// Original did setup of sound card driver type here. Not needed for ScummVM
+
+				has_sound_file = Common::File::exists(sound_file_name);
+			}
+		}
+
+		if (has_sound_file)
+			// TODO: Load proper driver number
+			g_engine->_soundManager->init(9);
+
+		//Anim *current_anim = anim_load()
+	}
+done:
+	;
 }
 
 void animview_main(const char *resName) {
@@ -253,6 +313,12 @@ void animview_main(const char *resName) {
 	// Read in the resource lines
 	read_resource(file);
 	delete file;
+
+	if (has_sound_file) {
+		char snd_name[80];
+		MADS_FORMAT(snd_name, sound_file_name);
+		env_get_path(sound_file_name, snd_name);
+	}
 
 	animate();
 }
