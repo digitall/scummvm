@@ -1210,6 +1210,12 @@ void GfxFrameout::updateScreen(const int delta) {
 	_lastScreenUpdateTick = now;
 	g_system->updateScreen();
 	g_sci->getSciDebugger()->onFrame();
+
+	// Handles quitting from within the debugger. The SCI16 version of
+	// this check is in EventManager::updateScreen with more details.
+	if (g_engine->shouldQuit()) {
+		g_sci->getEngineState()->abortScriptProcessing = kAbortQuitGame;
+	}
 }
 
 void GfxFrameout::kernelFrameOut(const bool shouldShowBits) {
