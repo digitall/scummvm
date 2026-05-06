@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: ScummVM 1.8.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
 "POT-Creation-Date: 2026-05-05 11:01+0000\n"
-"PO-Revision-Date: 2026-05-04 10:39+0000\n"
+"PO-Revision-Date: 2026-05-06 08:54+0000\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ru/>\n"
@@ -11825,38 +11825,38 @@ msgid "Toggle Chatty AI"
 msgstr "Переключить болтающий ИИ"
 
 #: engines/pelrock/metaengine.cpp:46
-#, fuzzy
-#| msgid "Alternative action"
 msgid "Alternate timing"
-msgstr "Альтернативное действие"
+msgstr "Альтернативные тайминги"
 
 #: engines/pelrock/metaengine.cpp:47
 msgid ""
 "Use ScummVM's alternate animation timing instead of the original game's "
 "slower walking and talking speed"
 msgstr ""
+"Использовать альтернативную скорость анимации ScummVM вместо более медленной "
+"скорости ходьбы и разговоров из оригинальной игры"
 
 #: engines/pelrock/metaengine.cpp:57
-#, fuzzy
-#| msgid "Play intro videos"
 msgid "Play intro"
-msgstr "Проигрывать заставки"
+msgstr "Проигрывать заставку"
 
 #: engines/pelrock/metaengine.cpp:58
 msgid ""
 "Play the game's intro sequence. Plays automatically the first time the game "
 "is launched."
 msgstr ""
+"Воспроизвести вступительную заставку игры. Воспроизводится автоматически при "
+"первом запуске игры."
 
 #: engines/pelrock/metaengine.cpp:68
-#, fuzzy
-#| msgid "Disable sensors"
 msgid "Disable screensaver"
-msgstr "Выключить сенсоры"
+msgstr "Отключить хранитель экрана"
 
 #: engines/pelrock/metaengine.cpp:69
 msgid "Disable original screensaver slider mini-game every 60 seconds."
 msgstr ""
+"Отключить оригинальный хранитель экрана – мини-игру с ползунком, каждые 60 "
+"секунд."
 
 #: engines/petka/metaengine.cpp:117
 msgid "Interact / Skip dialog"
